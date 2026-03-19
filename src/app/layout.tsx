@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { Navbar } from '@/components/layout/navbar'
 import { Footer } from '@/components/layout/footer'
+import { Toaster } from 'react-hot-toast'
 
 export const metadata: Metadata = {
   title: 'AIForge — Marketplace for AI-Built Apps',
@@ -15,6 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Navbar />
         <main className="min-h-screen">{children}</main>
         <Footer />
+        <Toaster position="top-right" />
       </body>
     </html>
   )
