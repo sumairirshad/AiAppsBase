@@ -1,12 +1,40 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Search, ShoppingCart, Menu, X, User, Zap } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Search, ShoppingCart, Menu, X, User, Zap, LogOut, LayoutDashboard } from 'lucide-react'
 
 export function Navbar() {
+  const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [user, setUser] = useState<{ full_name: string; email: string; role: string } | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token')
+    
+    // Fetch profile if token or cookie exists
+    fetch('/api/auth/me')
+      .then(res => res.json())
+      .then(data => {
+        if (data.user) {
+          setUser(data.user)
+        } else if (!token) {
+          setUser(null)
+        }
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  const handleLogout = async () => {
+    localStorage.removeItem('auth_token')
+    await fetch('/api/auth/me', { method: 'DELETE' })
+    setUser(null)
+    router.push('/')
+    window.location.reload()
+  }
 
   return (
     <nav className="sticky top-0 z-50 glass border-b border-white/10">
@@ -52,21 +80,42 @@ export function Navbar() {
 
           {/* Right side */}
           <div className="hidden md:flex items-center gap-3">
-            <Link href="/seller" className="text-surface-300 hover:text-white transition-colors text-sm">
-              Sell
-            </Link>
             <Link href="/buyer" className="relative p-2 text-surface-300 hover:text-white transition-colors">
               <ShoppingCart className="w-5 h-5" />
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-brand-500 rounded-full text-[10px] flex items-center justify-center font-bold">
-                2
-              </span>
             </Link>
-            <Link href="/auth/login" className="btn-secondary text-sm py-2 px-4">
-              Sign In
-            </Link>
-            <Link href="/auth/register" className="btn-primary text-sm py-2 px-4">
-              Sign Up
-            </Link>
+
+            {!loading && (
+              <>
+                {user ? (
+                  <div className="flex items-center gap-4">
+                    <Link href="/panel" className="flex items-center gap-2 group">
+                      <div className="w-8 h-8 rounded-full bg-brand-500/10 flex items-center justify-center border border-brand-500/20 group-hover:bg-brand-500/20 transition-colors">
+                        <User className="w-4 h-4 text-brand-400" />
+                      </div>
+                      <span className="text-sm font-medium text-surface-200 group-hover:text-white transition-colors">
+                        {user.full_name.split(' ')[0]}
+                      </span>
+                    </Link>
+                    <button 
+                      onClick={handleLogout}
+                      className="p-2 text-surface-400 hover:text-red-400 transition-colors"
+                      title="Logout"
+                    >
+                      <LogOut className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <Link href="/auth/login" className="btn-secondary text-sm py-2 px-4">
+                      Sign In
+                    </Link>
+                    <Link href="/auth/register" className="btn-primary text-sm py-2 px-4">
+                      Sign Up
+                    </Link>
+                  </>
+                )}
+              </>
+            )}
           </div>
 
           {/* Mobile toggle */}
@@ -83,19 +132,45 @@ export function Navbar() {
       {mobileOpen && (
         <div className="md:hidden glass border-t border-white/10 animate-fade-in">
           <div className="px-4 py-4 space-y-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-              <input
-                type="text"
-                placeholder="Search..."
-                className="input-field pl-10 text-sm"
-              />
-            </div>
+            {user && (
+              <div className="pb-3 border-b border-white/5 mb-3">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-brand-500/10 flex items-center justify-center border border-brand-500/20">
+                    <User className="w-5 h-5 text-brand-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-white">{user.full_name}</p>
+                    <p className="text-xs text-surface-500">{user.email}</p>
+                  </div>
+                </div>
+                <Link 
+                  href="/panel" 
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-2 py-2 text-surface-300 hover:text-white"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  Dashboard
+                </Link>
+              </div>
+            )}
+            
             <Link href="/products" className="block py-2 text-surface-300 hover:text-white">Browse</Link>
-            <Link href="/seller" className="block py-2 text-surface-300 hover:text-white">Sell</Link>
             <Link href="/buyer" className="block py-2 text-surface-300 hover:text-white">My Purchases</Link>
-            <Link href="/auth/login" className="block py-2 text-surface-300 hover:text-white">Sign In</Link>
-            <Link href="/auth/register" className="block btn-primary text-center text-sm">Sign Up</Link>
+            
+            {user ? (
+              <button 
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2 py-2 text-red-400 hover:text-red-300"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
+            ) : (
+              <>
+                <Link href="/auth/login" className="block py-2 text-surface-300 hover:text-white">Sign In</Link>
+                <Link href="/auth/register" className="block btn-primary text-center text-sm">Sign Up</Link>
+              </>
+            )}
           </div>
         </div>
       )}
