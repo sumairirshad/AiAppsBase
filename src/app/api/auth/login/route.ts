@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { verifyPassword } from '@/lib/auth'
+import { setSession } from '@/lib/session'
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
@@ -31,5 +32,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Please verify your email address before signing in' }, { status: 401 })
   }
 
-  return NextResponse.json({ ok: true, user: { id: user.id, email: email.trim().toLowerCase() } })
+  await setSession(user.id)
+  const token = Buffer.from(user.id).toString('base64')
+
+  return NextResponse.json({ ok: true, token, user: { id: user.id, email: email.trim().toLowerCase() } })
 }
