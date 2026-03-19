@@ -34,8 +34,12 @@ export default function OtpPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error ?? 'Verification failed')
 
+      if (data.token) {
+        localStorage.setItem('auth_token', data.token)
+      }
+
       toast.success('Email verified successfully!')
-      router.push('/')
+      window.location.href = '/'
     } catch (error) {
       toast.error((error as Error).message || 'Verification failed')
     } finally {
