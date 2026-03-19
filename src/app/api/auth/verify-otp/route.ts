@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
+import { setSession } from '@/lib/session'
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
@@ -46,5 +47,8 @@ export async function POST(req: NextRequest) {
   await query('UPDATE otps SET used = TRUE WHERE id = $1', [otp.id])
   await query('UPDATE users SET is_verified = TRUE WHERE id = $1', [user.id])
 
-  return NextResponse.json({ ok: true })
+  await setSession(user.id)
+  const token = Buffer.from(user.id).toString('base64')
+
+  return NextResponse.json({ ok: true, token })
 }
