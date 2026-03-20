@@ -2,8 +2,10 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { ArrowLeft, ArrowRight, Check, Upload, Tag, Cpu, Image, DollarSign, ClipboardList } from 'lucide-react'
 import { AITool, Category, TechStack, HumanModLevel, LicenseType } from '@/types'
+import toast from 'react-hot-toast'
 
 const STEPS = [
   { label: 'Basic Info', icon: ClipboardList },
@@ -33,8 +35,10 @@ const humanModLevels: HumanModLevel[] = ['Pure AI', 'Lightly Edited', 'Heavily M
 
 const licenseTypes: LicenseType[] = ['Personal', 'Commercial', 'Extended Commercial']
 
-export default function NewProductPage() {
+export default function AddProductPage() {
+  const router = useRouter()
   const [step, setStep] = useState(0)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Step 1: Basic Info
   const [title, setTitle] = useState('')
@@ -51,7 +55,7 @@ export default function NewProductPage() {
   const [techStack, setTechStack] = useState<TechStack[]>([])
 
   // Step 4: Media
-  const [screenshots, setScreenshots] = useState('')
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [previewUrl, setPreviewUrl] = useState('')
 
   // Step 5: Pricing
@@ -70,15 +74,55 @@ export default function NewProductPage() {
     )
   }
 
-  const handleSubmit = () => {
-    alert('Product submitted for review!')
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setSelectedFiles(Array.from(e.target.files))
+    }
+  }
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true)
+    try {
+      const formData = new FormData()
+      formData.append('title', title)
+      formData.append('description', description)
+      formData.append('category', category)
+      formData.append('tags', JSON.stringify(tags.split(',').map(t => t.trim()).filter(t => t)))
+      formData.append('aiTools', JSON.stringify(aiTools))
+      formData.append('humanModLevel', humanModLevel)
+      formData.append('framework', framework)
+      formData.append('techStack', JSON.stringify(techStack))
+      formData.append('previewUrl', previewUrl)
+      formData.append('price', price)
+      formData.append('licenseType', licenseType)
+      
+      selectedFiles.forEach((file) => {
+        formData.append('screenshotFiles', file)
+      })
+
+      const response = await fetch('/api/products', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Failed to add product')
+
+      toast.success('Product submitted successfully!')
+      router.push('/panel/seller/products')
+      router.refresh()
+    } catch (error) {
+      toast.error((error as Error).message)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div className="max-w-4xl mx-auto py-4">
       {/* Back link */}
       <Link
-        href="/seller/products"
+        href="/panel/seller/products"
         className="inline-flex items-center gap-2 text-surface-400 hover:text-white transition-colors mb-6"
       >
         <ArrowLeft className="w-4 h-4" />
@@ -267,18 +311,6 @@ export default function NewProductPage() {
             <h2 className="text-xl font-semibold text-white mb-4">Media & Screenshots</h2>
 
             <div>
-              <label className="block text-sm font-medium text-surface-300 mb-2">Screenshot URLs</label>
-              <textarea
-                value={screenshots}
-                onChange={(e) => setScreenshots(e.target.value)}
-                className="input-field w-full min-h-[100px] resize-y"
-                placeholder="Enter screenshot URLs, one per line"
-                rows={3}
-              />
-              <p className="text-xs text-surface-500 mt-1">One URL per line. Recommended: at least 3 screenshots.</p>
-            </div>
-
-            <div>
               <label className="block text-sm font-medium text-surface-300 mb-2">Live Preview URL</label>
               <input
                 type="url"
@@ -290,11 +322,35 @@ export default function NewProductPage() {
               <p className="text-xs text-surface-500 mt-1">Optional. Link to a live demo of your product.</p>
             </div>
 
-            {/* Upload placeholder */}
-            <div className="border-2 border-dashed border-surface-700 rounded-xl p-8 text-center hover:border-surface-600 transition-colors">
-              <Upload className="w-8 h-8 text-surface-500 mx-auto mb-3" />
-              <p className="text-surface-400 text-sm">Drag &amp; drop files here or click to upload</p>
-              <p className="text-surface-500 text-xs mt-1">PNG, JPG, GIF up to 5MB each</p>
+            {/* Upload */}
+            <div className="space-y-4">
+              <label className="block text-sm font-medium text-surface-300">Upload Screenshots</label>
+              <div className="border-2 border-dashed border-surface-700 rounded-xl p-8 text-center hover:border-surface-600 transition-colors relative">
+                <input 
+                  type="file" 
+                  multiple 
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                <Upload className="w-8 h-8 text-surface-500 mx-auto mb-3" />
+                <p className="text-surface-400 text-sm">
+                  {selectedFiles.length > 0 
+                    ? `${selectedFiles.length} files selected` 
+                    : 'Drag & drop files here or click to upload'}
+                </p>
+                <p className="text-surface-500 text-xs mt-1">PNG, JPG up to 5MB each</p>
+              </div>
+              
+              {selectedFiles.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {selectedFiles.map((file, i) => (
+                    <div key={i} className="text-xs bg-white/5 border border-white/10 px-2 py-1 rounded text-surface-400">
+                      {file.name}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -412,6 +468,11 @@ export default function NewProductPage() {
                 <h3 className="text-xs font-medium text-surface-500 uppercase tracking-wider mb-1">Preview URL</h3>
                 <p className="text-brand-400 text-sm">{previewUrl || <span className="text-surface-600 italic">Not set</span>}</p>
               </div>
+
+              <div className="rounded-lg bg-white/5 p-4">
+                <h3 className="text-xs font-medium text-surface-500 uppercase tracking-wider mb-1">Screenshots</h3>
+                <p className="text-white text-sm">{selectedFiles.length > 0 ? `${selectedFiles.length} files selected` : 'None'}</p>
+              </div>
             </div>
           </div>
         )}
@@ -421,9 +482,9 @@ export default function NewProductPage() {
       <div className="flex items-center justify-between">
         <button
           onClick={() => setStep((s) => Math.max(0, s - 1))}
-          disabled={step === 0}
+          disabled={step === 0 || isSubmitting}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-colors ${
-            step === 0
+            step === 0 || isSubmitting
               ? 'text-surface-600 cursor-not-allowed'
               : 'text-surface-300 hover:text-white bg-surface-800/50 hover:bg-surface-700'
           }`}
@@ -443,10 +504,17 @@ export default function NewProductPage() {
         ) : (
           <button
             onClick={handleSubmit}
-            className="btn-primary flex items-center gap-2"
+            disabled={isSubmitting}
+            className="btn-primary flex items-center gap-2 disabled:opacity-50"
           >
-            <Check className="w-4 h-4" />
-            Submit for Review
+            {isSubmitting ? (
+              'Submitting...'
+            ) : (
+              <>
+                <Check className="w-4 h-4" />
+                Submit for Review
+              </>
+            )}
           </button>
         )}
       </div>
