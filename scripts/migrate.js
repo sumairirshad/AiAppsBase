@@ -23,7 +23,7 @@ async function main() {
     // Ensure migrations table exists
     await client.query(`
       CREATE TABLE IF NOT EXISTS migrations (
-        id SERIAL PRIMARY KEY,
+        id SERIAL PRIMARY KEY ,
         name TEXT NOT NULL UNIQUE,
         run_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
