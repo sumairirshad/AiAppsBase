@@ -22,7 +22,13 @@ const aiTools = [
 ]
 
 export default async function HomePage() {
-  const productsRes = await query('SELECT * FROM products ORDER BY created_at DESC LIMIT 8')
+  const productsRes = await query(
+    `SELECT p.*, u.full_name AS seller_name
+     FROM products p
+     JOIN users u ON p.seller_id = u.id
+     WHERE p.status = 'approved'
+     ORDER BY p.created_at DESC LIMIT 8`
+  )
   const products = productsRes.rows || []
 
   return (

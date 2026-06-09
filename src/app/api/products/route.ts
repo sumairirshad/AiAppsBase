@@ -35,9 +35,11 @@ export async function POST(req: NextRequest) {
   }
 
   const userRole = userRes.rows[0].role
-  if (userRole !== 'seller') {
-    // Proactively upgrade buyer to seller so they aren't blocked
+  if (userRole === 'buyer') {
     await query("UPDATE users SET role = 'seller' WHERE id = $1", [userId])
+  }
+  if (userRole !== 'seller' && userRole !== 'admin') {
+    return NextResponse.json({ error: 'Only sellers and admins can add products' }, { status: 403 })
   }
 
   try {

@@ -32,7 +32,11 @@ export default function LoginPage() {
       }
 
       toast.success('Logged in successfully')
-      window.location.href = '/panel'
+
+      const role = data.user?.role
+      if (role === 'admin') window.location.href = '/admin'
+      else if (role === 'seller') window.location.href = '/panel'
+      else window.location.href = '/buyer'
     } catch (error) {
       toast.error((error as Error).message || 'Login failed')
     } finally {

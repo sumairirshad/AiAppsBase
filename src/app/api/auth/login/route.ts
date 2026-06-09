@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
   }
 
-  const userRes = await query('SELECT id, password_hash, is_verified FROM users WHERE email = $1', [
+  const userRes = await query('SELECT id, password_hash, is_verified, role FROM users WHERE email = $1', [
     email.trim().toLowerCase(),
   ])
 
@@ -35,5 +35,9 @@ export async function POST(req: NextRequest) {
   await setSession(user.id)
   const token = Buffer.from(user.id).toString('base64')
 
-  return NextResponse.json({ ok: true, token, user: { id: user.id, email: email.trim().toLowerCase() } })
+  return NextResponse.json({
+    ok: true,
+    token,
+    user: { id: user.id, email: email.trim().toLowerCase(), role: user.role },
+  })
 }
