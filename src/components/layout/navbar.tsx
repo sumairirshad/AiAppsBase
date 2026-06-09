@@ -88,7 +88,10 @@ export function Navbar() {
               <>
                 {user ? (
                   <div className="flex items-center gap-4">
-                    <Link href="/panel" className="flex items-center gap-2 group">
+                    <Link
+                      href={user.role === 'admin' ? '/admin' : user.role === 'seller' ? '/panel' : '/buyer'}
+                      className="flex items-center gap-2 group"
+                    >
                       <div className="w-8 h-8 rounded-full bg-brand-500/10 flex items-center justify-center border border-brand-500/20 group-hover:bg-brand-500/20 transition-colors">
                         <User className="w-4 h-4 text-brand-400" />
                       </div>
@@ -143,8 +146,8 @@ export function Navbar() {
                     <p className="text-xs text-surface-500">{user.email}</p>
                   </div>
                 </div>
-                <Link 
-                  href="/panel" 
+                <Link
+                  href={user.role === 'admin' ? '/admin' : user.role === 'seller' ? '/panel' : '/buyer'}
                   onClick={() => setMobileOpen(false)}
                   className="flex items-center gap-2 py-2 text-surface-300 hover:text-white"
                 >

@@ -35,16 +35,24 @@ interface AdminProduct {
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<AdminProduct[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabKey>('all')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [updating, setUpdating] = useState<string | null>(null)
 
   useEffect(() => {
     setLoading(true)
+    setError(null)
     fetch('/api/admin/products')
-      .then((r) => r.json())
-      .then((data) => setProducts(data.products ?? []))
-      .catch(() => {})
+      .then(async (r) => {
+        const data = await r.json()
+        if (!r.ok) {
+          setError(data.error || `Error ${r.status}`)
+          return
+        }
+        setProducts(data.products ?? [])
+      })
+      .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
   }, [])
 
@@ -68,7 +76,7 @@ export default function AdminProductsPage() {
   }
 
   const bulkUpdate = async (status: ProductStatus) => {
-    for (const id of selectedIds) {
+    for (const id of Array.from(selectedIds)) {
       await updateStatus(id, status)
     }
   }
@@ -90,6 +98,18 @@ export default function AdminProductsPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="w-8 h-8 animate-spin text-brand-400" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="glass rounded-xl p-8 text-center max-w-md">
+          <p className="text-red-400 font-medium mb-2">Failed to load products</p>
+          <p className="text-surface-400 text-sm">{error}</p>
+          <p className="text-surface-500 text-xs mt-2">Make sure your account has admin role in the database.</p>
+        </div>
       </div>
     )
   }
