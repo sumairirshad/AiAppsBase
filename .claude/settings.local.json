@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"d:\\\\Nett core\\\\AIAppsBase\\\\AiAppsBase\" -Force)",
+      "Bash(Select-Object Name, Mode)",
+      "Bash(Format-Table)",
+      "PowerShell(Get-ChildItem -Path \"d:\\\\Nett core\\\\AIAppsBase\\\\AiAppsBase\\\\src\\\\components\" -Recurse -File | Select-Object Name, @{Name=\"RelPath\";Expression={$_.FullName -replace [regex]::Escape\\(\\(Get-Item \"d:\\\\Nett core\\\\AIAppsBase\\\\AiAppsBase\\\\src\\\\components\"\\).FullName\\)}} | Format-Table Name, RelPath)"
+    ]
+  }
+}
