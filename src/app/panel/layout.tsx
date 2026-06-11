@@ -3,15 +3,16 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { 
-  BarChart2, 
-  Package, 
-  Settings, 
-  ChevronDown, 
+import {
+  BarChart2,
+  Package,
+  Settings,
+  ChevronDown,
   ChevronRight,
   PlusCircle,
   LayoutDashboard,
-  Zap
+  Zap,
+  Github,
 } from 'lucide-react'
 
 const MENU_ITEMS = [
@@ -27,6 +28,7 @@ const MENU_ITEMS = [
     children: [
       { label: 'My Products', href: '/panel/seller/products' },
       { label: 'Add Product', href: '/panel/seller/add-product', icon: PlusCircle },
+      { label: 'GitHub Repos', href: '/panel/seller/github', icon: Github },
     ]
   },
 ]
@@ -43,7 +45,6 @@ export default function PanelLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="flex min-h-screen bg-surface-950">
-      {/* Sidebar */}
       <aside className="w-64 border-r border-white/10 glass hidden md:flex flex-col">
         <div className="p-6 border-b border-white/10">
           <Link href="/" className="flex items-center gap-2 group">
@@ -109,9 +110,7 @@ export default function PanelLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 overflow-y-auto p-8 relative">
-        {/* Background glow effects */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-500/5 rounded-full blur-3xl -z-10" />
         <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-purple-500/5 rounded-full blur-3xl -z-10" />
         
