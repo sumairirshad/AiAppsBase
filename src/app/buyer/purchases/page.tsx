@@ -13,6 +13,7 @@ interface Order {
   licenseKey: string
   status: 'completed' | 'refunded' | 'disputed'
   createdAt: string
+  hasDownload: boolean
   product: { title: string }
 }
 
@@ -104,9 +105,14 @@ export default function PurchasesPage() {
                     <StatusIcon className="w-3 h-3" />
                     {status.label}
                   </span>
-                  <button className="btn-primary text-xs px-4 py-2 flex items-center gap-1.5">
-                    <Download className="w-3.5 h-3.5" /> Download
-                  </button>
+                  {order.hasDownload && order.status === 'completed' && (
+                    <a
+                      href={`/api/orders/${order.id}/download`}
+                      className="btn-primary text-xs px-4 py-2 flex items-center gap-1.5"
+                    >
+                      <Download className="w-3.5 h-3.5" /> Download
+                    </a>
+                  )}
                 </div>
               </div>
             </div>

@@ -16,8 +16,7 @@ export async function GET() {
       [userId]
     )
     return NextResponse.json({ products: res.rows })
-  } catch (error) {
-    console.error('Failed to fetch products:', error)
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 })
   }
 }
@@ -28,17 +27,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized. Please log in.' }, { status: 401 })
   }
 
-  // Get user role and ensure they can add products
   const userRes = await query('SELECT role FROM users WHERE id = $1', [userId])
   if ((userRes?.rowCount ?? 0) === 0) {
-    return NextResponse.json({ error: 'Unauthorized. User not found.' }, { status: 404 })
+    return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }
 
-  const userRole = userRes.rows[0].role
-  if (userRole === 'buyer') {
+  const { role } = userRes.rows[0]
+  if (role === 'buyer') {
     await query("UPDATE users SET role = 'seller' WHERE id = $1", [userId])
-  }
-  if (userRole !== 'seller' && userRole !== 'admin') {
+  } else if (role !== 'seller' && role !== 'admin') {
     return NextResponse.json({ error: 'Only sellers and admins can add products' }, { status: 403 })
   }
 
@@ -55,12 +52,13 @@ export async function POST(req: NextRequest) {
     const previewUrl = formData.get('previewUrl') as string
     const licenseType = formData.get('licenseType') as string
     const tags = JSON.parse(formData.get('tags') as string || '[]')
+    const githubRepoName = (formData.get('githubRepoName') as string) || null
+    const githubDefaultBranch = (formData.get('githubDefaultBranch') as string) || null
 
     if (!title || !description || !category || !humanModLevel || !licenseType) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // Handle Image Uploads
     const screenshots: string[] = []
     const files = formData.getAll('screenshotFiles') as File[]
     
@@ -82,10 +80,10 @@ export async function POST(req: NextRequest) {
 
     const res = await query(
       `INSERT INTO products (
-        seller_id, title, description, price, category, 
-        ai_tools, tech_stack, human_mod_level, screenshots, 
-        preview_url, license_type, tags
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
+        seller_id, title, description, price, category,
+        ai_tools, tech_stack, human_mod_level, screenshots,
+        preview_url, license_type, tags, github_repo_name, github_default_branch
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id`,
       [
         userId,
         title,
@@ -99,12 +97,13 @@ export async function POST(req: NextRequest) {
         previewUrl || null,
         licenseType,
         tags,
+        githubRepoName,
+        githubDefaultBranch,
       ]
     )
 
     return NextResponse.json({ ok: true, id: res.rows[0].id })
-  } catch (error) {
-    console.error('Failed to create product:', error)
-    return NextResponse.json({ error: 'Failed to create product. Check if fields are correct.' }, { status: 500 })
+  } catch {
+    return NextResponse.json({ error: 'Failed to create product' }, { status: 500 })
   }
 }

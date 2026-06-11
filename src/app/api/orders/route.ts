@@ -20,6 +20,7 @@ export async function GET() {
         p.featured AS product_featured, p.tags AS product_tags,
         p.created_at AS product_created_at, p.updated_at AS product_updated_at,
         p.status AS product_status,
+        (p.github_repo_name IS NOT NULL) AS has_download,
         u.id AS seller_id, u.full_name AS seller_name
       FROM orders o
       JOIN products p ON o.product_id = p.id
@@ -37,6 +38,7 @@ export async function GET() {
       licenseKey: row.license_key,
       status: row.status,
       createdAt: row.created_at,
+      hasDownload: row.has_download,
       product: {
         id: row.product_id,
         title: row.product_title,
@@ -69,8 +71,7 @@ export async function GET() {
     }))
 
     return NextResponse.json({ orders })
-  } catch (error) {
-    console.error('Orders fetch error:', error)
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 })
   }
 }
@@ -114,8 +115,7 @@ export async function POST(req: NextRequest) {
     )
 
     return NextResponse.json({ ok: true, orderId: res.rows[0].id, licenseKey: res.rows[0].license_key })
-  } catch (error) {
-    console.error('Order create error:', error)
+  } catch {
     return NextResponse.json({ error: 'Failed to create order' }, { status: 500 })
   }
 }
