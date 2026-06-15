@@ -53,13 +53,13 @@ export function Navbar() {
             <Link href="/products" className="text-surface-300 hover:text-white transition-colors text-sm">
               Browse
             </Link>
-            <Link href="/products?category=Website+Template" className="text-surface-300 hover:text-white transition-colors text-sm">
+            <Link href="/templates" className="text-surface-300 hover:text-white transition-colors text-sm">
               Templates
             </Link>
-            <Link href="/products?category=Full-Stack+App" className="text-surface-300 hover:text-white transition-colors text-sm">
+            <Link href="/apps" className="text-surface-300 hover:text-white transition-colors text-sm">
               Apps
             </Link>
-            <Link href="/products?category=Component+Library" className="text-surface-300 hover:text-white transition-colors text-sm">
+            <Link href="/components" className="text-surface-300 hover:text-white transition-colors text-sm">
               Components
             </Link>
           </div>
@@ -157,8 +157,11 @@ export function Navbar() {
               </div>
             )}
             
-            <Link href="/products" className="block py-2 text-surface-300 hover:text-white">Browse</Link>
-            <Link href="/buyer" className="block py-2 text-surface-300 hover:text-white">My Purchases</Link>
+            <Link href="/products" className="block py-2 text-surface-300 hover:text-white" onClick={() => setMobileOpen(false)}>Browse</Link>
+            <Link href="/templates" className="block py-2 text-surface-300 hover:text-white" onClick={() => setMobileOpen(false)}>Templates</Link>
+            <Link href="/apps" className="block py-2 text-surface-300 hover:text-white" onClick={() => setMobileOpen(false)}>Apps</Link>
+            <Link href="/components" className="block py-2 text-surface-300 hover:text-white" onClick={() => setMobileOpen(false)}>Components</Link>
+            <Link href="/buyer" className="block py-2 text-surface-300 hover:text-white" onClick={() => setMobileOpen(false)}>My Purchases</Link>
             
             {user ? (
               <button 
