@@ -2,25 +2,19 @@
 
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ShoppingCart, Loader2, X, Zap, LogIn, UserPlus } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { Upload, X, LogIn, UserPlus, Zap } from 'lucide-react'
 
-interface BuyButtonProps {
-  productId: string
-  licenseType: string
+interface Props {
   label?: string
   className?: string
 }
 
-export function BuyButton({
-  productId,
-  licenseType,
-  label = 'Buy Now',
-  className = 'btn-primary w-full flex items-center justify-center gap-2',
-}: BuyButtonProps) {
-  const [loading, setLoading] = useState(false)
+export function UploadCtaButton({ label = 'Upload Product', className = 'btn-primary' }: Props) {
+  const router = useRouter()
   const [showModal, setShowModal] = useState(false)
+  const [checking, setChecking] = useState(false)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => { setMounted(true) }, [])
@@ -32,34 +26,20 @@ export function BuyButton({
     return () => document.removeEventListener('keydown', onKey)
   }, [showModal])
 
-  const handleBuy = async () => {
-    setLoading(true)
+  const handleClick = async () => {
+    setChecking(true)
     try {
-      const authRes = await fetch('/api/auth/me')
-      const authData = await authRes.json()
-
-      if (!authData.user) {
-        setShowModal(true)
-        return
-      }
-
-      const res = await fetch('/api/checkout/create-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId, licenseType }),
-      })
-
+      const res = await fetch('/api/auth/me')
       const data = await res.json()
-      if (!res.ok) {
-        toast.error(data.error || 'Failed to start checkout')
-        return
+      if (data.user) {
+        router.push('/panel/seller/add-product')
+      } else {
+        setShowModal(true)
       }
-
-      window.location.href = data.url
     } catch {
-      toast.error('Something went wrong. Please try again.')
+      setShowModal(true)
     } finally {
-      setLoading(false)
+      setChecking(false)
     }
   }
 
@@ -86,9 +66,11 @@ export function BuyButton({
           <Zap className="w-7 h-7 text-brand-400" />
         </div>
 
-        <h2 className="text-xl font-bold text-white text-center mb-2">Sign in to purchase</h2>
+        <h2 className="text-xl font-bold text-white text-center mb-2">
+          Sign in to sell on AIForge
+        </h2>
         <p className="text-surface-400 text-sm text-center mb-8">
-          Create a free account or sign in to buy this product and get instant access to the source code.
+          Create an account or sign in to start uploading your AI-built products and earn revenue.
         </p>
 
         <div className="space-y-3">
@@ -109,7 +91,7 @@ export function BuyButton({
         </div>
 
         <p className="text-surface-600 text-xs text-center mt-5">
-          Free to join. Instant download after purchase.
+          Free to join. Sellers keep 80% of every sale.
         </p>
       </div>
     </div>
@@ -117,9 +99,13 @@ export function BuyButton({
 
   return (
     <>
-      <button onClick={handleBuy} disabled={loading} className={className}>
-        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingCart className="w-4 h-4" />}
-        {loading ? 'Checking…' : label}
+      <button
+        onClick={handleClick}
+        disabled={checking}
+        className={`${className} inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed`}
+      >
+        <Upload className="w-4 h-4" />
+        {checking ? 'Checking...' : label}
       </button>
 
       {mounted && showModal && createPortal(modal, document.body)}
