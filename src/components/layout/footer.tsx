@@ -11,7 +11,7 @@ export function Footer() {
               <div className="w-8 h-8 bg-gradient-to-br from-brand-500 to-purple-500 rounded-lg flex items-center justify-center">
                 <Zap className="w-5 h-5 text-white" />
               </div>
-              <span className="text-lg font-bold gradient-text">AIForge</span>
+              <span className="text-lg font-bold gradient-text">AIAppsBase</span>
             </Link>
             <p className="text-surface-400 text-sm">
               The marketplace for AI-built websites, apps, and components.
@@ -40,7 +40,7 @@ export function Footer() {
         </div>
 
         <div className="mt-10 pt-6 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-surface-500 text-sm">&copy; 2025 AIForge. All rights reserved.</p>
+          <p className="text-surface-500 text-sm">&copy; 2025 AIAppsBase. All rights reserved.</p>
           <div className="flex items-center gap-4 text-surface-500 text-sm">
             <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>

@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
     headers: {
       Authorization: `Bearer ${accessToken}`,
       Accept: 'application/vnd.github+json',
-      'User-Agent': 'AIForge-App',
+      'User-Agent': 'AIAppsBase-App',
     },
   })
 

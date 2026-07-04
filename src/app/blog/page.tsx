@@ -5,9 +5,9 @@ import { ArrowRight, Clock, Tag } from 'lucide-react'
 export const metadata: Metadata = {
   title: 'Blog — AI Tools, Tips & Marketplace Insights',
   description:
-    'Read the latest articles on AI-powered development, how to build and sell apps with AI tools, and marketplace tips from the AIForge team.',
+    'Read the latest articles on AI-powered development, how to build and sell apps with AI tools, and marketplace tips from the AIAppsBase team.',
   openGraph: {
-    title: 'AIForge Blog — AI Tools, Tips & Insights',
+    title: 'AIAppsBase Blog — AI Tools, Tips & Insights',
     description: 'Articles on AI-powered development, building and selling with AI tools.',
     type: 'website',
   },
@@ -38,9 +38,9 @@ const posts = [
   },
   {
     slug: 'pricing-your-ai-templates',
-    title: 'How to Price Your AI-Built Templates on AIForge',
+    title: 'How to Price Your AI-Built Templates on AIAppsBase',
     excerpt:
-      "Pricing is the hardest part of selling digital products. We analyzed 500+ sales on AIForge to figure out what pricing strategies actually work.",
+      "Pricing is the hardest part of selling digital products. We analyzed 500+ sales on AIAppsBase to figure out what pricing strategies actually work.",
     category: 'Seller Guide',
     readTime: '5 min read',
     date: 'May 27, 2025',
@@ -60,7 +60,7 @@ const posts = [
   },
   {
     slug: 'sell-your-first-product-guide',
-    title: 'Complete Guide to Selling Your First Product on AIForge',
+    title: 'Complete Guide to Selling Your First Product on AIAppsBase',
     excerpt:
       "Everything you need to know — from setting up your seller account, to writing a product description that converts, to uploading screenshots that sell.",
     category: 'Seller Guide',
@@ -91,7 +91,7 @@ export default function BlogPage() {
       <section className="border-b border-white/10 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            AIForge <span className="gradient-text">Blog</span>
+            AIAppsBase <span className="gradient-text">Blog</span>
           </h1>
           <p className="text-surface-400 text-lg max-w-xl mx-auto">
             Tutorials, comparisons, and tips for building and selling AI-powered products.

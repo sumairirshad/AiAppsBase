@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Cookie Policy | AIForge',
-  description: 'Learn about the cookies AIForge uses, what they do, and how to manage them.',
+  title: 'Cookie Policy | AIAppsBase',
+  description: 'Learn about the cookies AIAppsBase uses, what they do, and how to manage them.',
   robots: { index: true, follow: true },
 }
 
@@ -58,7 +58,7 @@ export default function CookiesPage() {
         </div>
 
         <p className="text-surface-400 text-sm leading-relaxed mb-10">
-          This Cookie Policy explains what cookies are, what cookies AIForge uses, and how you can
+          This Cookie Policy explains what cookies are, what cookies AIAppsBase uses, and how you can
           control them. By using our Platform, you agree to our use of cookies as described in this
           policy.
         </p>
@@ -132,8 +132,8 @@ export default function CookiesPage() {
           <h2 className="text-base font-semibold text-white mb-3">Contact</h2>
           <p className="text-surface-400 text-sm leading-relaxed">
             For questions about this Cookie Policy, contact us at{' '}
-            <a href="mailto:privacy@aiforge.dev" className="text-brand-400 hover:text-brand-300">
-              privacy@aiforge.dev
+            <a href="mailto:privacy@aiappsbase.dev" className="text-brand-400 hover:text-brand-300">
+              privacy@aiappsbase.dev
             </a>
             .
           </p>
