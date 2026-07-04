@@ -1,15 +1,41 @@
 import type { Metadata, Viewport } from 'next'
+import { Inter, Sora, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { Navbar } from '@/components/layout/navbar'
 import { Footer } from '@/components/layout/footer'
-import { Toaster } from 'react-hot-toast'
+import { Toaster as HotToaster } from 'react-hot-toast'
+import { ThemeProvider } from '@/components/theme-provider'
+import { TooltipProvider } from '@/components/ui/tooltip'
+import { Toaster } from '@/components/ui/sonner'
+import { cn } from '@/lib/utils'
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+})
+
+const sora = Sora({
+  subsets: ['latin'],
+  variable: '--font-display',
+  display: 'swap',
+})
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+  display: 'swap',
+})
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://aiappsbase.dev'
 
 export const viewport: Viewport = {
-  themeColor: '#0ea5e9',
   width: 'device-width',
   initialScale: 1,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#050914' },
+  ],
 }
 
 export const metadata: Metadata = {
@@ -60,12 +86,29 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
-      <body className="font-sans antialiased bg-surface-950 text-white min-h-screen">
-        <Navbar />
-        <main className="min-h-screen">{children}</main>
-        <Footer />
-        <Toaster position="top-right" />
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={cn(
+          inter.variable,
+          sora.variable,
+          jetbrainsMono.variable,
+          'min-h-screen bg-background font-sans text-foreground antialiased'
+        )}
+      >
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <TooltipProvider delayDuration={200}>
+            <Navbar />
+            <main className="min-h-screen">{children}</main>
+            <Footer />
+          </TooltipProvider>
+          <Toaster />
+          <HotToaster position="top-right" />
+        </ThemeProvider>
       </body>
     </html>
   )
