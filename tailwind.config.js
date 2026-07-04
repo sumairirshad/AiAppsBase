@@ -147,6 +147,10 @@ module.exports = {
           '0%, 100%': { transform: 'translate3d(0,0,0) scale(1)' },
           '50%': { transform: 'translate3d(4%, -3%, 0) scale(1.08)' },
         },
+        marquee: {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -157,6 +161,7 @@ module.exports = {
         shimmer: 'shimmer 2s infinite',
         'gradient-pan': 'gradient-pan 6s ease infinite',
         'aurora-drift': 'aurora-drift 18s ease-in-out infinite',
+        marquee: 'marquee 40s linear infinite',
       },
     },
   },
