@@ -14,14 +14,14 @@ export const metadata: Metadata = {
     'AI e-commerce', 'AI mobile apps', 'Next.js apps', 'React apps',
   ],
   openGraph: {
-    title: 'AI-Built Web & Mobile Apps | AIForge',
+    title: 'AI-Built Web & Mobile Apps | AIAppsBase',
     description:
       'Full-stack apps, SaaS platforms, dashboards, and e-commerce stores built with AI. Production-ready code.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'AI-Built Web & Mobile Apps | AIForge',
+    title: 'AI-Built Web & Mobile Apps | AIAppsBase',
     description: 'Full-stack apps, SaaS platforms, dashboards, and e-commerce stores built with AI.',
   },
 }

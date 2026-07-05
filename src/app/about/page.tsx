@@ -3,11 +3,11 @@ import Link from 'next/link'
 import { Zap, Users, ShoppingBag, TrendingUp, ArrowRight, Shield, Code } from 'lucide-react'
 
 export const metadata: Metadata = {
-  title: 'About AIForge — The AI-Built App Marketplace',
+  title: 'About AIAppsBase — The AI-Built App Marketplace',
   description:
-    'AIForge is the leading marketplace for buying and selling websites, apps, and UI components created with AI tools. Learn about our mission and how it works.',
+    'AIAppsBase is the leading marketplace for buying and selling websites, apps, and UI components created with AI tools. Learn about our mission and how it works.',
   openGraph: {
-    title: 'About AIForge — The AI-Built App Marketplace',
+    title: 'About AIAppsBase — The AI-Built App Marketplace',
     description: 'The leading marketplace for AI-built websites, apps, and UI components.',
     type: 'website',
   },
@@ -30,7 +30,7 @@ const steps = [
   },
   {
     step: '02',
-    title: 'Sellers list on AIForge',
+    title: 'Sellers list on AIAppsBase',
     description:
       'Creators upload their finished products — screenshots, source code, a live demo link — and set their price. Our team reviews and approves each listing.',
     icon: ShoppingBag,
@@ -80,7 +80,7 @@ export default function AboutPage() {
             <span className="gradient-text">AI-built products</span>
           </h1>
           <p className="text-surface-400 text-lg md:text-xl max-w-2xl mx-auto">
-            AIForge connects talented creators who build with AI tools with buyers who need
+            AIAppsBase connects talented creators who build with AI tools with buyers who need
             production-ready websites, apps, and UI components — without starting from scratch.
           </p>
         </div>
@@ -100,7 +100,7 @@ export default function AboutPage() {
 
       {/* How it works */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <h2 className="text-3xl font-bold text-white text-center mb-12">How AIForge works</h2>
+        <h2 className="text-3xl font-bold text-white text-center mb-12">How AIAppsBase works</h2>
         <div className="grid md:grid-cols-3 gap-8">
           {steps.map(({ step, title, description, icon: Icon }) => (
             <div key={step} className="glass rounded-2xl p-8 border border-white/5 relative">
@@ -136,7 +136,7 @@ export default function AboutPage() {
         <div className="glass rounded-2xl p-12 text-center border border-white/5 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-brand-600/10 to-purple-600/10" />
           <div className="relative">
-            <h2 className="text-2xl font-bold text-white mb-4">Ready to join AIForge?</h2>
+            <h2 className="text-2xl font-bold text-white mb-4">Ready to join AIAppsBase?</h2>
             <p className="text-surface-400 mb-8 max-w-md mx-auto">
               Browse thousands of AI-built products or start selling your own creations today.
             </p>

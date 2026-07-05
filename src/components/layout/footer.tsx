@@ -1,50 +1,84 @@
 import Link from 'next/link'
 import { Zap } from 'lucide-react'
 
+import { Icon } from '@/components/icon'
+import { Separator } from '@/components/ui/separator'
+import { NewsletterForm } from '@/components/landing/newsletter-form'
+import { footerColumns, footerLegalBar, socialLinks } from '@/lib/nav-data'
+
 export function Footer() {
   return (
-    <footer className="border-t border-white/10 bg-surface-950">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
-          <div className="col-span-2 md:col-span-1">
-            <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-brand-500 to-purple-500 rounded-lg flex items-center justify-center">
-                <Zap className="w-5 h-5 text-white" />
+    <footer className="border-t border-border bg-muted/20">
+      <div className="container py-16">
+        <div className="grid gap-12 lg:grid-cols-[1.4fr_2.6fr]">
+          {/* Brand + newsletter */}
+          <div className="space-y-6">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="grid size-8 place-items-center rounded-lg bg-gradient-to-br from-indigo-500 to-fuchsia-500 shadow-md">
+                <Zap className="size-5 text-white" />
               </div>
-              <span className="text-lg font-bold gradient-text">AIForge</span>
+              <span className="font-display text-lg font-bold">AIAppsBase</span>
             </Link>
-            <p className="text-surface-400 text-sm">
-              The marketplace for AI-built websites, apps, and components.
+            <p className="max-w-sm text-sm text-muted-foreground">
+              The marketplace for AI-built projects and GitHub repositories. Buy and sell
+              production-ready code — synced, delivered, and protected end to end.
             </p>
+            <div className="max-w-sm space-y-2">
+              <p className="text-sm font-medium">Get product updates</p>
+              <NewsletterForm />
+            </div>
+            <div className="flex items-center gap-2">
+              {socialLinks.map((s) => (
+                <a
+                  key={s.label}
+                  href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={s.label}
+                  className="grid size-9 place-items-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                >
+                  <Icon name={s.icon} className="size-4" />
+                </a>
+              ))}
+            </div>
           </div>
 
-          <div>
-            <h4 className="font-semibold text-white mb-3 text-sm">Marketplace</h4>
-            <ul className="space-y-2 text-sm">
-              <li><Link href="/products" className="text-surface-400 hover:text-white transition-colors">Browse All</Link></li>
-              <li><Link href="/templates" className="text-surface-400 hover:text-white transition-colors">Templates</Link></li>
-              <li><Link href="/apps" className="text-surface-400 hover:text-white transition-colors">Apps</Link></li>
-              <li><Link href="/components" className="text-surface-400 hover:text-white transition-colors">Components</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-semibold text-white mb-3 text-sm">Company</h4>
-            <ul className="space-y-2 text-sm">
-              <li><Link href="/about" className="text-surface-400 hover:text-white transition-colors">About</Link></li>
-              <li><Link href="/blog" className="text-surface-400 hover:text-white transition-colors">Blog</Link></li>
-              <li><Link href="/support" className="text-surface-400 hover:text-white transition-colors">Support</Link></li>
-              <li><Link href="/terms" className="text-surface-400 hover:text-white transition-colors">Terms</Link></li>
-            </ul>
+          {/* Link columns */}
+          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-5">
+            {footerColumns.map((col) => (
+              <div key={col.title}>
+                <h4 className="mb-3 text-sm font-semibold">{col.title}</h4>
+                <ul className="space-y-2.5">
+                  {col.items.map((item) => (
+                    <li key={item.label}>
+                      <Link
+                        href={item.href}
+                        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        {item.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="mt-10 pt-6 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-surface-500 text-sm">&copy; 2025 AIForge. All rights reserved.</p>
-          <div className="flex items-center gap-4 text-surface-500 text-sm">
-            <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
-            <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
-            <Link href="/cookies" className="hover:text-white transition-colors">Cookies</Link>
+        <Separator className="my-10" />
+
+        <div className="flex flex-col items-center justify-between gap-4 text-sm text-muted-foreground md:flex-row">
+          <p>&copy; {new Date().getFullYear()} AIAppsBase, Inc. All rights reserved.</p>
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+            {footerLegalBar.map((l) => (
+              <Link key={l.href} href={l.href} className="transition-colors hover:text-foreground">
+                {l.label}
+              </Link>
+            ))}
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2 animate-pulse rounded-full bg-success" />
+              All systems operational
+            </span>
           </div>
         </div>
       </div>

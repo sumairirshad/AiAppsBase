@@ -67,7 +67,7 @@ export function UploadCtaButton({ label = 'Upload Product', className = 'btn-pri
         </div>
 
         <h2 className="text-xl font-bold text-white text-center mb-2">
-          Sign in to sell on AIForge
+          Sign in to sell on AIAppsBase
         </h2>
         <p className="text-surface-400 text-sm text-center mb-8">
           Create an account or sign in to start uploading your AI-built products and earn revenue.

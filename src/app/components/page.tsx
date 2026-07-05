@@ -14,13 +14,13 @@ export const metadata: Metadata = {
     'AI design system', 'UI kit', 'Next.js components', 'component library',
   ],
   openGraph: {
-    title: 'AI-Built UI Components & Libraries | AIForge',
+    title: 'AI-Built UI Components & Libraries | AIAppsBase',
     description: 'UI component libraries and design systems for React, Vue, and Tailwind CSS — built with AI.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'AI-Built UI Components & Libraries | AIForge',
+    title: 'AI-Built UI Components & Libraries | AIAppsBase',
     description: 'UI component libraries and design systems built with AI.',
   },
 }

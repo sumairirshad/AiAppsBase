@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { query } from '@/lib/db'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://aiforge.dev'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://aiappsbase.dev'
 
 const staticRoutes: MetadataRoute.Sitemap = [
   {

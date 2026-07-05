@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy | AIForge',
-  description: 'Learn how AIForge collects, uses, and protects your personal data.',
+  title: 'Privacy Policy | AIAppsBase',
+  description: 'Learn how AIAppsBase collects, uses, and protects your personal data.',
   robots: { index: true, follow: true },
 }
 
@@ -29,7 +29,7 @@ const sections = [
   },
   {
     title: '6. Your Rights',
-    content: `Depending on your jurisdiction, you may have rights to: access, correct, or delete your personal data; restrict or object to processing; data portability; and withdraw consent. To exercise these rights, email privacy@aiforge.dev. We will respond within 30 days.`,
+    content: `Depending on your jurisdiction, you may have rights to: access, correct, or delete your personal data; restrict or object to processing; data portability; and withdraw consent. To exercise these rights, email privacy@aiappsbase.dev. We will respond within 30 days.`,
   },
   {
     title: '7. Data Security',
@@ -37,7 +37,7 @@ const sections = [
   },
   {
     title: '8. Children\'s Privacy',
-    content: `AIForge is not directed at children under 13. We do not knowingly collect personal data from children under 13. If you believe we have inadvertently collected such data, contact us at privacy@aiforge.dev and we will delete it promptly.`,
+    content: `AIAppsBase is not directed at children under 13. We do not knowingly collect personal data from children under 13. If you believe we have inadvertently collected such data, contact us at privacy@aiappsbase.dev and we will delete it promptly.`,
   },
   {
     title: '9. International Transfers',
@@ -49,7 +49,7 @@ const sections = [
   },
   {
     title: '11. Contact',
-    content: `For privacy-related inquiries, contact our Data Privacy team at: privacy@aiforge.dev`,
+    content: `For privacy-related inquiries, contact our Data Privacy team at: privacy@aiappsbase.dev`,
   },
 ]
 

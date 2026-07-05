@@ -29,7 +29,7 @@ export async function GET() {
       headers: {
         Authorization: `Bearer ${github_access_token}`,
         Accept: 'application/vnd.github+json',
-        'User-Agent': 'AIForge-App',
+        'User-Agent': 'AIAppsBase-App',
       },
     }
   )

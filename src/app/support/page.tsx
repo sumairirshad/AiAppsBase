@@ -3,12 +3,12 @@ import Link from 'next/link'
 import { MessageCircle, ShoppingBag, Upload, CreditCard, Shield, ChevronRight } from 'lucide-react'
 
 export const metadata: Metadata = {
-  title: 'Support — Help Center | AIForge',
+  title: 'Support — Help Center | AIAppsBase',
   description:
-    'Find answers to common questions about buying, selling, payments, and account management on AIForge.',
+    'Find answers to common questions about buying, selling, payments, and account management on AIAppsBase.',
   openGraph: {
-    title: 'AIForge Help Center & Support',
-    description: 'Find answers to common questions about AIForge marketplace.',
+    title: 'AIAppsBase Help Center & Support',
+    description: 'Find answers to common questions about AIAppsBase marketplace.',
     type: 'website',
   },
 }
@@ -20,7 +20,7 @@ const categories = [
     color: 'text-brand-400 bg-brand-500/10 border-brand-500/20',
     questions: [
       { q: 'How do I purchase a product?', a: 'Browse the marketplace, click on a product, then click "Buy Now". You will be taken to a secure Stripe checkout page. After payment, you get instant access to download the source code.' },
-      { q: 'Can I get a refund?', a: 'Refunds are handled case-by-case. If the product does not match its description or has serious technical issues, contact us within 7 days of purchase at support@aiforge.dev.' },
+      { q: 'Can I get a refund?', a: 'Refunds are handled case-by-case. If the product does not match its description or has serious technical issues, contact us within 7 days of purchase at support@aiappsbase.dev.' },
       { q: 'Where do I find my purchases?', a: 'All your purchased products appear in your Buyer Dashboard under "My Purchases". You can download them any time.' },
       { q: 'What do I get when I buy a product?', a: 'You receive the full source code as a ZIP file. What\'s included is detailed in each product listing — always check the product description before buying.' },
     ],
@@ -31,8 +31,8 @@ const categories = [
     color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
     questions: [
       { q: 'How do I become a seller?', a: 'Create an account, then navigate to your Panel. You can list your first product from the "Add Product" page. Our team reviews and approves all listings within 1-2 business days.' },
-      { q: 'What can I sell on AIForge?', a: 'Anything built primarily with AI tools — website templates, full-stack apps, dashboards, UI component libraries, and mobile apps. The product must include full source code.' },
-      { q: 'How do I connect my GitHub repo?', a: 'Go to Panel → GitHub Integration and click "Connect GitHub". Authorize AIForge and select the repo you want to link to a product listing.' },
+      { q: 'What can I sell on AIAppsBase?', a: 'Anything built primarily with AI tools — website templates, full-stack apps, dashboards, UI component libraries, and mobile apps. The product must include full source code.' },
+      { q: 'How do I connect my GitHub repo?', a: 'Go to Panel → GitHub Integration and click "Connect GitHub". Authorize AIAppsBase and select the repo you want to link to a product listing.' },
       { q: 'What is the seller revenue share?', a: 'Sellers keep 80% of every sale. The 20% platform fee covers payment processing, hosting, and marketplace operations.' },
     ],
   },
@@ -114,7 +114,7 @@ export default function SupportPage() {
             Can't find what you're looking for? Email us and we'll get back to you within 24 hours.
           </p>
           <a
-            href="mailto:support@aiforge.dev"
+            href="mailto:support@aiappsbase.dev"
             className="btn-primary inline-flex items-center gap-2"
           >
             <MessageCircle className="w-4 h-4" />

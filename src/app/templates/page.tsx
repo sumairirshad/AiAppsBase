@@ -14,14 +14,14 @@ export const metadata: Metadata = {
     'landing page templates', 'portfolio templates', 'AI-built website',
   ],
   openGraph: {
-    title: 'AI-Built Website Templates | AIForge',
+    title: 'AI-Built Website Templates | AIAppsBase',
     description:
       'Premium landing pages, portfolios, and business websites crafted with AI. Download and ship faster than ever.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'AI-Built Website Templates | AIForge',
+    title: 'AI-Built Website Templates | AIAppsBase',
     description: 'Premium landing pages, portfolios, and business websites crafted with AI.',
   },
 }

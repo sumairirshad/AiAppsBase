@@ -1,185 +1,300 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import * as React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Search, ShoppingCart, Menu, X, User, Zap, LogOut, LayoutDashboard } from 'lucide-react'
+import {
+  Search, ShoppingCart, Menu, User, LogOut, LayoutDashboard, Zap, ArrowRight,
+} from 'lucide-react'
+
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Icon } from '@/components/icon'
+import { ThemeToggle } from '@/components/theme-toggle'
+import {
+  NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuList,
+  NavigationMenuTrigger, navigationMenuTriggerStyle,
+} from '@/components/ui/navigation-menu'
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose,
+} from '@/components/ui/sheet'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { megaMenus, simpleNavLinks } from '@/lib/nav-data'
+
+type Me = { full_name: string; email: string; role: string }
+
+function Logo() {
+  return (
+    <Link href="/" className="flex items-center gap-2">
+      <div className="grid size-8 place-items-center rounded-lg bg-gradient-to-br from-indigo-500 to-fuchsia-500 shadow-md transition-shadow hover:shadow-glow">
+        <Zap className="size-5 text-white" />
+      </div>
+      <span className="font-display text-lg font-bold tracking-tight">AIAppsBase</span>
+    </Link>
+  )
+}
+
+function MegaMenuLink({ label, href, description, icon, badge }: {
+  label: string; href: string; description?: string; icon?: string; badge?: string
+}) {
+  return (
+    <Link
+      href={href}
+      className="group flex items-start gap-3 rounded-lg p-2.5 transition-colors hover:bg-accent"
+    >
+      <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
+        <Icon name={icon} className="size-4" />
+      </span>
+      <span className="min-w-0">
+        <span className="flex items-center gap-2 text-sm font-medium">
+          {label}
+          {badge && <Badge variant="success" className="px-1.5 py-0 text-[10px]">{badge}</Badge>}
+        </span>
+        {description && <span className="line-clamp-1 text-xs text-muted-foreground">{description}</span>}
+      </span>
+    </Link>
+  )
+}
+
+function DesktopNav() {
+  return (
+    <NavigationMenu className="hidden lg:flex">
+      <NavigationMenuList>
+        {megaMenus.map((menu) => (
+          <NavigationMenuItem key={menu.label}>
+            <NavigationMenuTrigger>{menu.label}</NavigationMenuTrigger>
+            <NavigationMenuContent>
+              <div className={cn('grid gap-2 p-4', menu.featured ? 'w-[640px] grid-cols-[1fr_1fr_1.1fr]' : 'w-[560px] grid-cols-3')}>
+                {menu.featured && (
+                  <Link
+                    href={menu.featured.href}
+                    className="group relative row-span-full flex flex-col justify-end overflow-hidden rounded-lg bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 p-4 text-white"
+                  >
+                    <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-20" />
+                    <Icon name={menu.featured.icon} className="relative mb-2 size-6" />
+                    <span className="relative text-sm font-semibold">{menu.featured.label}</span>
+                    <span className="relative mt-1 text-xs text-white/80">{menu.featured.description}</span>
+                    <span className="relative mt-3 inline-flex items-center gap-1 text-xs font-medium">
+                      Explore <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
+                    </span>
+                  </Link>
+                )}
+                {menu.columns.map((col) => (
+                  <div key={col.title} className="space-y-1">
+                    <div className="px-2.5 pb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {col.title}
+                    </div>
+                    {col.items.map((item) => (
+                      <MegaMenuLink key={item.label} {...item} />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </NavigationMenuContent>
+          </NavigationMenuItem>
+        ))}
+        {simpleNavLinks.map((link) => (
+          <NavigationMenuItem key={link.href}>
+            <Link href={link.href} className={navigationMenuTriggerStyle()}>
+              {link.label}
+            </Link>
+          </NavigationMenuItem>
+        ))}
+      </NavigationMenuList>
+    </NavigationMenu>
+  )
+}
+
+function MobileNav({ user, onLogout }: { user: Me | null; onLogout: () => void }) {
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open menu">
+          <Menu className="size-5" />
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="right" className="flex w-full flex-col p-0 sm:max-w-sm">
+        <SheetHeader className="border-b border-border p-4 text-left">
+          <SheetTitle><Logo /></SheetTitle>
+        </SheetHeader>
+        <div className="flex-1 overflow-y-auto p-4">
+          <Accordion type="multiple" className="w-full">
+            {megaMenus.map((menu) => (
+              <AccordionItem key={menu.label} value={menu.label}>
+                <AccordionTrigger className="text-sm">{menu.label}</AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-4">
+                    {menu.columns.map((col) => (
+                      <div key={col.title}>
+                        <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          {col.title}
+                        </div>
+                        <div className="grid grid-cols-2 gap-1">
+                          {col.items.map((item) => (
+                            <SheetClose asChild key={item.label}>
+                              <Link href={item.href} className="flex items-center gap-2 rounded-md py-1.5 text-sm text-muted-foreground hover:text-foreground">
+                                <Icon name={item.icon} className="size-3.5" />
+                                {item.label}
+                              </Link>
+                            </SheetClose>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+          <div className="mt-2 space-y-1">
+            {simpleNavLinks.map((l) => (
+              <SheetClose asChild key={l.href}>
+                <Link href={l.href} className="block py-2 text-sm font-medium">{l.label}</Link>
+              </SheetClose>
+            ))}
+          </div>
+        </div>
+        <div className="border-t border-border p-4">
+          {user ? (
+            <div className="space-y-2">
+              <SheetClose asChild>
+                <Button variant="outline" className="w-full" asChild>
+                  <Link href={user.role === 'admin' ? '/admin' : user.role === 'seller' ? '/panel' : '/buyer'}>
+                    <LayoutDashboard className="size-4" /> Dashboard
+                  </Link>
+                </Button>
+              </SheetClose>
+              <Button variant="ghost" className="w-full text-destructive" onClick={onLogout}>
+                <LogOut className="size-4" /> Sign out
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <SheetClose asChild>
+                <Button variant="outline" asChild><Link href="/auth/login">Sign in</Link></Button>
+              </SheetClose>
+              <SheetClose asChild>
+                <Button variant="gradient" asChild><Link href="/auth/register">Sign up</Link></Button>
+              </SheetClose>
+            </div>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  )
+}
 
 export function Navbar() {
   const router = useRouter()
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [user, setUser] = useState<{ full_name: string; email: string; role: string } | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = React.useState<Me | null>(null)
+  const [loading, setLoading] = React.useState(true)
+  const [scrolled, setScrolled] = React.useState(false)
 
-  useEffect(() => {
-    const token = localStorage.getItem('auth_token')
-    
-    // Fetch profile if token or cookie exists
+  React.useEffect(() => {
     fetch('/api/auth/me')
-      .then(res => res.json())
-      .then(data => {
-        if (data.user) {
-          setUser(data.user)
-        } else if (!token) {
-          setUser(null)
-        }
-      })
+      .then((r) => r.json())
+      .then((d) => setUser(d.user ?? null))
+      .catch(() => setUser(null))
       .finally(() => setLoading(false))
   }, [])
 
+  React.useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   const handleLogout = async () => {
-    localStorage.removeItem('auth_token')
-    await fetch('/api/auth/me', { method: 'DELETE' })
+    await fetch('/api/auth/me', { method: 'DELETE' }).catch(() => {})
     setUser(null)
     router.push('/')
-    window.location.reload()
+    router.refresh()
   }
 
+  const dashboardHref = user?.role === 'admin' ? '/admin' : user?.role === 'seller' ? '/panel' : '/buyer'
+
   return (
-    <nav className="sticky top-0 z-50 glass border-b border-white/10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 bg-gradient-to-br from-brand-500 to-purple-500 rounded-lg flex items-center justify-center group-hover:shadow-lg group-hover:shadow-brand-500/25 transition-all">
-              <Zap className="w-5 h-5 text-white" />
+    <header
+      className={cn(
+        'sticky top-0 z-50 w-full border-b transition-colors duration-300',
+        scrolled
+          ? 'border-border bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60'
+          : 'border-transparent bg-background/40 backdrop-blur-md'
+      )}
+    >
+      <div className="container flex h-16 items-center gap-4">
+        <Logo />
+
+        <div className="flex-1">
+          <DesktopNav />
+        </div>
+
+        {/* Search (desktop) */}
+        <button
+          onClick={() => router.push('/products')}
+          className="hidden items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted md:flex"
+        >
+          <Search className="size-4" />
+          <span className="hidden lg:inline">Search projects…</span>
+          <kbd className="ml-2 hidden rounded border border-border bg-background px-1.5 text-[10px] font-medium lg:inline">⌘K</kbd>
+        </button>
+
+        <div className="flex items-center gap-1.5">
+          <ThemeToggle />
+          <Button  variant="ghost" size="icon" asChild aria-label="Cart">
+            <Link href="/cart"><ShoppingCart className="size-5" /></Link>
+          </Button>
+
+          {loading ? (
+            <Skeleton className="h-9 w-20 rounded-lg" />
+          ) : user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full" aria-label="Account">
+                  <Avatar className="size-8">
+                    <AvatarFallback>{user.full_name.charAt(0).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <div className="font-medium">{user.full_name}</div>
+                  <div className="text-xs font-normal text-muted-foreground">{user.email}</div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href={dashboardHref}><LayoutDashboard /> Dashboard</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/buyer/purchases"><ShoppingCart /> Purchases</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/buyer"><User /> Profile</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+                  <LogOut /> Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <div className="hidden items-center gap-2 sm:flex">
+              <Button variant="ghost" asChild><Link href="/auth/login">Sign in</Link></Button>
+              <Button variant="gradient" asChild><Link href="/auth/register">Get started</Link></Button>
             </div>
-            <span className="text-xl font-bold gradient-text">AIForge</span>
-          </Link>
+          )}
 
-          {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-6">
-            <Link href="/products" className="text-surface-300 hover:text-white transition-colors text-sm">
-              Browse
-            </Link>
-            <Link href="/templates" className="text-surface-300 hover:text-white transition-colors text-sm">
-              Templates
-            </Link>
-            <Link href="/apps" className="text-surface-300 hover:text-white transition-colors text-sm">
-              Apps
-            </Link>
-            <Link href="/components" className="text-surface-300 hover:text-white transition-colors text-sm">
-              Components
-            </Link>
-          </div>
-
-          {/* Search */}
-          <div className="hidden md:flex items-center flex-1 max-w-md mx-6">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-              <input
-                type="text"
-                placeholder="Search AI-built products..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-surface-800/50 border border-surface-700 rounded-lg pl-10 pr-4 py-2 text-sm text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
-              />
-            </div>
-          </div>
-
-          {/* Right side */}
-          <div className="hidden md:flex items-center gap-3">
-            <Link href="/buyer" className="relative p-2 text-surface-300 hover:text-white transition-colors">
-              <ShoppingCart className="w-5 h-5" />
-            </Link>
-
-            {!loading && (
-              <>
-                {user ? (
-                  <div className="flex items-center gap-4">
-                    <Link
-                      href={user.role === 'admin' ? '/admin' : user.role === 'seller' ? '/panel' : '/buyer'}
-                      className="flex items-center gap-2 group"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-brand-500/10 flex items-center justify-center border border-brand-500/20 group-hover:bg-brand-500/20 transition-colors">
-                        <User className="w-4 h-4 text-brand-400" />
-                      </div>
-                      <span className="text-sm font-medium text-surface-200 group-hover:text-white transition-colors">
-                        {user.full_name.split(' ')[0]}
-                      </span>
-                    </Link>
-                    <button 
-                      onClick={handleLogout}
-                      className="p-2 text-surface-400 hover:text-red-400 transition-colors"
-                      title="Logout"
-                    >
-                      <LogOut className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <Link href="/auth/login" className="btn-secondary text-sm py-2 px-4">
-                      Sign In
-                    </Link>
-                    <Link href="/auth/register" className="btn-primary text-sm py-2 px-4">
-                      Sign Up
-                    </Link>
-                  </>
-                )}
-              </>
-            )}
-          </div>
-
-          {/* Mobile toggle */}
-          <button
-            className="md:hidden p-2 text-surface-300"
-            onClick={() => setMobileOpen(!mobileOpen)}
-          >
-            {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          <MobileNav user={user} onLogout={handleLogout} />
         </div>
       </div>
-
-      {/* Mobile menu */}
-      {mobileOpen && (
-        <div className="md:hidden glass border-t border-white/10 animate-fade-in">
-          <div className="px-4 py-4 space-y-3">
-            {user && (
-              <div className="pb-3 border-b border-white/5 mb-3">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-brand-500/10 flex items-center justify-center border border-brand-500/20">
-                    <User className="w-5 h-5 text-brand-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-white">{user.full_name}</p>
-                    <p className="text-xs text-surface-500">{user.email}</p>
-                  </div>
-                </div>
-                <Link
-                  href={user.role === 'admin' ? '/admin' : user.role === 'seller' ? '/panel' : '/buyer'}
-                  onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-2 py-2 text-surface-300 hover:text-white"
-                >
-                  <LayoutDashboard className="w-4 h-4" />
-                  Dashboard
-                </Link>
-              </div>
-            )}
-            
-            <Link href="/products" className="block py-2 text-surface-300 hover:text-white" onClick={() => setMobileOpen(false)}>Browse</Link>
-            <Link href="/templates" className="block py-2 text-surface-300 hover:text-white" onClick={() => setMobileOpen(false)}>Templates</Link>
-            <Link href="/apps" className="block py-2 text-surface-300 hover:text-white" onClick={() => setMobileOpen(false)}>Apps</Link>
-            <Link href="/components" className="block py-2 text-surface-300 hover:text-white" onClick={() => setMobileOpen(false)}>Components</Link>
-            <Link href="/buyer" className="block py-2 text-surface-300 hover:text-white" onClick={() => setMobileOpen(false)}>My Purchases</Link>
-            
-            {user ? (
-              <button 
-                onClick={handleLogout}
-                className="w-full flex items-center gap-2 py-2 text-red-400 hover:text-red-300"
-              >
-                <LogOut className="w-4 h-4" />
-                Sign Out
-              </button>
-            ) : (
-              <>
-                <Link href="/auth/login" className="block py-2 text-surface-300 hover:text-white">Sign In</Link>
-                <Link href="/auth/register" className="block btn-primary text-center text-sm">Sign Up</Link>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-    </nav>
+    </header>
   )
 }
