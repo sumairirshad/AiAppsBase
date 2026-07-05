@@ -249,8 +249,8 @@ export function Navbar() {
 
         <div className="flex items-center gap-1.5">
           <ThemeToggle />
-          <Button variant="ghost" size="icon" asChild aria-label="Cart">
-            <Link href="/buyer"><ShoppingCart className="size-5" /></Link>
+          <Button  variant="ghost" size="icon" asChild aria-label="Cart">
+            <Link href="/cart"><ShoppingCart className="size-5" /></Link>
           </Button>
 
           {loading ? (

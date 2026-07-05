@@ -78,6 +78,36 @@ function PurchasePanel({ repo }: { repo: Repo }) {
   const [license, setLicense] = React.useState('commercial')
   const licenseMultiplier: Record<string, number> = { personal: 1, commercial: 1, extended: 2.5 }
   const displayPrice = repo.price === 0 ? 0 : Math.round(repo.price * (licenseMultiplier[license] ?? 1))
+  const [loading, setLoading] = React.useState(false)
+
+    async function addToCart() {
+    try {
+      setLoading(true)
+
+      const res = await fetch('/api/cart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          productId: repo.id,
+          licenseType: license,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to add to cart')
+      }
+
+      toast.success(`${repo.title} added to cart`)
+    } catch (err) {
+      toast.error((err as Error).message)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <Card className="p-5">
@@ -110,9 +140,10 @@ function PurchasePanel({ repo }: { repo: Repo }) {
           variant="gradient"
           size="lg"
           className="w-full"
-          onClick={() => toast.success('Added to cart', { description: `${repo.title} — ${displayPrice === 0 ? 'Free' : `$${displayPrice}`}` })}
+          disabled={loading}
+          onClick={addToCart}
         >
-          {repo.price === 0 ? <><Download className="size-4" /> Get it free</> : <><Sparkles className="size-4" /> Buy now</>}
+          {loading ? 'Adding...' : repo.price === 0 ? 'Get it free' : 'Add to cart'}
         </Button>
         <div className="grid grid-cols-2 gap-2">
           <Button variant="outline" onClick={() => { setSaved((s) => !s); toast.success(saved ? 'Removed' : 'Saved to wishlist') }}>

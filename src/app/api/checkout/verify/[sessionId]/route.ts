@@ -49,6 +49,8 @@ export async function GET(
         )
       }
 
+      await query(`DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2`, [userId, row.product_id])
+
       await query(
         `UPDATE checkout_sessions
          SET status = 'completed', completed_at = NOW()
