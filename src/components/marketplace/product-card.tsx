@@ -9,7 +9,7 @@ import { cn, formatNumber } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import type { Repo } from '@/lib/marketplace-data'
+import type { Repo } from '@/lib/marketplace-config'
 
 function Price({ repo, className }: { repo: Repo; className?: string }) {
   return (

@@ -20,7 +20,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { ProductCard } from '@/components/marketplace/product-card'
-import type { Repo, Seller } from '@/lib/marketplace-data'
+import type { Repo, Seller } from '@/lib/marketplace-config'
 
 function StatTile({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
   return (

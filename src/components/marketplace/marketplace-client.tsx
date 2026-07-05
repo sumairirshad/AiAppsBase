@@ -16,7 +16,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { ProductCard, ProductRow } from '@/components/marketplace/product-card'
-import { products, CATEGORIES, LANGUAGES, LICENSES, TECHS } from '@/lib/marketplace-data'
+import { CATEGORIES, LANGUAGES, LICENSES, TECHS, type Repo } from '@/lib/marketplace-config'
 
 const SORTS = [
   { value: 'trending', label: 'Trending' },
@@ -73,7 +73,7 @@ function CheckRow({ checked, onChange, label, count }: { checked: boolean; onCha
   )
 }
 
-function FiltersPanel({ filters, set }: { filters: Filters; set: React.Dispatch<React.SetStateAction<Filters>> }) {
+function FiltersPanel({ filters, set, products }: { filters: Filters; set: React.Dispatch<React.SetStateAction<Filters>>; products: Repo[] }) {
   const catCount = (slug: string) => products.filter((p) => p.categorySlug === slug).length
   return (
     <div className="space-y-6">
@@ -161,7 +161,7 @@ function FiltersPanel({ filters, set }: { filters: Filters; set: React.Dispatch<
   )
 }
 
-export function MarketplaceClient({ initial }: { initial?: Partial<Filters> }) {
+export function MarketplaceClient({ products, initial }: { products: Repo[]; initial?: Partial<Filters> }) {
   const [filters, setFilters] = React.useState<Filters>(() => emptyFilters(initial))
   const [sort, setSort] = React.useState('trending')
   const [view, setView] = React.useState<'grid' | 'list'>('grid')
@@ -215,7 +215,11 @@ export function MarketplaceClient({ initial }: { initial?: Partial<Filters> }) {
       {/* Header */}
       <div className="mb-8 space-y-3">
         <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">Marketplace</h1>
-        <p className="text-muted-foreground">Browse {products.length} production-ready projects, repos, and templates.</p>
+        <p className="text-muted-foreground">
+          {products.length > 0
+            ? `Browse ${products.length} production-ready projects, repos, and templates.`
+            : 'Production-ready projects, repos, and templates from verified creators.'}
+        </p>
       </div>
 
       {/* Toolbar */}
@@ -239,7 +243,7 @@ export function MarketplaceClient({ initial }: { initial?: Partial<Filters> }) {
             </SheetTrigger>
             <SheetContent side="left" className="w-full overflow-y-auto sm:max-w-sm">
               <SheetHeader className="text-left"><SheetTitle>Filters</SheetTitle></SheetHeader>
-              <div className="p-6 pt-2"><FiltersPanel filters={filters} set={setFilters} /></div>
+              <div className="p-6 pt-2"><FiltersPanel filters={filters} set={setFilters} products={products} /></div>
             </SheetContent>
           </Sheet>
           <Select value={sort} onValueChange={setSort}>
@@ -271,7 +275,7 @@ export function MarketplaceClient({ initial }: { initial?: Partial<Filters> }) {
                 </button>
               )}
             </div>
-            <FiltersPanel filters={filters} set={setFilters} />
+            <FiltersPanel filters={filters} set={setFilters} products={products} />
           </div>
         </aside>
 
@@ -293,9 +297,23 @@ export function MarketplaceClient({ initial }: { initial?: Partial<Filters> }) {
               <div className="mb-4 grid size-14 place-items-center rounded-2xl bg-muted text-muted-foreground">
                 <PackageOpen className="size-7" />
               </div>
-              <h3 className="text-lg font-semibold">No projects match your filters</h3>
-              <p className="mt-1 max-w-sm text-sm text-muted-foreground">Try removing a filter or broadening your search to see more results.</p>
-              <Button variant="outline" className="mt-5" onClick={() => setFilters(emptyFilters())}>Reset filters</Button>
+              {products.length === 0 ? (
+                <>
+                  <h3 className="text-lg font-semibold">No listings yet</h3>
+                  <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+                    The marketplace is just getting started. Be the first to list your project.
+                  </p>
+                  <Button variant="gradient" className="mt-5" asChild>
+                    <a href="/auth/register">Become a seller</a>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-lg font-semibold">No projects match your filters</h3>
+                  <p className="mt-1 max-w-sm text-sm text-muted-foreground">Try removing a filter or broadening your search to see more results.</p>
+                  <Button variant="outline" className="mt-5" onClick={() => setFilters(emptyFilters())}>Reset filters</Button>
+                </>
+              )}
             </div>
           ) : view === 'grid' ? (
             <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
