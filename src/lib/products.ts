@@ -132,6 +132,72 @@ export async function getRelatedProducts(product: Repo, n = 3): Promise<Repo[]> 
   }
 }
 
+/** Featured/most-recent approved products for the landing page. */
+export async function getFeaturedProducts(limit = 6): Promise<Repo[]> {
+  try {
+    const res = await query(
+      `${LIST_SELECT} WHERE p.status = 'approved'
+       ORDER BY p.featured DESC, ord.sales DESC NULLS LAST, p.created_at DESC LIMIT $1`,
+      [limit]
+    )
+    return res.rows.map(mapRow)
+  } catch (err) {
+    console.error('getFeaturedProducts failed:', (err as Error).message)
+    return []
+  }
+}
+
+/** Top sellers by completed sales, for the landing page. */
+export async function getTopSellers(limit = 4): Promise<Seller[]> {
+  try {
+    const res = await query(
+      `SELECT u.id, u.full_name, u.github_username, u.is_verified, u.created_at,
+              COUNT(DISTINCT p.id)::int AS product_count,
+              COALESCE(SUM(CASE WHEN o.status='completed' THEN 1 ELSE 0 END),0)::int AS sales,
+              COALESCE(AVG(r.rating),0)::float AS rating
+       FROM users u
+       JOIN products p ON p.seller_id = u.id AND p.status = 'approved'
+       LEFT JOIN orders o ON o.product_id = p.id
+       LEFT JOIN reviews r ON r.product_id = p.id
+       WHERE u.role = 'seller'
+       GROUP BY u.id ORDER BY sales DESC, product_count DESC LIMIT $1`,
+      [limit]
+    )
+    return res.rows.map((u: any): Seller => ({
+      id: u.id, name: u.full_name,
+      handle: u.github_username || String(u.full_name).split(' ')[0].toLowerCase(),
+      avatar: '', bio: '', badge: 'Top Seller', verified: Boolean(u.is_verified),
+      rating: u.rating != null ? Math.round(Number(u.rating) * 10) / 10 : 0,
+      sales: Number(u.sales) || 0, productCount: Number(u.product_count) || 0, followers: 0,
+      joinedAt: u.created_at ? new Date(u.created_at).toISOString().slice(0, 10) : '',
+      location: '', gradient: gradientFor(u.id),
+    }))
+  } catch (err) {
+    console.error('getTopSellers failed:', (err as Error).message)
+    return []
+  }
+}
+
+export type PlatformStats = { products: number; sellers: number; sales: number; paidOut: number }
+
+/** Real platform-wide counts for the landing stats band. */
+export async function getPlatformStats(): Promise<PlatformStats> {
+  try {
+    const res = await query(
+      `SELECT
+        (SELECT COUNT(*) FROM products WHERE status='approved')::int AS products,
+        (SELECT COUNT(*) FROM users WHERE role='seller')::int AS sellers,
+        (SELECT COUNT(*) FROM orders WHERE status='completed')::int AS sales,
+        COALESCE((SELECT SUM(amount) FROM orders WHERE status='completed'),0)::float AS paid_out`
+    )
+    const r = res.rows[0] as any
+    return { products: r.products, sellers: r.sellers, sales: r.sales, paidOut: Math.round(r.paid_out) }
+  } catch (err) {
+    console.error('getPlatformStats failed:', (err as Error).message)
+    return { products: 0, sellers: 0, sales: 0, paidOut: 0 }
+  }
+}
+
 export async function getSellerById(id: string): Promise<Seller | null> {
   try {
     const res = await query(

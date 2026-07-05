@@ -219,6 +219,44 @@ export async function getBuyerReviews(userId: string) {
   } catch { return [] }
 }
 
+/* --------------------------------- Admin --------------------------------- */
+
+export type AdminFinances = { revenue: number; commission: number; net: number; sales: number; pending: number }
+
+export async function getAdminFinances(): Promise<AdminFinances> {
+  try {
+    const res = await query(
+      `SELECT
+        COALESCE((SELECT SUM(amount) FROM orders WHERE status='completed'),0)::float AS revenue,
+        COALESCE((SELECT COUNT(*) FROM orders WHERE status='completed'),0)::int AS sales,
+        COALESCE((SELECT SUM(amount) FROM orders WHERE status='completed' AND created_at >= NOW() - INTERVAL '14 days'),0)::float AS pending`
+    )
+    const r = res.rows[0] as any
+    const revenue = Math.round(r.revenue)
+    const commission = Math.round(revenue * 0.1)
+    return { revenue, commission, net: revenue - commission, sales: r.sales, pending: Math.round(r.pending) }
+  } catch { return { revenue: 0, commission: 0, net: 0, sales: 0, pending: 0 } }
+}
+
+export async function getRecentTransactions(limit = 20) {
+  try {
+    const res = await query(
+      `SELECT o.id, o.amount::float AS amount, o.status, o.created_at,
+              p.title AS product, b.full_name AS buyer, s.full_name AS seller
+       FROM orders o
+       JOIN products p ON o.product_id = p.id
+       JOIN users b ON o.buyer_id = b.id
+       JOIN users s ON p.seller_id = s.id
+       ORDER BY o.created_at DESC LIMIT $1`, [limit]
+    )
+    return res.rows.map((r: any) => ({
+      id: r.id, amount: Math.round(Number(r.amount)), status: r.status,
+      product: r.product, buyer: r.buyer, seller: r.seller,
+      date: new Date(r.created_at).toISOString().slice(0, 10),
+    }))
+  } catch { return [] }
+}
+
 export async function getBuyerSpendSeries(userId: string) {
   try {
     const res = await query(
