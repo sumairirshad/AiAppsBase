@@ -1,144 +1,107 @@
-'use client'
-
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Package, DollarSign, Key, Heart, Download, ArrowRight, ShoppingCart, Loader2 } from 'lucide-react'
-import { formatPrice, timeAgo } from '@/lib/utils'
+import {
+  ShoppingBag, DollarSign, Download, Heart, ArrowRight, Key, Star,
+} from 'lucide-react'
 
-interface Order {
-  id: string
-  amount: number
-  licenseType: string
-  status: string
-  createdAt: string
-  product: { title: string }
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { StatCard } from '@/components/dashboard/stat-card'
+import { SpendAreaChart } from '@/components/dashboard/charts'
+import { ProductCard } from '@/components/marketplace/product-card'
+import {
+  buyerStats, buyerPurchases, buyerWishlist, buyerRecommended, buyerSpendSeries,
+} from '@/lib/dashboard-data'
+
+const statusVariant: Record<string, 'success' | 'destructive'> = {
+  completed: 'success', refunded: 'destructive',
 }
 
 export default function BuyerDashboard() {
-  const [orders, setOrders] = useState<Order[]>([])
-  const [wishlistCount, setWishlistCount] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [userName, setUserName] = useState('')
-
-  useEffect(() => {
-    Promise.all([
-      fetch('/api/orders').then((r) => r.json()),
-      fetch('/api/wishlist').then((r) => r.json()),
-      fetch('/api/auth/me').then((r) => r.json()),
-    ])
-      .then(([ordersData, wishlistData, meData]) => {
-        setOrders(ordersData.orders ?? [])
-        setWishlistCount(wishlistData.count ?? 0)
-        setUserName(meData?.user?.full_name ?? '')
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [])
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-brand-400" />
-      </div>
-    )
-  }
-
-  const totalSpent = orders.reduce((sum, o) => sum + o.amount, 0)
-  const activeLicenses = orders.filter((o) => o.status === 'completed').length
-
-  const stats = [
-    { label: 'Total Purchases', value: orders.length, icon: ShoppingCart, color: 'text-brand-400' },
-    { label: 'Total Spent', value: formatPrice(totalSpent), icon: DollarSign, color: 'text-emerald-400' },
-    { label: 'Active Licenses', value: activeLicenses, icon: Key, color: 'text-purple-400' },
-    { label: 'Wishlist Items', value: wishlistCount, icon: Heart, color: 'text-pink-400' },
-  ]
-
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="mb-10">
-        <h1 className="text-3xl font-bold text-white mb-2">Buyer Dashboard</h1>
-        <p className="text-surface-400">
-          {userName ? `Welcome, ${userName.split(' ')[0]}.` : ''} Manage your purchases, licenses, and wishlist.
-        </p>
+    <div className="mx-auto max-w-7xl space-y-8">
+      <div>
+        <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Your dashboard</h1>
+        <p className="text-muted-foreground">Manage your purchases, downloads, licenses, and wishlist.</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        {stats.map((stat) => (
-          <div key={stat.label} className="glass rounded-xl p-6">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-surface-400 text-sm">{stat.label}</span>
-              <stat.icon className={`w-5 h-5 ${stat.color}`} />
-            </div>
-            <p className="text-2xl font-bold text-white">{stat.value}</p>
-          </div>
-        ))}
+      {/* Stats */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Purchases" value={buyerStats.purchases} icon={ShoppingBag} />
+        <StatCard label="Total spent" value={buyerStats.spent} prefix="$" icon={DollarSign} />
+        <StatCard label="Downloads" value={buyerStats.downloads} icon={Download} />
+        <StatCard label="Wishlist" value={buyerStats.wishlist} icon={Heart} />
       </div>
 
-      <div className="glass rounded-xl p-6 mb-10">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-white">Recent Purchases</h2>
-          <Link href="/buyer/purchases" className="text-brand-400 hover:text-brand-300 text-sm flex items-center gap-1">
-            View All <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
+      {/* Spend + purchases */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card>
+          <CardHeader><CardTitle>Spending</CardTitle></CardHeader>
+          <CardContent><SpendAreaChart data={buyerSpendSeries} /></CardContent>
+        </Card>
 
-        {orders.length === 0 ? (
-          <div className="text-center py-8 text-surface-400">
-            No purchases yet.{' '}
-            <Link href="/products" className="text-brand-400 hover:text-brand-300">Browse marketplace</Link>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {orders.slice(0, 5).map((order) => (
-              <div key={order.id} className="flex items-center justify-between p-4 rounded-lg bg-white/5 hover:bg-white/[0.07] transition-colors">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-brand-600/20 to-purple-600/20 flex items-center justify-center">
-                    <Package className="w-5 h-5 text-brand-400" />
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex-row items-center justify-between space-y-0">
+            <CardTitle>Recent purchases</CardTitle>
+            <Button variant="ghost" size="sm" asChild><Link href="/buyer/purchases">View all <ArrowRight className="size-4" /></Link></Button>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {buyerPurchases.slice(0, 5).map((o) => (
+              <div key={o.id} className="flex items-center gap-4 rounded-xl border border-border p-3">
+                <span className={cn('size-11 shrink-0 rounded-lg bg-gradient-to-br', o.product.gradient)} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <Link href={`/product/${o.product.id}`} className="truncate text-sm font-medium hover:text-primary">{o.product.title}</Link>
+                    <Badge variant={statusVariant[o.status]} className="shrink-0">{o.status}</Badge>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-white">{order.product.title}</h3>
-                    <p className="text-xs text-surface-400">{timeAgo(order.createdAt)} &middot; {order.licenseType}</p>
+                  <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                    <Key className="size-3" /> <span className="font-mono">{o.licenseKey}</span> · {o.license}
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-semibold text-white">{formatPrice(order.amount)}</span>
-                  <button className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5">
-                    <Download className="w-3.5 h-3.5" /> Download
-                  </button>
+                <div className="hidden text-right sm:block">
+                  <div className="text-sm font-semibold">{o.amount === 0 ? 'Free' : `$${o.amount}`}</div>
+                  <div className="text-xs text-muted-foreground">{o.date}</div>
                 </div>
+                <Button size="sm" variant="outline" className="shrink-0"><Download className="size-4" /> <span className="hidden sm:inline">Download</span></Button>
               </div>
             ))}
-          </div>
-        )}
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <Link href="/buyer/purchases">
-          <div className="glass glass-hover rounded-xl p-6 card-hover">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg bg-brand-500/10 flex items-center justify-center">
-                <ShoppingCart className="w-6 h-6 text-brand-400" />
-              </div>
-              <div>
-                <h3 className="text-white font-semibold">My Purchases</h3>
-                <p className="text-surface-400 text-sm">View all purchases, licenses & downloads</p>
-              </div>
-            </div>
+      {/* Wishlist */}
+      <Card>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
+          <CardTitle>From your wishlist</CardTitle>
+          <Button variant="ghost" size="sm" asChild><Link href="/buyer/wishlist">View all <ArrowRight className="size-4" /></Link></Button>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {buyerWishlist.map((p) => (
+              <Link key={p.id} href={`/product/${p.id}`} className="group flex items-center gap-3 rounded-xl border border-border p-3 transition-colors hover:border-primary/40">
+                <span className={cn('size-12 shrink-0 rounded-lg bg-gradient-to-br', p.gradient)} />
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium group-hover:text-primary">{p.title}</div>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Star className="size-3 fill-amber-400 text-amber-400" /> {p.rating} · {p.price === 0 ? 'Free' : `$${p.price}`}
+                  </div>
+                </div>
+              </Link>
+            ))}
           </div>
-        </Link>
-        <Link href="/buyer/wishlist">
-          <div className="glass glass-hover rounded-xl p-6 card-hover">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg bg-pink-500/10 flex items-center justify-center">
-                <Heart className="w-6 h-6 text-pink-400" />
-              </div>
-              <div>
-                <h3 className="text-white font-semibold">My Wishlist</h3>
-                <p className="text-surface-400 text-sm">Browse your saved products</p>
-              </div>
-            </div>
-          </div>
-        </Link>
+        </CardContent>
+      </Card>
+
+      {/* Recommendations */}
+      <div>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-display text-xl font-bold tracking-tight">Recommended for you</h2>
+          <Button variant="ghost" size="sm" asChild><Link href="/products">Explore <ArrowRight className="size-4" /></Link></Button>
+        </div>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {buyerRecommended.map((p) => <ProductCard key={p.id} repo={p} />)}
+        </div>
       </div>
     </div>
   )

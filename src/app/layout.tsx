@@ -1,8 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter, Sora, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
-import { Navbar } from '@/components/layout/navbar'
-import { Footer } from '@/components/layout/footer'
+import { SiteNavbar, SiteFooter } from '@/components/layout/site-chrome'
 import { Toaster as HotToaster } from 'react-hot-toast'
 import { ThemeProvider } from '@/components/theme-provider'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -102,9 +101,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           disableTransitionOnChange
         >
           <TooltipProvider delayDuration={200}>
-            <Navbar />
+            <SiteNavbar />
             <main className="min-h-screen">{children}</main>
-            <Footer />
+            <SiteFooter />
           </TooltipProvider>
           <Toaster />
           <HotToaster position="top-right" />

@@ -1,188 +1,173 @@
-'use client'
-
-import React, { useEffect, useState } from 'react'
-import {
-  ShoppingBag,
-  DollarSign,
-  TrendingUp,
-  Star,
-  PlusCircle,
-  Package,
-  Loader2,
-  Clock,
-} from 'lucide-react'
 import Link from 'next/link'
-import { formatPrice, timeAgo } from '@/lib/utils'
+import {
+  DollarSign, ShoppingBag, Package, Users, PlusCircle, ArrowRight, Wallet,
+  TrendingUp, Star,
+} from 'lucide-react'
 
-interface SellerStats {
-  totalRevenue: number
-  totalSales: number
-  activeProducts: number
-  avgRating: number
-  recentSales: {
-    id: string
-    product: string
-    buyer: string
-    amount: number
-    date: string
-  }[]
+import { cn, formatNumber } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { StatCard } from '@/components/dashboard/stat-card'
+import { RevenueAreaChart, SalesBarChart, CategoryDonut } from '@/components/dashboard/charts'
+import {
+  currentSeller, sellerStats, sellerRevenueSeries, sellerCategorySplit,
+  sellerTopProducts, sellerRecentOrders,
+} from '@/lib/dashboard-data'
+
+const statusVariant: Record<string, 'success' | 'warning' | 'destructive'> = {
+  completed: 'success', pending: 'warning', refunded: 'destructive',
 }
 
-export default function PanelPage() {
-  const [stats, setStats] = useState<SellerStats | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    fetch('/api/seller/stats')
-      .then((r) => r.json())
-      .then((data) => setStats(data))
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [])
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-brand-400" />
-      </div>
-    )
-  }
-
-  const kpis = [
-    {
-      label: 'Total Revenue',
-      value: formatPrice(stats?.totalRevenue ?? 0),
-      icon: DollarSign,
-      color: 'text-emerald-400',
-    },
-    {
-      label: 'Total Sales',
-      value: String(stats?.totalSales ?? 0),
-      icon: ShoppingBag,
-      color: 'text-brand-400',
-    },
-    {
-      label: 'Active Products',
-      value: String(stats?.activeProducts ?? 0),
-      icon: Package,
-      color: 'text-blue-400',
-    },
-    {
-      label: 'Avg Rating',
-      value: stats?.avgRating ? `${stats.avgRating} ★` : 'N/A',
-      icon: Star,
-      color: 'text-amber-400',
-    },
-  ]
-
+export default function SellerDashboard() {
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-white mb-2">Dashboard Overview</h1>
-        <p className="text-surface-400 text-sm">Welcome back! Here&apos;s your store performance.</p>
+    <div className="mx-auto max-w-7xl space-y-8">
+      {/* Header */}
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div>
+          <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
+            Welcome back, {currentSeller.name.split(' ')[0]}
+          </h1>
+          <p className="text-muted-foreground">Here&apos;s how your store is performing today.</p>
+        </div>
+        <Button variant="gradient" asChild>
+          <Link href="/panel/seller/add-product"><PlusCircle className="size-4" /> Add product</Link>
+        </Button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {kpis.map((stat) => (
-          <div key={stat.label} className="glass rounded-2xl p-6 border border-white/5">
-            <div className="flex items-center justify-between mb-4">
-              <div className={`p-2 rounded-lg bg-white/5 ${stat.color}`}>
-                <stat.icon className="w-5 h-5" />
-              </div>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Total revenue" value={sellerStats.revenue} prefix="$" change={sellerStats.revenueChange} icon={DollarSign} />
+        <StatCard label="Total sales" value={sellerStats.sales} change={sellerStats.salesChange} icon={ShoppingBag} />
+        <StatCard label="Products" value={sellerStats.products} change={sellerStats.productsChange} icon={Package} />
+        <StatCard label="Followers" value={sellerStats.followers} change={sellerStats.followersChange} icon={Users} />
+      </div>
+
+      {/* Revenue + category */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex-row items-center justify-between space-y-0">
+            <div>
+              <CardTitle>Revenue</CardTitle>
+              <p className="text-sm text-muted-foreground">Last 9 months</p>
             </div>
-            <p className="text-2xl font-bold text-white mb-1">{stat.value}</p>
-            <p className="text-sm text-surface-400">{stat.label}</p>
-          </div>
-        ))}
+            <Badge variant="success"><TrendingUp className="size-3" /> +{sellerStats.revenueChange}%</Badge>
+          </CardHeader>
+          <CardContent><RevenueAreaChart data={sellerRevenueSeries} /></CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>Sales by category</CardTitle></CardHeader>
+          <CardContent><CategoryDonut data={sellerCategorySplit} /></CardContent>
+        </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Recent Sales */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-white">Recent Sales</h2>
-            <Link href="/panel/seller/products" className="text-sm text-brand-400 hover:text-brand-300">
-              View Products
-            </Link>
-          </div>
+      {/* Sales bar + payout */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader><CardTitle>Units sold</CardTitle></CardHeader>
+          <CardContent><SalesBarChart data={sellerRevenueSeries} /></CardContent>
+        </Card>
 
-          <div className="glass rounded-2xl border border-white/5 overflow-hidden">
-            {!stats?.recentSales?.length ? (
-              <div className="p-10 text-center">
-                <TrendingUp className="w-8 h-8 text-surface-600 mx-auto mb-3" />
-                <p className="text-surface-400 text-sm">No sales yet. Get your first product approved!</p>
+        <Card className="flex flex-col">
+          <CardHeader><CardTitle>Wallet</CardTitle></CardHeader>
+          <CardContent className="flex flex-1 flex-col justify-between gap-4">
+            <div>
+              <div className="text-sm text-muted-foreground">Available balance</div>
+              <div className="font-display text-3xl font-bold">${sellerStats.payout.toLocaleString()}</div>
+              <div className="mt-1 text-xs text-muted-foreground">${sellerStats.pending.toLocaleString()} pending clearance</div>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between rounded-lg border border-border p-3 text-sm">
+                <span className="flex items-center gap-2 text-muted-foreground"><Star className="size-4 text-amber-400" /> Avg. rating</span>
+                <span className="font-semibold">{sellerStats.avgRating}</span>
               </div>
-            ) : (
-              <div className="divide-y divide-white/5">
-                {stats.recentSales.map((sale) => (
-                  <div key={sale.id} className="p-4 hover:bg-white/5 transition-colors flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
-                        <ShoppingBag className="w-4 h-4 text-emerald-400" />
+              <div className="flex items-center justify-between rounded-lg border border-border p-3 text-sm">
+                <span className="flex items-center gap-2 text-muted-foreground"><TrendingUp className="size-4 text-success" /> Conversion</span>
+                <span className="font-semibold">{sellerStats.conversion}%</span>
+              </div>
+              <Button className="w-full"><Wallet className="size-4" /> Withdraw funds</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Top products */}
+      <Card>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
+          <CardTitle>Top products</CardTitle>
+          <Button variant="ghost" size="sm" asChild><Link href="/panel/seller/products">View all <ArrowRight className="size-4" /></Link></Button>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground">
+                  <th className="px-6 py-3 font-medium">Product</th>
+                  <th className="px-6 py-3 font-medium">Price</th>
+                  <th className="px-6 py-3 font-medium">Sales</th>
+                  <th className="px-6 py-3 font-medium">Revenue</th>
+                  <th className="px-6 py-3 font-medium">Rating</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sellerTopProducts.map((p) => (
+                  <tr key={p.id} className="border-b border-border/60 last:border-0 hover:bg-muted/40">
+                    <td className="px-6 py-3">
+                      <div className="flex items-center gap-3">
+                        <span className={cn('size-9 rounded-lg bg-gradient-to-br', p.gradient)} />
+                        <span className="font-medium">{p.title}</span>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-white line-clamp-1">{sale.product}</p>
-                        <p className="text-xs text-surface-500">
-                          by {sale.buyer} • {timeAgo(sale.date)}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-sm font-semibold text-emerald-400 shrink-0 ml-4">
-                      {formatPrice(sale.amount)}
-                    </span>
-                  </div>
+                    </td>
+                    <td className="px-6 py-3 text-muted-foreground">{p.price === 0 ? 'Free' : `$${p.price}`}</td>
+                    <td className="px-6 py-3 text-muted-foreground">{formatNumber(p.sales)}</td>
+                    <td className="px-6 py-3 font-medium">${formatNumber(p.revenue)}</td>
+                    <td className="px-6 py-3">
+                      <span className="inline-flex items-center gap-1"><Star className="size-3.5 fill-amber-400 text-amber-400" /> {p.rating}</span>
+                    </td>
+                  </tr>
                 ))}
-              </div>
-            )}
+              </tbody>
+            </table>
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Quick Actions */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-white">Quick Actions</h2>
-          <div className="grid grid-cols-1 gap-4">
-            <Link
-              href="/panel/seller/add-product"
-              className="glass p-4 rounded-2xl border border-white/5 hover:border-brand-500/50 transition-all flex items-center gap-4 group"
-            >
-              <div className="w-10 h-10 rounded-xl bg-brand-500/10 flex items-center justify-center group-hover:bg-brand-500/20 transition-colors">
-                <PlusCircle className="w-5 h-5 text-brand-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-white">Add New Product</p>
-                <p className="text-xs text-surface-500">List a new AI-built app</p>
-              </div>
-            </Link>
-
-            <Link
-              href="/panel/seller/products"
-              className="glass p-4 rounded-2xl border border-white/5 hover:border-white/20 transition-all flex items-center gap-4 group"
-            >
-              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
-                <Package className="w-5 h-5 text-surface-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-white">My Products</p>
-                <p className="text-xs text-surface-500">Manage your listings</p>
-              </div>
-            </Link>
-
-            <Link
-              href="/buyer/purchases"
-              className="glass p-4 rounded-2xl border border-white/5 hover:border-white/20 transition-all flex items-center gap-4 group"
-            >
-              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
-                <Clock className="w-5 h-5 text-surface-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-white">Order History</p>
-                <p className="text-xs text-surface-500">View your purchases</p>
-              </div>
-            </Link>
+      {/* Recent orders */}
+      <Card>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
+          <CardTitle>Recent orders</CardTitle>
+          <Button variant="ghost" size="sm" asChild><Link href="/panel/orders">View all <ArrowRight className="size-4" /></Link></Button>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground">
+                  <th className="px-6 py-3 font-medium">Order</th>
+                  <th className="px-6 py-3 font-medium">Product</th>
+                  <th className="px-6 py-3 font-medium">Buyer</th>
+                  <th className="px-6 py-3 font-medium">Amount</th>
+                  <th className="px-6 py-3 font-medium">Status</th>
+                  <th className="px-6 py-3 font-medium">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sellerRecentOrders.map((o) => (
+                  <tr key={o.id} className="border-b border-border/60 last:border-0 hover:bg-muted/40">
+                    <td className="px-6 py-3 font-mono text-xs">{o.id}</td>
+                    <td className="px-6 py-3">{o.product}</td>
+                    <td className="px-6 py-3 text-muted-foreground">{o.buyer}</td>
+                    <td className="px-6 py-3 font-medium">${o.amount}</td>
+                    <td className="px-6 py-3"><Badge variant={statusVariant[o.status]}>{o.status}</Badge></td>
+                    <td className="px-6 py-3 text-muted-foreground">{o.date}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

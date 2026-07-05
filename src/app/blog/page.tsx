@@ -1,6 +1,12 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ArrowRight, Clock, Tag } from 'lucide-react'
+import { ArrowRight, Clock, Sparkles } from 'lucide-react'
+
+import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { posts } from '@/lib/blog-data'
 
 export const metadata: Metadata = {
   title: 'Blog — AI Tools, Tips & Marketplace Insights',
@@ -13,153 +19,68 @@ export const metadata: Metadata = {
   },
 }
 
-const posts = [
-  {
-    slug: 'building-saas-with-cursor-2025',
-    title: 'How to Build a Full SaaS App with Cursor in a Weekend',
-    excerpt:
-      'A step-by-step guide to taking an idea from zero to a deployed, production-ready SaaS application using Cursor AI — in under 48 hours.',
-    category: 'Tutorial',
-    readTime: '8 min read',
-    date: 'June 10, 2025',
-    gradient: 'from-purple-500/10 to-brand-500/10',
-    categoryColor: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
-  },
-  {
-    slug: 'v0-vs-bolt-component-libraries',
-    title: 'v0 vs Bolt: Which AI Tool Builds Better UI Components?',
-    excerpt:
-      "We put both tools through their paces building the same component library. Here's what we found — and which one won.",
-    category: 'Comparison',
-    readTime: '6 min read',
-    date: 'June 3, 2025',
-    gradient: 'from-cyan-500/10 to-blue-500/10',
-    categoryColor: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
-  },
-  {
-    slug: 'pricing-your-ai-templates',
-    title: 'How to Price Your AI-Built Templates on AIAppsBase',
-    excerpt:
-      "Pricing is the hardest part of selling digital products. We analyzed 500+ sales on AIAppsBase to figure out what pricing strategies actually work.",
-    category: 'Seller Guide',
-    readTime: '5 min read',
-    date: 'May 27, 2025',
-    gradient: 'from-emerald-500/10 to-teal-500/10',
-    categoryColor: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-  },
-  {
-    slug: 'claude-vs-chatgpt-for-frontend',
-    title: 'Claude vs ChatGPT for Frontend Development in 2025',
-    excerpt:
-      'Both are powerful, but they have very different strengths when it comes to building UIs, writing clean Tailwind, and debugging React.',
-    category: 'Comparison',
-    readTime: '7 min read',
-    date: 'May 20, 2025',
-    gradient: 'from-orange-500/10 to-amber-500/10',
-    categoryColor: 'text-orange-400 bg-orange-500/10 border-orange-500/20',
-  },
-  {
-    slug: 'sell-your-first-product-guide',
-    title: 'Complete Guide to Selling Your First Product on AIAppsBase',
-    excerpt:
-      "Everything you need to know — from setting up your seller account, to writing a product description that converts, to uploading screenshots that sell.",
-    category: 'Seller Guide',
-    readTime: '10 min read',
-    date: 'May 14, 2025',
-    gradient: 'from-pink-500/10 to-rose-500/10',
-    categoryColor: 'text-pink-400 bg-pink-500/10 border-pink-500/20',
-  },
-  {
-    slug: 'nextjs-15-ai-app-starter',
-    title: 'The Best Next.js 15 Starter for AI-Powered Apps',
-    excerpt:
-      "We built the starter kit we always wished existed — auth, payments, database, and AI integrations wired up from day one.",
-    category: 'Resources',
-    readTime: '4 min read',
-    date: 'May 7, 2025',
-    gradient: 'from-brand-500/10 to-indigo-500/10',
-    categoryColor: 'text-brand-400 bg-brand-500/10 border-brand-500/20',
-  },
-]
-
 export default function BlogPage() {
-  const [featured, ...rest] = posts
+  const featured = posts.filter((p) => p.featured)
+  const rest = posts.filter((p) => !p.featured)
 
   return (
-    <div className="min-h-screen bg-surface-950">
-      {/* Header */}
-      <section className="border-b border-white/10 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            AIAppsBase <span className="gradient-text">Blog</span>
-          </h1>
-          <p className="text-surface-400 text-lg max-w-xl mx-auto">
-            Tutorials, comparisons, and tips for building and selling AI-powered products.
-          </p>
-        </div>
-      </section>
+    <div className="container py-16">
+      <div className="mx-auto max-w-2xl text-center">
+        <Badge variant="brand" className="px-3 py-1"><Sparkles className="size-3" /> The AIAppsBase Blog</Badge>
+        <h1 className="mt-4 font-display text-4xl font-bold tracking-tight sm:text-5xl">
+          Insights for builders &amp; sellers
+        </h1>
+        <p className="mt-4 text-lg text-muted-foreground">
+          Guides, data, and stories on building and selling AI-crafted software.
+        </p>
+      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Featured post */}
-        <div className={`glass rounded-2xl p-8 md:p-12 border border-white/5 bg-gradient-to-br ${featured.gradient} mb-12 relative overflow-hidden`}>
-          <div className="relative">
-            <div className="flex items-center gap-3 mb-4">
-              <span className={`text-xs font-medium px-3 py-1 rounded-full border ${featured.categoryColor}`}>
-                {featured.category}
-              </span>
-              <span className="text-surface-500 text-xs flex items-center gap-1">
-                <Clock className="w-3 h-3" /> {featured.readTime}
-              </span>
-              <span className="text-surface-500 text-xs">{featured.date}</span>
-            </div>
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-4 max-w-2xl">
-              {featured.title}
-            </h2>
-            <p className="text-surface-400 mb-6 max-w-xl leading-relaxed">{featured.excerpt}</p>
-            <span className="inline-flex items-center gap-2 text-brand-400 hover:text-brand-300 text-sm font-medium transition-colors cursor-pointer">
-              Read article <ArrowRight className="w-4 h-4" />
-            </span>
-          </div>
-        </div>
-
-        {/* Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {rest.map((post) => (
-            <article
-              key={post.slug}
-              className="glass rounded-2xl border border-white/5 overflow-hidden card-hover group cursor-pointer"
-            >
-              <div className={`h-2 bg-gradient-to-r ${post.gradient.replace('/10', '')}`} />
+      {/* Featured */}
+      <div className="mt-14 grid gap-6 lg:grid-cols-2">
+        {featured.map((p) => (
+          <Link key={p.slug} href={`/blog/${p.slug}`}>
+            <Card interactive className="group h-full overflow-hidden">
+              <div className={cn('relative h-56 bg-gradient-to-br', p.gradient)}>
+                <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-20" />
+                <Badge className="absolute left-4 top-4 border-0 bg-black/30 text-white backdrop-blur-md">{p.category}</Badge>
+              </div>
               <div className="p-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${post.categoryColor}`}>
-                    <Tag className="w-2.5 h-2.5 inline mr-1" />
-                    {post.category}
-                  </span>
-                  <span className="text-surface-600 text-xs flex items-center gap-1">
-                    <Clock className="w-3 h-3" /> {post.readTime}
-                  </span>
-                </div>
-                <h3 className="text-base font-semibold text-white mb-2 group-hover:text-brand-300 transition-colors leading-snug">
-                  {post.title}
-                </h3>
-                <p className="text-surface-400 text-sm leading-relaxed mb-4 line-clamp-3">
-                  {post.excerpt}
-                </p>
-                <div className="flex items-center justify-between">
-                  <span className="text-surface-600 text-xs">{post.date}</span>
-                  <span className="text-brand-400 text-xs flex items-center gap-1 group-hover:gap-2 transition-all">
-                    Read <ArrowRight className="w-3 h-3" />
-                  </span>
+                <h2 className="font-display text-xl font-bold group-hover:text-primary">{p.title}</h2>
+                <p className="mt-2 text-sm text-muted-foreground">{p.excerpt}</p>
+                <div className="mt-4 flex items-center gap-3 text-xs text-muted-foreground">
+                  <Avatar className="size-7"><AvatarFallback>{p.author.charAt(0)}</AvatarFallback></Avatar>
+                  <span className="font-medium text-foreground">{p.author}</span>
+                  <span>·</span>
+                  <span className="inline-flex items-center gap-1"><Clock className="size-3" /> {p.readTime}</span>
                 </div>
               </div>
-            </article>
-          ))}
-        </div>
+            </Card>
+          </Link>
+        ))}
+      </div>
 
-        <p className="text-center text-surface-500 text-sm mt-12">
-          More articles coming soon. Follow us for updates.
-        </p>
+      {/* Rest */}
+      <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {rest.map((p) => (
+          <Link key={p.slug} href={`/blog/${p.slug}`}>
+            <Card interactive className="group flex h-full flex-col overflow-hidden">
+              <div className={cn('relative h-40 bg-gradient-to-br', p.gradient)}>
+                <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-20" />
+                <Badge className="absolute left-4 top-4 border-0 bg-black/30 text-white backdrop-blur-md">{p.category}</Badge>
+              </div>
+              <div className="flex flex-1 flex-col p-5">
+                <h3 className="font-semibold group-hover:text-primary">{p.title}</h3>
+                <p className="mt-2 line-clamp-2 flex-1 text-sm text-muted-foreground">{p.excerpt}</p>
+                <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">{p.author}</span>
+                  <span>·</span>
+                  <span>{p.readTime}</span>
+                  <ArrowRight className="ml-auto size-4 transition-transform group-hover:translate-x-0.5" />
+                </div>
+              </div>
+            </Card>
+          </Link>
+        ))}
       </div>
     </div>
   )
