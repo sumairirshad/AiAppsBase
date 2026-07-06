@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {
   Star, GitFork, Eye, GitCommitHorizontal, CircleDot, Users, BadgeCheck,
   Check, Share2, Heart, ShieldCheck, Download, ExternalLink, Github, ChevronRight,
-  Sparkles, Flame, Clock, ThumbsUp,
+  Sparkles, Flame, Clock, ThumbsUp, ShoppingCart,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -73,39 +73,68 @@ function RatingBar({ stars, pct }: { stars: number; pct: number }) {
   )
 }
 
+const LICENSE_LABEL: Record<string, string> = { personal: 'Personal', commercial: 'Commercial', extended: 'Extended' }
+
 function PurchasePanel({ repo }: { repo: Repo }) {
   const [saved, setSaved] = React.useState(false)
   const [license, setLicense] = React.useState('commercial')
+  const [adding, setAdding] = React.useState(false)
+  const [buying, setBuying] = React.useState(false)
   const licenseMultiplier: Record<string, number> = { personal: 1, commercial: 1, extended: 2.5 }
   const displayPrice = repo.price === 0 ? 0 : Math.round(repo.price * (licenseMultiplier[license] ?? 1))
-  const [loading, setLoading] = React.useState(false)
 
-    async function addToCart() {
+  async function addToCart() {
+    setAdding(true)
     try {
-      setLoading(true)
-
       const res = await fetch('/api/cart', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          productId: repo.id,
-          licenseType: license,
-        }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: repo.id, licenseType: LICENSE_LABEL[license] ?? 'Commercial' }),
       })
-
       const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to add to cart')
-      }
-
-      toast.success(`${repo.title} added to cart`)
+      if (res.status === 401) { toast.error('Please sign in to add items to your cart'); return }
+      if (!res.ok) throw new Error(data.error || 'Could not add to cart')
+      window.dispatchEvent(new Event('cart-updated'))
+      toast.success('Added to cart', { description: repo.title })
     } catch (err) {
       toast.error((err as Error).message)
     } finally {
-      setLoading(false)
+      setAdding(false)
+    }
+  }
+
+  async function buyNow() {
+    if (repo.price === 0) { window.location.href = `/product/${repo.id}` ; return }
+    setBuying(true)
+    try {
+      const auth = await fetch('/api/auth/me').then((r) => r.json()).catch(() => ({}))
+      if (!auth.user) { window.location.href = '/auth/login'; return }
+      const res = await fetch('/api/checkout/create-session', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: repo.id, licenseType: LICENSE_LABEL[license] ?? 'Commercial' }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to start checkout')
+      window.location.href = data.url
+    } catch (err) {
+      toast.error((err as Error).message)
+      setBuying(false)
+    }
+  }
+
+  async function toggleWishlist() {
+    const next = !saved
+    setSaved(next)
+    try {
+      const res = await fetch('/api/wishlist', {
+        method: next ? 'POST' : 'DELETE', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: repo.id }),
+      })
+      if (res.status === 401) { setSaved(!next); toast.error('Please sign in to save to your wishlist'); return }
+      if (!res.ok) throw new Error()
+      toast.success(next ? 'Saved to wishlist' : 'Removed from wishlist')
+    } catch {
+      setSaved(!next)
+      toast.error('Could not update wishlist')
     }
   }
 
@@ -136,23 +165,19 @@ function PurchasePanel({ repo }: { repo: Repo }) {
       )}
 
       <div className="mt-4 space-y-2">
-        <Button
-          variant="gradient"
-          size="lg"
-          className="w-full"
-          disabled={loading}
-          onClick={addToCart}
-        >
-          {loading ? 'Adding...' : repo.price === 0 ? 'Get it free' : 'Add to cart'}
+        <Button variant="gradient" size="lg" className="w-full" loading={buying} onClick={buyNow}>
+          {repo.price === 0 ? <><Download className="size-4" /> Get it free</> : <><Sparkles className="size-4" /> Buy now</>}
         </Button>
+        {repo.price > 0 && (
+          <Button variant="outline" size="lg" className="w-full" loading={adding} onClick={addToCart}>
+            <ShoppingCart className="size-4" /> Add to cart
+          </Button>
+        )}
         <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" onClick={() => { setSaved((s) => !s); toast.success(saved ? 'Removed' : 'Saved to wishlist') }}>
+          <Button variant="outline" onClick={toggleWishlist}>
             <Heart className={cn('size-4', saved && 'fill-current text-rose-500')} /> {saved ? 'Saved' : 'Wishlist'}
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied') }}
-          >
+          <Button variant="outline" onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied') }}>
             <Share2 className="size-4" /> Share
           </Button>
         </div>

@@ -49,6 +49,7 @@ export async function GET(
         )
       }
 
+      // Remove the purchased item from the buyer's cart if present.
       await query(`DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2`, [userId, row.product_id])
 
       await query(

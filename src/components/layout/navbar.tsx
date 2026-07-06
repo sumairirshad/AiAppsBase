@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Icon } from '@/components/icon'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { CartLink } from '@/components/cart/cart-link'
 import {
   NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuList,
   NavigationMenuTrigger, navigationMenuTriggerStyle,
@@ -249,9 +250,7 @@ export function Navbar() {
 
         <div className="flex items-center gap-1.5">
           <ThemeToggle />
-          <Button  variant="ghost" size="icon" asChild aria-label="Cart">
-            <Link href="/cart"><ShoppingCart className="size-5" /></Link>
-          </Button>
+          <CartLink />
 
           {loading ? (
             <Skeleton className="h-9 w-20 rounded-lg" />
