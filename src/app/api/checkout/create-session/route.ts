@@ -48,40 +48,60 @@ export async function POST(req: NextRequest) {
   const amount = Number(product.price)
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
-  // Create Stripe checkout session (30 min expiry)
-  const session = await stripe.checkout.sessions.create({
-    payment_method_types: ['card'],
-    line_items: [
-      {
-        price_data: {
-          currency: 'usd',
-          product_data: {
-            name: product.title,
-            description: `License: ${licenseType}`,
+  // Stripe requires a minimum charge of $0.50 USD. Reject cheaper/zero amounts
+  // up front with a clear message instead of letting Stripe throw a 500.
+  const unitAmount = Math.round(amount * 100)
+  if (unitAmount < 50) {
+    return NextResponse.json(
+      { error: 'This product’s price is below the minimum Stripe can charge ($0.50).' },
+      { status: 400 }
+    )
+  }
+
+  try {
+    // Create Stripe checkout session (30 min expiry)
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: product.title,
+              description: `License: ${licenseType}`,
+            },
+            unit_amount: unitAmount,
           },
-          unit_amount: Math.round(amount * 100),
+          quantity: 1,
         },
-        quantity: 1,
+      ],
+      mode: 'payment',
+      success_url: `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl}/product/${productId}`,
+      metadata: {
+        userId,
+        productId,
+        licenseType,
       },
-    ],
-    mode: 'payment',
-    success_url: `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${appUrl}/product/${productId}`,
-    metadata: {
-      userId,
-      productId,
-      licenseType,
-    },
-    expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
-  })
+      expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
+    })
 
-  // Persist session in DB for idempotency & expiry tracking
-  await query(
-    `INSERT INTO checkout_sessions
-       (stripe_session_id, user_id, product_id, license_type, amount, expires_at)
-     VALUES ($1, $2, $3, $4, $5, to_timestamp($6))`,
-    [session.id, userId, productId, licenseType, amount, session.expires_at]
-  )
+    // Persist session in DB for idempotency & expiry tracking
+    await query(
+      `INSERT INTO checkout_sessions
+         (stripe_session_id, user_id, product_id, license_type, amount, expires_at)
+       VALUES ($1, $2, $3, $4, $5, to_timestamp($6))`,
+      [session.id, userId, productId, licenseType, amount, session.expires_at]
+    )
 
-  return NextResponse.json({ url: session.url })
+    return NextResponse.json({ url: session.url })
+  } catch (err) {
+    // Surface the real reason (Stripe error, DB error, etc.) instead of a bare 500.
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    console.error('[checkout/create-session] failed:', message, err)
+    return NextResponse.json(
+      { error: `Checkout could not be started: ${message}` },
+      { status: 500 }
+    )
+  }
 }

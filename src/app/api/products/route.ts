@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { randomUUID } from 'crypto'
 import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
+import { uploadDeliverable } from '@/lib/sftp'
 import fs from 'fs'
 import path from 'path'
 
@@ -61,7 +63,7 @@ export async function POST(req: NextRequest) {
 
     const screenshots: string[] = []
     const files = formData.getAll('screenshotFiles') as File[]
-    
+
     const uploadDir = path.join(process.cwd(), 'public', 'Uploads')
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true })
@@ -69,13 +71,86 @@ export async function POST(req: NextRequest) {
 
     for (const file of files) {
       if (file.size === 0) continue
-      
+
       const buffer = Buffer.from(await file.arrayBuffer())
       const fileName = `${Date.now()}-${file.name.replace(/\s+/g, '-').toLowerCase()}`
       const filePath = path.join(uploadDir, fileName)
-      
+
       fs.writeFileSync(filePath, buffer)
       screenshots.push(`/Uploads/${fileName}`)
+    }
+
+    // Manual-mode products (no GitHub repo) must ship an actual deliverable
+    // file — otherwise a buyer who purchases it would have nothing to download.
+    let deliverableRemotePath: string | null = null
+    let deliverableOriginalName: string | null = null
+    let deliverableSizeBytes: number | null = null
+
+    if (!githubRepoName) {
+      const deliverableFile = formData.get('deliverableFile') as File | null
+
+      if (!deliverableFile || deliverableFile.size === 0) {
+        return NextResponse.json(
+          { error: 'Please upload a .zip or .rar deliverable file' },
+          { status: 400 }
+        )
+      }
+
+      const lowerName = deliverableFile.name.toLowerCase()
+      if (!lowerName.endsWith('.zip') && !lowerName.endsWith('.rar')) {
+        return NextResponse.json(
+          { error: 'The deliverable file must be a .zip or .rar archive' },
+          { status: 400 }
+        )
+      }
+
+      const productId = randomUUID()
+      const buffer = Buffer.from(await deliverableFile.arrayBuffer())
+
+      try {
+        const { remotePath } = await uploadDeliverable(buffer, productId, deliverableFile.name)
+        deliverableRemotePath = remotePath
+        deliverableOriginalName = deliverableFile.name
+        deliverableSizeBytes = deliverableFile.size
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error'
+        console.error('[products/create] SFTP upload failed:', message, err)
+        return NextResponse.json(
+          { error: `Could not reach file storage server: ${message}` },
+          { status: 502 }
+        )
+      }
+
+      const res = await query(
+        `INSERT INTO products (
+          id, seller_id, title, description, price, category,
+          ai_tools, tech_stack, human_mod_level, screenshots,
+          preview_url, license_type, tags, github_repo_name, github_default_branch,
+          deliverable_remote_path, deliverable_original_name, deliverable_size_bytes
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) RETURNING id`,
+        [
+          productId,
+          userId,
+          title,
+          description,
+          price,
+          category,
+          aiTools,
+          techStack,
+          humanModLevel,
+          screenshots,
+          previewUrl || null,
+          licenseType,
+          tags,
+          githubRepoName,
+          githubDefaultBranch,
+          deliverableRemotePath,
+          deliverableOriginalName,
+          deliverableSizeBytes,
+        ]
+      )
+
+      return NextResponse.json({ ok: true, id: res.rows[0].id })
     }
 
     const res = await query(
