@@ -1,4 +1,8 @@
 export async function sendOtpEmail(to: string, otp: string) {
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`\n[dev] OTP for ${to}: ${otp}\n`)
+  }
+
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {
     throw new Error('RESEND_API_KEY is required to send emails')

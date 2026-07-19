@@ -9,7 +9,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '../.env') })
 
 const { Pool } = require('pg')
 
-const SELLER_EMAIL = 'seller@gmail.com'
+const SELLER_EMAIL = 'ssam70207@gmail.com'
 
 const REPOS = [
   {

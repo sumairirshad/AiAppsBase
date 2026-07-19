@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
+import { getPlatformFeePercent } from '@/lib/payouts'
 
 export async function GET() {
   const userId = await getSessionUserId()
@@ -27,7 +28,7 @@ export async function GET() {
       totalProducts: productsRes.rows[0].total,
       gmv: Number(ordersRes.rows[0].gmv),
       totalSales: ordersRes.rows[0].total_sales,
-      platformRevenue: Number(ordersRes.rows[0].gmv) * 0.15,
+      platformRevenue: Number(ordersRes.rows[0].gmv) * (getPlatformFeePercent() / 100),
       pendingProducts: pendingRes.rows[0].pending,
     }
 
