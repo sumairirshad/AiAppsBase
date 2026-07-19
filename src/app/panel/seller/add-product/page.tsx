@@ -6,12 +6,12 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import {
   ArrowLeft, ArrowRight, Check, Upload, Tag, Cpu, Image as ImageIcon, DollarSign,
   ClipboardList, Github, Star, Search, Loader2, ExternalLink,
-  RefreshCw, AlertCircle, Zap,
+  RefreshCw, AlertCircle, Zap, FileArchive, X,
 } from 'lucide-react'
 import type { AITool, Category, TechStack, HumanModLevel, LicenseType } from '@/types'
 import toast from 'react-hot-toast'
 
-import { cn } from '@/lib/utils'
+import { cn, formatBytes } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Progress } from '@/components/ui/progress'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
@@ -112,6 +113,9 @@ function AddProductContent() {
   const [previewUrl, setPreviewUrl] = useState('')
   const [price, setPrice] = useState('')
   const [licenseType, setLicenseType] = useState<LicenseType | ''>('')
+  const [deliverableFile, setDeliverableFile] = useState<File | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
 
   const [ghLoading, setGhLoading] = useState(false)
   const [ghConnected, setGhConnected] = useState(false)
@@ -174,25 +178,54 @@ function AddProductContent() {
       toast.error('Please fill in title, category and license type')
       return
     }
-    setIsSubmitting(true)
-    try {
-      const formData = new FormData()
-      formData.append('title', title)
-      formData.append('description', description)
-      formData.append('category', category)
-      formData.append('tags', JSON.stringify(tags.split(',').map((t) => t.trim()).filter(Boolean)))
-      formData.append('aiTools', JSON.stringify(aiTools))
-      formData.append('humanModLevel', humanModLevel)
-      formData.append('framework', framework)
-      formData.append('techStack', JSON.stringify(techStack))
-      formData.append('previewUrl', previewUrl)
-      formData.append('price', price)
-      formData.append('licenseType', licenseType)
-      selectedFiles.forEach((file) => formData.append('screenshotFiles', file))
+    if (!deliverableFile) {
+      toast.error('Please upload a .zip or .rar file with your product')
+      return
+    }
 
-      const res = await fetch('/api/products', { method: 'POST', body: formData })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to add product')
+    const formData = new FormData()
+    formData.append('title', title)
+    formData.append('description', description)
+    formData.append('category', category)
+    formData.append('tags', JSON.stringify(tags.split(',').map((t) => t.trim()).filter(Boolean)))
+    formData.append('aiTools', JSON.stringify(aiTools))
+    formData.append('humanModLevel', humanModLevel)
+    formData.append('framework', framework)
+    formData.append('techStack', JSON.stringify(techStack))
+    formData.append('previewUrl', previewUrl)
+    formData.append('price', price)
+    formData.append('licenseType', licenseType)
+    selectedFiles.forEach((file) => formData.append('screenshotFiles', file))
+    formData.append('deliverableFile', deliverableFile)
+
+    setIsSubmitting(true)
+    setUploading(true)
+    setUploadProgress(0)
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest()
+        xhr.open('POST', '/api/products')
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            setUploadProgress(Math.round((e.loaded / e.total) * 100))
+          }
+        }
+        xhr.onload = () => {
+          let body: { id?: string; error?: string } | null = null
+          try {
+            body = JSON.parse(xhr.responseText)
+          } catch {
+            /* ignore */
+          }
+          if (xhr.status >= 200 && xhr.status < 300 && body) {
+            resolve()
+          } else {
+            reject(new Error(body?.error || 'Failed to add product'))
+          }
+        }
+        xhr.onerror = () => reject(new Error('Failed to add product'))
+        xhr.send(formData)
+      })
 
       toast.success('Product submitted successfully!')
       router.push('/panel/seller/products')
@@ -201,6 +234,8 @@ function AddProductContent() {
       toast.error((err as Error).message)
     } finally {
       setIsSubmitting(false)
+      setUploading(false)
+      setUploadProgress(0)
     }
   }
 
@@ -402,6 +437,43 @@ function AddProductContent() {
                     </div>
                   )}
                 </div>
+                <div className="space-y-3">
+                  <Label>Product deliverable (.zip or .rar) <span className="text-destructive">*</span></Label>
+                  {!deliverableFile ? (
+                    <div className="relative rounded-xl border-2 border-dashed border-border p-8 text-center transition-colors hover:border-primary/40">
+                      <input
+                        type="file"
+                        accept=".zip,.rar,application/zip,application/x-zip-compressed,application/vnd.rar,application/x-rar-compressible"
+                        onChange={(e) => setDeliverableFile(e.target.files?.[0] ?? null)}
+                        className="absolute inset-0 size-full cursor-pointer opacity-0"
+                      />
+                      <FileArchive className="mx-auto mb-3 size-8 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">Drag & drop or click to upload the file buyers will download</p>
+                      <p className="mt-1 text-xs text-muted-foreground">.zip or .rar — no size limit</p>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted/40 p-4">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <FileArchive className="size-5 shrink-0 text-primary" />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{deliverableFile.name}</p>
+                          <p className="text-xs text-muted-foreground">{formatBytes(deliverableFile.size)}</p>
+                        </div>
+                      </div>
+                      {!uploading && (
+                        <button type="button" onClick={() => setDeliverableFile(null)} className="shrink-0 text-muted-foreground hover:text-foreground" aria-label="Remove file">
+                          <X className="size-4" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {uploading && (
+                    <div className="space-y-1.5">
+                      <Progress value={uploadProgress} />
+                      <p className="text-xs text-muted-foreground">Uploading… {uploadProgress}%</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -440,6 +512,7 @@ function AddProductContent() {
                     { label: 'License', value: licenseType },
                     { label: 'Human modification', value: humanModLevel },
                     { label: 'Framework', value: framework },
+                    { label: 'Deliverable', value: deliverableFile?.name },
                   ].map(({ label, value }) => (
                     <div key={label} className="rounded-lg border border-border bg-muted/40 p-4">
                       <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
@@ -466,8 +539,8 @@ function AddProductContent() {
                 Next <ArrowRight className="size-4" />
               </Button>
             ) : (
-              <Button variant="gradient" onClick={handleManualSubmit} loading={isSubmitting}>
-                <Check className="size-4" /> Submit for review
+              <Button variant="gradient" onClick={handleManualSubmit} loading={isSubmitting} disabled={isSubmitting}>
+                <Check className="size-4" /> {uploading ? `Uploading… ${uploadProgress}%` : 'Submit for review'}
               </Button>
             )}
           </div>

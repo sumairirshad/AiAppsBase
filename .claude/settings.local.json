@@ -4,7 +4,11 @@
       "Bash(Get-ChildItem -Path \"d:\\\\Nett core\\\\AIAppsBase\\\\AiAppsBase\" -Force)",
       "Bash(Select-Object Name, Mode)",
       "Bash(Format-Table)",
-      "PowerShell(Get-ChildItem -Path \"d:\\\\Nett core\\\\AIAppsBase\\\\AiAppsBase\\\\src\\\\components\" -Recurse -File | Select-Object Name, @{Name=\"RelPath\";Expression={$_.FullName -replace [regex]::Escape\\(\\(Get-Item \"d:\\\\Nett core\\\\AIAppsBase\\\\AiAppsBase\\\\src\\\\components\"\\).FullName\\)}} | Format-Table Name, RelPath)"
+      "PowerShell(Get-ChildItem -Path \"d:\\\\Nett core\\\\AIAppsBase\\\\AiAppsBase\\\\src\\\\components\" -Recurse -File | Select-Object Name, @{Name=\"RelPath\";Expression={$_.FullName -replace [regex]::Escape\\(\\(Get-Item \"d:\\\\Nett core\\\\AIAppsBase\\\\AiAppsBase\\\\src\\\\components\"\\).FullName\\)}} | Format-Table Name, RelPath)",
+      "Bash(grep -oE \"STRIPE_SECRET_KEY=sk_\\(live|test\\)\" .env.local)",
+      "Bash(grep -oE \"STRIPE_PUBLISHABLE_KEY=pk_\\(live|test\\)\" .env.local)",
+      "Bash(grep -E \"NEXT_PUBLIC_APP_URL\" .env.local)",
+      "Bash(npx tsc *)"
     ]
   }
 }

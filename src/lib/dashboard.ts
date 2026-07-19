@@ -177,14 +177,14 @@ export async function getBuyerOrders(userId: string, limit = 50) {
   try {
     const res = await query(
       `SELECT o.id, o.amount::float AS amount, o.status, o.license_type, o.license_key, o.created_at,
-              p.id AS product_id, p.title AS product, p.github_repo_name
+              p.id AS product_id, p.title AS product, p.github_repo_name, p.deliverable_remote_path
        FROM orders o JOIN products p ON o.product_id=p.id
        WHERE o.buyer_id=$1 ORDER BY o.created_at DESC LIMIT $2`, [userId, limit]
     )
     return res.rows.map((r: any) => ({
       id: r.id, productId: r.product_id, product: r.product, gradient: gradientFor(r.product_id),
       amount: Math.round(Number(r.amount)), status: r.status, license: r.license_type,
-      licenseKey: r.license_key, downloadable: Boolean(r.github_repo_name),
+      licenseKey: r.license_key, downloadable: Boolean(r.github_repo_name || r.deliverable_remote_path),
       date: new Date(r.created_at).toISOString().slice(0, 10),
     }))
   } catch { return [] }

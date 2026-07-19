@@ -20,7 +20,7 @@ export async function GET() {
         p.featured AS product_featured, p.tags AS product_tags,
         p.created_at AS product_created_at, p.updated_at AS product_updated_at,
         p.status AS product_status,
-        (p.github_repo_name IS NOT NULL) AS has_download,
+        (p.github_repo_name IS NOT NULL OR p.deliverable_remote_path IS NOT NULL) AS has_download,
         u.id AS seller_id, u.full_name AS seller_name
       FROM orders o
       JOIN products p ON o.product_id = p.id
@@ -89,12 +89,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    const productRes = await query('SELECT id, price FROM products WHERE id = $1 AND status = $2', [
+    const productRes = await query('SELECT id, price, seller_id FROM products WHERE id = $1 AND status = $2', [
       productId,
       'approved',
     ])
     if ((productRes.rowCount ?? 0) === 0) {
       return NextResponse.json({ error: 'Product not found or not available' }, { status: 404 })
+    }
+
+    const product = productRes.rows[0]
+    const amount = Number(product.price)
+
+    // This endpoint only creates orders directly for FREE products — paid
+    // products must go through /api/checkout/create-session and Stripe.
+    if (amount !== 0) {
+      return NextResponse.json(
+        { error: 'This product requires payment. Use checkout instead.' },
+        { status: 402 }
+      )
+    }
+
+    if (product.seller_id === userId) {
+      return NextResponse.json({ error: 'Cannot claim your own product' }, { status: 403 })
     }
 
     const existing = await query('SELECT id FROM orders WHERE product_id = $1 AND buyer_id = $2', [
@@ -105,14 +121,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'You already own this product' }, { status: 409 })
     }
 
-    const amount = Number(productRes.rows[0].price)
-
     const res = await query(
       `INSERT INTO orders (product_id, buyer_id, amount, license_type)
        VALUES ($1, $2, $3, $4)
        RETURNING id, license_key`,
       [productId, userId, amount, licenseType]
     )
+
+    await query('DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2', [userId, productId])
 
     return NextResponse.json({ ok: true, orderId: res.rows[0].id, licenseKey: res.rows[0].license_key })
   } catch {

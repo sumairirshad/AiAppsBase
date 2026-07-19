@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Trash2, ShoppingCart, ArrowRight, ShieldCheck, Loader2, BadgeCheck } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -11,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { EmptyState } from '@/components/dashboard/empty-state'
+import { claimFreeProduct } from '@/lib/client/claim-free-product'
 import type { CartItem } from '@/lib/cart'
 
 function notifyCartChanged() {
@@ -18,6 +20,7 @@ function notifyCartChanged() {
 }
 
 export function CartView({ items: initial, authed }: { items: CartItem[]; authed: boolean }) {
+  const router = useRouter()
   const [items, setItems] = React.useState(initial)
   const [busy, setBusy] = React.useState<string | null>(null)
 
@@ -43,7 +46,25 @@ export function CartView({ items: initial, authed }: { items: CartItem[]; authed
   }
 
   async function checkout(item: CartItem) {
-    if (item.price === 0) { window.location.href = `/product/${item.productId}`; return }
+    if (item.price === 0) {
+      setBusy(item.productId)
+      const result = await claimFreeProduct(item.productId, item.license)
+      setBusy(null)
+
+      if (result.ok || result.reason === 'already-owned') {
+        setItems((xs) => xs.filter((x) => x.productId !== item.productId))
+        toast.success(result.ok ? `${item.title} is yours — redirecting to your downloads` : 'You already own this product')
+        router.push('/buyer/downloads')
+        return
+      }
+      if (result.reason === 'unauthorized') {
+        toast.error('Please sign in to get this product')
+        router.push('/auth/login')
+        return
+      }
+      toast.error(result.message)
+      return
+    }
     setBusy(item.productId)
     try {
       const res = await fetch('/api/checkout/create-session', {

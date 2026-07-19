@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   Star, GitFork, Eye, GitCommitHorizontal, CircleDot, Users, BadgeCheck,
   Check, Share2, Heart, ShieldCheck, Download, ExternalLink, Github, ChevronRight,
@@ -20,6 +21,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { ProductCard } from '@/components/marketplace/product-card'
+import { claimFreeProduct } from '@/lib/client/claim-free-product'
 import type { Repo, Seller } from '@/lib/marketplace-config'
 
 function StatTile({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
@@ -74,13 +76,14 @@ function RatingBar({ stars, pct }: { stars: number; pct: number }) {
 }
 
 function PurchasePanel({ repo }: { repo: Repo }) {
+  const router = useRouter()
   const [saved, setSaved] = React.useState(false)
   const [license, setLicense] = React.useState('commercial')
   const licenseMultiplier: Record<string, number> = { personal: 1, commercial: 1, extended: 2.5 }
   const displayPrice = repo.price === 0 ? 0 : Math.round(repo.price * (licenseMultiplier[license] ?? 1))
   const [loading, setLoading] = React.useState(false)
 
-    async function addToCart() {
+  async function addToCart() {
     try {
       setLoading(true)
 
@@ -107,6 +110,29 @@ function PurchasePanel({ repo }: { repo: Repo }) {
     } finally {
       setLoading(false)
     }
+  }
+
+  async function getItFree() {
+    setLoading(true)
+    const result = await claimFreeProduct(repo.id, license)
+    setLoading(false)
+
+    if (result.ok) {
+      toast.success(`${repo.title} is yours — redirecting to your downloads`)
+      router.push('/buyer/downloads')
+      return
+    }
+    if (result.reason === 'already-owned') {
+      toast.success('You already own this product — redirecting to your downloads')
+      router.push('/buyer/downloads')
+      return
+    }
+    if (result.reason === 'unauthorized') {
+      toast.error('Please sign in to get this product')
+      router.push('/auth/login')
+      return
+    }
+    toast.error(result.message)
   }
 
   return (
@@ -141,9 +167,9 @@ function PurchasePanel({ repo }: { repo: Repo }) {
           size="lg"
           className="w-full"
           disabled={loading}
-          onClick={addToCart}
+          onClick={repo.price === 0 ? getItFree : addToCart}
         >
-          {loading ? 'Adding...' : repo.price === 0 ? 'Get it free' : 'Add to cart'}
+          {loading ? (repo.price === 0 ? 'Getting it...' : 'Adding...') : repo.price === 0 ? 'Get it free' : 'Add to cart'}
         </Button>
         <div className="grid grid-cols-2 gap-2">
           <Button variant="outline" onClick={() => { setSaved((s) => !s); toast.success(saved ? 'Removed' : 'Saved to wishlist') }}>
