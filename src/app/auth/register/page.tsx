@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
@@ -26,6 +26,13 @@ export default function RegisterPage() {
   const [showPw, setShowPw] = useState(false)
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const error = new URLSearchParams(window.location.search).get('error')
+    if (error === 'github_no_email') toast.error('Your GitHub account has no verified email. Please sign up with email instead.')
+    else if (error === 'github_failed' || error === 'invalid_state') toast.error('GitHub sign-up failed. Please try again.')
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -80,7 +87,7 @@ export default function RegisterPage() {
       </div>
 
       <Button variant="outline" className="w-full" asChild>
-        <a href="/api/auth/github"><Github className="size-4" /> Sign up with GitHub</a>
+        <a href={`/api/auth/github?role=${role}`}><Github className="size-4" /> Sign up with GitHub</a>
       </Button>
 
       <div className="my-5 flex items-center gap-3">
