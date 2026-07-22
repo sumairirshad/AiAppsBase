@@ -1,6 +1,6 @@
 import { query } from '@/lib/db'
 import {
-  gradientFor, slugifyCategory, languageColor,
+  gradientFor, slugifyCategory, slugifySubcategory, languageColor,
   type Repo, type Review, type Seller,
 } from '@/lib/marketplace-config'
 
@@ -24,6 +24,8 @@ function mapRow(row: any): Repo {
     price,
     category: row.category || 'Other',
     categorySlug: slugifyCategory(row.category || 'other'),
+    subcategory: row.subcategory || '',
+    subcategorySlug: row.subcategory ? slugifySubcategory(row.subcategory) : '',
     language: row.language || 'Code',
     languageColor: row.language_color || languageColor(row.language),
     techStack: row.tech_stack || [],

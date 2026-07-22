@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Search, SlidersHorizontal, LayoutGrid, List, X, PackageOpen, Star } from 'lucide-react'
+import { Search, SlidersHorizontal, LayoutGrid, List, X, PackageOpen, Star, ChevronDown } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -32,6 +32,7 @@ const MAX_PRICE = 150
 type Filters = {
   q: string
   categories: string[]
+  subcategories: string[]
   languages: string[]
   licenses: string[]
   techs: string[]
@@ -44,7 +45,7 @@ type Filters = {
 }
 
 const emptyFilters = (init?: Partial<Filters>): Filters => ({
-  q: '', categories: [], languages: [], licenses: [], techs: [],
+  q: '', categories: [], subcategories: [], languages: [], licenses: [], techs: [],
   price: [0, MAX_PRICE], minStars: 0,
   verified: false, featured: false, trending: false, freeOnly: false,
   ...init,
@@ -73,23 +74,59 @@ function CheckRow({ checked, onChange, label, count }: { checked: boolean; onCha
   )
 }
 
-function FiltersPanel({ filters, set, products }: { filters: Filters; set: React.Dispatch<React.SetStateAction<Filters>>; products: Repo[] }) {
+function CategoryFilterGroup({ filters, set, products }: { filters: Filters; set: React.Dispatch<React.SetStateAction<Filters>>; products: Repo[] }) {
+  const [open, setOpen] = React.useState<string[]>([])
   const catCount = (slug: string) => products.filter((p) => p.categorySlug === slug).length
+  const subCatCount = (slug: string) => products.filter((p) => p.subcategorySlug === slug).length
+
+  return (
+    <FilterGroup title="Category">
+      <div>
+        {CATEGORIES.map((c) => {
+          const expanded = open.includes(c.slug)
+          return (
+            <div key={c.slug}>
+              <div className="flex items-center gap-1">
+                <CheckRow
+                  label={c.name}
+                  count={catCount(c.slug)}
+                  checked={filters.categories.includes(c.slug)}
+                  onChange={() => set((f) => ({ ...f, categories: toggle(f.categories, c.slug) }))}
+                />
+                <button
+                  type="button"
+                  aria-label={expanded ? `Collapse ${c.name}` : `Expand ${c.name}`}
+                  onClick={() => setOpen((o) => toggle(o, c.slug))}
+                  className="shrink-0 rounded p-1 text-muted-foreground hover:text-foreground"
+                >
+                  <ChevronDown className={cn('size-3.5 transition-transform', expanded && 'rotate-180')} />
+                </button>
+              </div>
+              {expanded && (
+                <div className="ml-4 border-l border-border pl-3">
+                  {c.subcategories.map((s) => (
+                    <CheckRow
+                      key={s.slug}
+                      label={s.name}
+                      count={subCatCount(s.slug)}
+                      checked={filters.subcategories.includes(s.slug)}
+                      onChange={() => set((f) => ({ ...f, subcategories: toggle(f.subcategories, s.slug) }))}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </FilterGroup>
+  )
+}
+
+function FiltersPanel({ filters, set, products }: { filters: Filters; set: React.Dispatch<React.SetStateAction<Filters>>; products: Repo[] }) {
   return (
     <div className="space-y-6">
-      <FilterGroup title="Category">
-        <div>
-          {CATEGORIES.map((c) => (
-            <CheckRow
-              key={c.slug}
-              label={c.name}
-              count={catCount(c.slug)}
-              checked={filters.categories.includes(c.slug)}
-              onChange={() => set((f) => ({ ...f, categories: toggle(f.categories, c.slug) }))}
-            />
-          ))}
-        </div>
-      </FilterGroup>
+      <CategoryFilterGroup filters={filters} set={set} products={products} />
       <Separator />
       <FilterGroup title="Price">
         <Slider
@@ -178,6 +215,7 @@ export function MarketplaceClient({ products, initial }: { products: Repo[]; ini
         if (!hay.includes(q)) return false
       }
       if (filters.categories.length && !filters.categories.includes(p.categorySlug)) return false
+      if (filters.subcategories.length && !filters.subcategories.includes(p.subcategorySlug)) return false
       if (filters.languages.length && !filters.languages.includes(p.language)) return false
       if (filters.licenses.length && !filters.licenses.includes(p.license)) return false
       if (filters.techs.length && !filters.techs.some((t) => p.techStack.includes(t))) return false
@@ -206,7 +244,7 @@ export function MarketplaceClient({ products, initial }: { products: Repo[]; ini
   const pageItems = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE)
 
   const activeCount =
-    filters.categories.length + filters.languages.length + filters.licenses.length + filters.techs.length +
+    filters.categories.length + filters.subcategories.length + filters.languages.length + filters.licenses.length + filters.techs.length +
     (filters.verified ? 1 : 0) + (filters.featured ? 1 : 0) + (filters.trending ? 1 : 0) + (filters.freeOnly ? 1 : 0) +
     (filters.minStars > 0 ? 1 : 0) + (filters.price[0] > 0 || filters.price[1] < MAX_PRICE ? 1 : 0)
 
