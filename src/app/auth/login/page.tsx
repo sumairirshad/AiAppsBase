@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { Mail, Lock, Eye, EyeOff, Github } from 'lucide-react'
@@ -18,6 +18,13 @@ export default function LoginPage() {
   const [showPw, setShowPw] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const error = new URLSearchParams(window.location.search).get('error')
+    if (error === 'github_no_email') toast.error('Your GitHub account has no verified email. Please sign in with email instead.')
+    else if (error === 'github_failed' || error === 'invalid_state') toast.error('GitHub sign-in failed. Please try again.')
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
