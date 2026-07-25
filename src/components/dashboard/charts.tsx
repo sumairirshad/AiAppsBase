@@ -60,7 +60,7 @@ export function SalesBarChart({ data }: { data: { month: string; sales: number }
 
 const DONUT_COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))']
 
-export function CategoryDonut({ data }: { data: { name: string; value: number }[] }) {
+export function CategoryDonut({ data, valueSuffix = '%' }: { data: { name: string; value: number }[]; valueSuffix?: string }) {
   return (
     <div className="flex flex-col items-center gap-4 sm:flex-row">
       <ResponsiveContainer width="100%" height={200} className="!w-auto flex-1">
@@ -75,12 +75,52 @@ export function CategoryDonut({ data }: { data: { name: string; value: number }[
         {data.map((d, i) => (
           <li key={d.name} className="flex items-center gap-2 text-sm">
             <span className="size-2.5 rounded-full" style={{ backgroundColor: DONUT_COLORS[i % DONUT_COLORS.length] }} />
-            <span className="text-muted-foreground">{d.name}</span>
-            <span className="ml-auto font-medium">{d.value}%</span>
+            <span className="capitalize text-muted-foreground">{d.name}</span>
+            <span className="ml-auto font-medium">{d.value}{valueSuffix}</span>
           </li>
         ))}
       </ul>
     </div>
+  )
+}
+
+const SERIES_COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))']
+
+/** Generic multi-series growth chart (e.g. users vs. sellers vs. orders over time). */
+export function GrowthAreaChart({
+  data, series,
+}: {
+  data: Record<string, string | number>[]
+  series: { key: string; label: string }[]
+}) {
+  return (
+    <ResponsiveContainer width="100%" height={280}>
+      <AreaChart data={data} margin={{ left: -12, right: 8, top: 8 }}>
+        <defs>
+          {series.map((s, i) => (
+            <linearGradient key={s.key} id={`growth-${s.key}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={SERIES_COLORS[i % SERIES_COLORS.length]} stopOpacity={0.35} />
+              <stop offset="100%" stopColor={SERIES_COLORS[i % SERIES_COLORS.length]} stopOpacity={0} />
+            </linearGradient>
+          ))}
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+        <XAxis dataKey="label" {...axis} />
+        <YAxis {...axis} />
+        <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'hsl(var(--border))' }} />
+        {series.map((s, i) => (
+          <Area
+            key={s.key}
+            type="monotone"
+            dataKey={s.key}
+            name={s.label}
+            stroke={SERIES_COLORS[i % SERIES_COLORS.length]}
+            strokeWidth={2.5}
+            fill={`url(#growth-${s.key})`}
+          />
+        ))}
+      </AreaChart>
+    </ResponsiveContainer>
   )
 }
 

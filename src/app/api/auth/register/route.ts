@@ -30,9 +30,10 @@ export async function POST(req: NextRequest) {
   }
 
   const passwordHash = await hashPassword(password)
+  const sellerStatus = role === 'seller' ? 'pending' : 'approved'
   const insertUser = await query(
-    'INSERT INTO users (full_name, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id',
-    [fullName.trim(), email.trim().toLowerCase(), passwordHash, role]
+    'INSERT INTO users (full_name, email, password_hash, role, seller_status) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+    [fullName.trim(), email.trim().toLowerCase(), passwordHash, role, sellerStatus]
   )
 
   const userId = insertUser.rows[0]?.id

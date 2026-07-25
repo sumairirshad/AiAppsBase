@@ -14,9 +14,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
   }
 
-  const userRes = await query('SELECT id, password_hash, is_verified, role FROM users WHERE email = $1', [
-    email.trim().toLowerCase(),
-  ])
+  const userRes = await query(
+    'SELECT id, password_hash, is_verified, role, account_status FROM users WHERE email = $1',
+    [email.trim().toLowerCase()]
+  )
 
   if ((userRes?.rowCount ?? 0) === 0) {
     return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
@@ -30,6 +31,19 @@ export async function POST(req: NextRequest) {
 
   if (!user.is_verified) {
     return NextResponse.json({ error: 'Please verify your email address before signing in' }, { status: 401 })
+  }
+
+  const statusMessages: Record<string, string> = {
+    banned: 'Your account has been banned. Contact support if you believe this is a mistake.',
+    blocked: 'Your account has been blocked. Contact support if you believe this is a mistake.',
+    suspended: 'Your account is currently suspended. Contact support for more information.',
+    inactive: 'Your account has been deactivated. Contact support to reactivate it.',
+  }
+  if (user.account_status !== 'active') {
+    return NextResponse.json(
+      { error: statusMessages[user.account_status] ?? 'Your account cannot sign in right now.' },
+      { status: 403 }
+    )
   }
 
   await setSession(user.id)

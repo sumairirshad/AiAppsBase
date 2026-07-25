@@ -1,35 +1,41 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Package, CheckCircle, XCircle, AlertCircle, Clock, Filter, Loader2 } from 'lucide-react'
+import Link from 'next/link'
+import { toast } from 'sonner'
+import { Package, CheckCircle, XCircle, AlertCircle, Clock, Search } from 'lucide-react'
+
 import { formatPrice, timeAgo } from '@/lib/utils'
 import type { ProductStatus } from '@/types'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import { PageHead } from '@/components/dashboard/page-head'
+import { EmptyState } from '@/components/dashboard/empty-state'
+import { ReasonDialog } from '@/components/dashboard/reason-dialog'
 
-type TabKey = 'all' | 'pending' | 'approved' | 'rejected'
+type TabKey = 'all' | 'pending' | 'approved' | 'rejected' | 'suspended'
 
 const tabs: { key: TabKey; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'pending', label: 'Pending' },
   { key: 'approved', label: 'Approved' },
   { key: 'rejected', label: 'Rejected' },
+  { key: 'suspended', label: 'Suspended' },
 ]
 
-const statusConfig: Record<ProductStatus, { label: string; icon: typeof CheckCircle; color: string }> = {
-  approved: { label: 'Approved', icon: CheckCircle, color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
-  pending: { label: 'Pending', icon: Clock, color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
-  rejected: { label: 'Rejected', icon: XCircle, color: 'text-red-400 bg-red-500/10 border-red-500/20' },
-  suspended: { label: 'Suspended', icon: AlertCircle, color: 'text-orange-400 bg-orange-500/10 border-orange-500/20' },
+const statusConfig: Record<ProductStatus, { label: string; icon: typeof CheckCircle; variant: 'success' | 'warning' | 'destructive' }> = {
+  approved: { label: 'Approved', icon: CheckCircle, variant: 'success' },
+  pending: { label: 'Pending', icon: Clock, variant: 'warning' },
+  rejected: { label: 'Rejected', icon: XCircle, variant: 'destructive' },
+  suspended: { label: 'Suspended', icon: AlertCircle, variant: 'warning' },
 }
 
 interface AdminProduct {
-  id: string
-  title: string
-  description: string
-  price: number
-  category: string
-  status: ProductStatus
-  createdAt: string
-  seller: { id: string; name: string; email: string }
+  id: string; title: string; description: string; price: number; category: string
+  status: ProductStatus; createdAt: string; seller: { id: string; name: string; email: string }
 }
 
 export default function AdminProductsPage() {
@@ -37,8 +43,10 @@ export default function AdminProductsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabKey>('all')
+  const [search, setSearch] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [updating, setUpdating] = useState<string | null>(null)
+  const [pendingAction, setPendingAction] = useState<{ ids: string[]; status: ProductStatus } | null>(null)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     setLoading(true)
@@ -46,38 +54,37 @@ export default function AdminProductsPage() {
     fetch('/api/admin/products')
       .then(async (r) => {
         const data = await r.json()
-        if (!r.ok) {
-          setError(data.error || `Error ${r.status}`)
-          return
-        }
+        if (!r.ok) throw new Error(data.error || `Error ${r.status}`)
         setProducts(data.products ?? [])
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
   }, [])
 
-  const filtered = activeTab === 'all' ? products : products.filter((p) => p.status === activeTab)
+  const filtered = products
+    .filter((p) => activeTab === 'all' || p.status === activeTab)
+    .filter((p) => !search || p.title.toLowerCase().includes(search.toLowerCase()) || p.seller.name?.toLowerCase().includes(search.toLowerCase()))
 
-  const updateStatus = async (id: string, status: ProductStatus) => {
-    setUpdating(id)
+  const applyStatus = async (reason: string, notes: string) => {
+    if (!pendingAction) return
+    setSaving(true)
     try {
-      const res = await fetch(`/api/admin/products/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-      })
-      if (res.ok) {
-        setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)))
-        setSelectedIds((prev) => { const n = new Set(prev); n.delete(id); return n })
+      for (const id of pendingAction.ids) {
+        const res = await fetch(`/api/admin/products/${id}`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: pendingAction.status, reason, notes }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Failed to update product')
       }
+      setProducts((prev) => prev.map((p) => (pendingAction.ids.includes(p.id) ? { ...p, status: pendingAction.status } : p)))
+      setSelectedIds(new Set())
+      toast.success(pendingAction.ids.length > 1 ? `${pendingAction.ids.length} products updated` : 'Product updated')
+      setPendingAction(null)
+    } catch (err) {
+      toast.error((err as Error).message)
     } finally {
-      setUpdating(null)
-    }
-  }
-
-  const bulkUpdate = async (status: ProductStatus) => {
-    for (const id of Array.from(selectedIds)) {
-      await updateStatus(id, status)
+      setSaving(false)
     }
   }
 
@@ -94,177 +101,133 @@ export default function AdminProductsPage() {
     else setSelectedIds(new Set(filtered.map((p) => p.id)))
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-brand-400" />
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="glass rounded-xl p-8 text-center max-w-md">
-          <p className="text-red-400 font-medium mb-2">Failed to load products</p>
-          <p className="text-surface-400 text-sm">{error}</p>
-          <p className="text-surface-500 text-xs mt-2">Make sure your account has admin role in the database.</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="flex items-center justify-between mb-10">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Product Management</h1>
-          <p className="text-surface-400">Review submissions and manage product listings.</p>
-        </div>
-        <div className="flex items-center gap-2 text-sm text-surface-400">
-          <Filter className="w-4 h-4" />
-          {products.filter((p) => p.status === 'pending').length} pending review
-        </div>
+    <div className="mx-auto max-w-7xl space-y-6">
+      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+        <PageHead title="Product Management" description="Review submissions and manage product listings." />
+        <span className="text-sm text-muted-foreground">{products.filter((p) => p.status === 'pending').length} pending review</span>
       </div>
 
-      <div className="flex gap-1 mb-6 p-1 glass rounded-lg w-fit">
-        {tabs.map((tab) => {
-          const count = tab.key === 'all' ? products.length : products.filter((p) => p.status === tab.key).length
-          return (
-            <button
-              key={tab.key}
-              onClick={() => { setActiveTab(tab.key); setSelectedIds(new Set()) }}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeTab === tab.key ? 'bg-brand-600 text-white' : 'text-surface-400 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              {tab.label} ({count})
-            </button>
-          )
-        })}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="inline-flex w-fit gap-1 rounded-lg bg-muted p-1">
+          {tabs.map((tab) => {
+            const count = tab.key === 'all' ? products.length : products.filter((p) => p.status === tab.key).length
+            return (
+              <button
+                key={tab.key}
+                onClick={() => { setActiveTab(tab.key); setSelectedIds(new Set()) }}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  activeTab === tab.key ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {tab.label} ({count})
+              </button>
+            )
+          })}
+        </div>
+        <div className="relative sm:w-64">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+        </div>
       </div>
 
       {selectedIds.size > 0 && (
-        <div className="flex items-center gap-3 mb-4 p-3 glass rounded-lg">
-          <span className="text-sm text-surface-400">{selectedIds.size} selected</span>
-          <button
-            onClick={() => bulkUpdate('approved')}
-            className="btn-primary text-xs px-3 py-1.5 flex items-center gap-1"
-          >
-            <CheckCircle className="w-3 h-3" /> Approve
-          </button>
-          <button
-            onClick={() => bulkUpdate('rejected')}
-            className="text-xs px-3 py-1.5 rounded-md bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors flex items-center gap-1"
-          >
-            <XCircle className="w-3 h-3" /> Reject
-          </button>
+        <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 p-3">
+          <span className="text-sm text-muted-foreground">{selectedIds.size} selected</span>
+          <Button size="sm" onClick={() => setPendingAction({ ids: Array.from(selectedIds), status: 'approved' })}>
+            <CheckCircle className="size-4" /> Approve
+          </Button>
+          <Button size="sm" variant="destructive" onClick={() => setPendingAction({ ids: Array.from(selectedIds), status: 'rejected' })}>
+            <XCircle className="size-4" /> Reject
+          </Button>
         </div>
       )}
 
-      <div className="glass rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-white/5">
-                <th className="p-4 text-left">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.size === filtered.length && filtered.length > 0}
-                    onChange={toggleSelectAll}
-                    className="rounded border-surface-600 bg-surface-800 text-brand-500"
-                  />
-                </th>
-                {['Product', 'Seller', 'Category', 'Price', 'Date', 'Status', 'Actions'].map((h) => (
-                  <th key={h} className="p-4 text-left text-xs font-medium text-surface-400 uppercase tracking-wider">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {filtered.map((product) => {
-                const status = statusConfig[product.status]
-                const StatusIcon = status.icon
-                const isUpdating = updating === product.id
-                return (
-                  <tr key={product.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="p-4">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(product.id)}
-                        onChange={() => toggleSelect(product.id)}
-                        className="rounded border-surface-600 bg-surface-800 text-brand-500"
-                      />
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-600/20 to-purple-600/20 flex items-center justify-center shrink-0">
-                          <Package className="w-4 h-4 text-brand-400" />
+      {error ? (
+        <Card><CardContent className="p-8 text-center">
+          <p className="font-medium text-destructive">Failed to load products</p>
+          <p className="mt-1 text-sm text-muted-foreground">{error}</p>
+        </CardContent></Card>
+      ) : loading ? (
+        <Card><CardContent className="space-y-3 p-6">
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+        </CardContent></Card>
+      ) : filtered.length === 0 ? (
+        <EmptyState icon="Package" title="No products found" description="Try adjusting your search or filters." />
+      ) : (
+        <Card>
+          <CardContent className="overflow-x-auto p-0">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground">
+                  <th className="w-10 px-6 py-3">
+                    <input type="checkbox" checked={selectedIds.size === filtered.length && filtered.length > 0} onChange={toggleSelectAll} className="rounded border-input" />
+                  </th>
+                  <th className="px-3 py-3 font-medium">Product</th><th className="px-3 py-3 font-medium">Seller</th>
+                  <th className="px-3 py-3 font-medium">Category</th><th className="px-3 py-3 font-medium">Price</th>
+                  <th className="px-3 py-3 font-medium">Date</th><th className="px-3 py-3 font-medium">Status</th>
+                  <th className="px-3 py-3 font-medium text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((product) => {
+                  const status = statusConfig[product.status]
+                  const StatusIcon = status.icon
+                  return (
+                    <tr key={product.id} className="border-b border-border/60 last:border-0 hover:bg-muted/40">
+                      <td className="px-6 py-3">
+                        <input type="checkbox" checked={selectedIds.has(product.id)} onChange={() => toggleSelect(product.id)} className="rounded border-input" />
+                      </td>
+                      <td className="px-3 py-3">
+                        <Link href={`/product/${product.id}`} className="flex items-center gap-3 hover:text-primary">
+                          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><Package className="size-4" /></span>
+                          <span className="font-medium">{product.title}</span>
+                        </Link>
+                      </td>
+                      <td className="px-3 py-3 text-muted-foreground">
+                        <Link href={`/admin/sellers/${product.seller.id}`} className="hover:text-primary">{product.seller.name}</Link>
+                      </td>
+                      <td className="px-3 py-3 text-muted-foreground">{product.category}</td>
+                      <td className="px-3 py-3 font-medium">{formatPrice(product.price)}</td>
+                      <td className="px-3 py-3 text-muted-foreground">{timeAgo(product.createdAt)}</td>
+                      <td className="px-3 py-3">
+                        <Badge variant={status.variant} className="w-fit gap-1"><StatusIcon className="size-3" /> {status.label}</Badge>
+                      </td>
+                      <td className="px-3 py-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          {product.status === 'pending' && (
+                            <>
+                              <Button size="sm" onClick={() => setPendingAction({ ids: [product.id], status: 'approved' })}>Approve</Button>
+                              <Button size="sm" variant="destructive" onClick={() => setPendingAction({ ids: [product.id], status: 'rejected' })}>Reject</Button>
+                            </>
+                          )}
+                          {product.status === 'approved' && (
+                            <Button size="sm" variant="outline" onClick={() => setPendingAction({ ids: [product.id], status: 'suspended' })}>Suspend</Button>
+                          )}
+                          {(product.status === 'rejected' || product.status === 'suspended') && (
+                            <Button size="sm" onClick={() => setPendingAction({ ids: [product.id], status: 'approved' })}>Approve</Button>
+                          )}
                         </div>
-                        <span className="text-sm font-medium text-white">{product.title}</span>
-                      </div>
-                    </td>
-                    <td className="p-4 text-sm text-surface-300">{product.seller.name}</td>
-                    <td className="p-4 text-sm text-surface-400">{product.category}</td>
-                    <td className="p-4 text-sm text-white font-medium">{formatPrice(product.price)}</td>
-                    <td className="p-4 text-sm text-surface-400">{timeAgo(product.createdAt)}</td>
-                    <td className="p-4">
-                      <span className={`badge border text-xs flex items-center gap-1 w-fit ${status.color}`}>
-                        <StatusIcon className="w-3 h-3" />
-                        {status.label}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        {isUpdating ? (
-                          <Loader2 className="w-4 h-4 animate-spin text-surface-400" />
-                        ) : (
-                          <>
-                            {product.status === 'pending' && (
-                              <>
-                                <button
-                                  onClick={() => updateStatus(product.id, 'approved')}
-                                  className="btn-primary text-xs px-2.5 py-1 flex items-center gap-1"
-                                >
-                                  <CheckCircle className="w-3 h-3" /> Approve
-                                </button>
-                                <button
-                                  onClick={() => updateStatus(product.id, 'rejected')}
-                                  className="text-xs px-2.5 py-1 rounded-md bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors flex items-center gap-1"
-                                >
-                                  <XCircle className="w-3 h-3" /> Reject
-                                </button>
-                              </>
-                            )}
-                            {product.status === 'approved' && (
-                              <button
-                                onClick={() => updateStatus(product.id, 'suspended')}
-                                className="text-xs px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors flex items-center gap-1"
-                              >
-                                <AlertCircle className="w-3 h-3" /> Suspend
-                              </button>
-                            )}
-                            {(product.status === 'rejected' || product.status === 'suspended') && (
-                              <button
-                                onClick={() => updateStatus(product.id, 'approved')}
-                                className="btn-primary text-xs px-2.5 py-1 flex items-center gap-1"
-                              >
-                                <CheckCircle className="w-3 h-3" /> Approve
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-        {filtered.length === 0 && (
-          <div className="p-12 text-center text-surface-400">No products found.</div>
-        )}
-      </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
+
+      <ReasonDialog
+        open={pendingAction !== null}
+        onOpenChange={(open) => !open && setPendingAction(null)}
+        title={pendingAction ? `${statusConfig[pendingAction.status].label} ${pendingAction.ids.length > 1 ? `${pendingAction.ids.length} products` : 'this product'}?` : ''}
+        description="This action requires a reason and will be recorded in the audit log."
+        confirmLabel={pendingAction ? statusConfig[pendingAction.status].label : 'Confirm'}
+        destructive={pendingAction?.status === 'rejected'}
+        loading={saving}
+        onConfirm={applyStatus}
+      />
     </div>
   )
 }

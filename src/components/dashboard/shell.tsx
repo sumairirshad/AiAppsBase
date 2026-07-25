@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, BarChart3, Package, PlusCircle, Github, ShoppingBag, Users,
   Star, Wallet, Settings, Heart, Download, Receipt, LogOut, Zap, ArrowLeft, Menu, Store,
+  ShieldCheck, Bell, FileText, ClipboardList, MessageSquare, DollarSign,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -39,12 +40,27 @@ const BUYER_NAV: Item[] = [
   { label: 'Settings', href: '/buyer/settings', icon: Settings },
 ]
 
+const ADMIN_NAV: Item[] = [
+  { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+  { label: 'Users', href: '/admin/users', icon: Users },
+  { label: 'Sellers', href: '/admin/sellers', icon: Store },
+  { label: 'Products', href: '/admin/products', icon: Package },
+  { label: 'Orders', href: '/admin/orders', icon: ShoppingBag },
+  { label: 'Reviews', href: '/admin/reviews', icon: MessageSquare },
+  { label: 'Finances', href: '/admin/finances', icon: DollarSign },
+  { label: 'Reports', href: '/admin/reports', icon: FileText },
+  { label: 'Notifications', href: '/admin/notifications', icon: Bell },
+  { label: 'Audit Logs', href: '/admin/audit-logs', icon: ClipboardList },
+  { label: 'Settings', href: '/admin/settings', icon: Settings },
+]
+
 function NavList({ items, onNavigate }: { items: Item[]; onNavigate?: () => void }) {
   const pathname = usePathname()
   return (
     <nav className="space-y-1">
       {items.map((item) => {
-        const active = item.href === pathname || (item.href !== '/panel' && item.href !== '/buyer' && pathname.startsWith(item.href))
+        const isBase = item.href === '/panel' || item.href === '/buyer' || item.href === '/admin'
+        const active = item.href === pathname || (!isBase && pathname.startsWith(item.href))
         return (
           <Link
             key={item.href}
@@ -65,9 +81,11 @@ function NavList({ items, onNavigate }: { items: Item[]; onNavigate?: () => void
   )
 }
 
-function SidebarInner({ role, onNavigate }: { role: 'buyer' | 'seller'; onNavigate?: () => void }) {
+type PortalRole = 'buyer' | 'seller' | 'admin'
+
+function SidebarInner({ role, onNavigate }: { role: PortalRole; onNavigate?: () => void }) {
   const router = useRouter()
-  const items = role === 'seller' ? SELLER_NAV : BUYER_NAV
+  const items = role === 'admin' ? ADMIN_NAV : role === 'seller' ? SELLER_NAV : BUYER_NAV
 
   const logout = async () => {
     await fetch('/api/auth/me', { method: 'DELETE' }).catch(() => {})
@@ -87,10 +105,16 @@ function SidebarInner({ role, onNavigate }: { role: 'buyer' | 'seller'; onNaviga
       </div>
 
       <div className="px-4 pt-4">
-        <div className={cn('flex items-center gap-2 rounded-lg border px-3 py-2', role === 'seller' ? 'border-primary/20 bg-primary/10' : 'border-fuchsia-500/20 bg-fuchsia-500/10')}>
-          {role === 'seller' ? <Store className="size-4 text-primary" /> : <ShoppingBag className="size-4 text-fuchsia-500" />}
-          <span className={cn('text-xs font-semibold uppercase tracking-wider', role === 'seller' ? 'text-primary' : 'text-fuchsia-500')}>
-            {role === 'seller' ? 'Seller Account' : 'Buyer Account'}
+        <div className={cn(
+          'flex items-center gap-2 rounded-lg border px-3 py-2',
+          role === 'admin' ? 'border-warning/20 bg-warning/10' : role === 'seller' ? 'border-primary/20 bg-primary/10' : 'border-fuchsia-500/20 bg-fuchsia-500/10'
+        )}>
+          {role === 'admin' ? <ShieldCheck className="size-4 text-warning" /> : role === 'seller' ? <Store className="size-4 text-primary" /> : <ShoppingBag className="size-4 text-fuchsia-500" />}
+          <span className={cn(
+            'text-xs font-semibold uppercase tracking-wider',
+            role === 'admin' ? 'text-warning' : role === 'seller' ? 'text-primary' : 'text-fuchsia-500'
+          )}>
+            {role === 'admin' ? 'Admin Panel' : role === 'seller' ? 'Seller Account' : 'Buyer Account'}
           </span>
         </div>
       </div>
@@ -111,7 +135,7 @@ function SidebarInner({ role, onNavigate }: { role: 'buyer' | 'seller'; onNaviga
   )
 }
 
-export function DashboardShell({ role, children }: { role: 'buyer' | 'seller'; children: React.ReactNode }) {
+export function DashboardShell({ role, children }: { role: PortalRole; children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-muted/20 lg:flex">
       {/* Desktop sidebar */}
@@ -133,13 +157,13 @@ export function DashboardShell({ role, children }: { role: 'buyer' | 'seller'; c
           </Sheet>
 
           <div className="hidden text-sm text-muted-foreground lg:block">
-            {role === 'seller' ? 'Seller workspace' : 'Your account'}
+            {role === 'admin' ? 'Admin workspace' : role === 'seller' ? 'Seller workspace' : 'Your account'}
           </div>
 
           <div className="ml-auto flex items-center gap-2">
             <ThemeToggle />
             <Avatar className="size-8">
-              <AvatarFallback>{role === 'seller' ? 'S' : 'B'}</AvatarFallback>
+              <AvatarFallback>{role === 'admin' ? 'A' : role === 'seller' ? 'S' : 'B'}</AvatarFallback>
             </Avatar>
           </div>
         </header>

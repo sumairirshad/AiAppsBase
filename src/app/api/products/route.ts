@@ -29,14 +29,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized. Please log in.' }, { status: 401 })
   }
 
-  const userRes = await query('SELECT role FROM users WHERE id = $1', [userId])
+  const userRes = await query('SELECT role, seller_status, account_status FROM users WHERE id = $1', [userId])
   if ((userRes?.rowCount ?? 0) === 0) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }
 
-  const { role } = userRes.rows[0]
+  const { role, seller_status: sellerStatus, account_status: accountStatus } = userRes.rows[0]
+  if (accountStatus !== 'active') {
+    return NextResponse.json({ error: 'Your account cannot list products right now. Contact support.' }, { status: 403 })
+  }
+
   if (role === 'buyer') {
-    await query("UPDATE users SET role = 'seller' WHERE id = $1", [userId])
+    await query("UPDATE users SET role = 'seller', seller_status = 'pending' WHERE id = $1", [userId])
+  } else if (role === 'seller' && ['rejected', 'suspended', 'banned'].includes(sellerStatus)) {
+    return NextResponse.json(
+      { error: `Your seller account is ${sellerStatus} and cannot list new products. Contact support.` },
+      { status: 403 }
+    )
   } else if (role !== 'seller' && role !== 'admin') {
     return NextResponse.json({ error: 'Only sellers and admins can add products' }, { status: 403 })
   }
