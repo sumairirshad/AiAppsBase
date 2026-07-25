@@ -47,7 +47,11 @@ export default function RegisterPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error ?? 'Registration failed')
-      toast.success('Account created! Check your email for the verification code.')
+      if (data.emailSent) {
+        toast.success('Account created! Check your email for the verification code.')
+      } else {
+        toast.error(data.emailError ?? 'Account created, but the verification email could not be sent. Try resending it.')
+      }
       router.push(`/auth/otp?email=${encodeURIComponent(email.trim())}`)
     } catch (error) {
       toast.error((error as Error).message || 'Registration failed')
