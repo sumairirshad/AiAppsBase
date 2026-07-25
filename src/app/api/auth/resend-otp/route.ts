@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { generateOtpCode, getOtpExpiry } from '@/lib/auth'
-import { sendOtpEmail } from '@/lib/email'
+import { sendOtpEmail, EmailSendError } from '@/lib/email'
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
@@ -38,7 +38,12 @@ export async function POST(req: NextRequest) {
   try {
     await sendOtpEmail(email.trim().toLowerCase(), otp)
   } catch (error) {
-    console.error('Failed to send OTP email', error)
+    console.error(`[resend-otp] Failed to send OTP email to ${email}`, error)
+    const message =
+      error instanceof EmailSendError
+        ? error.message
+        : 'The verification email could not be sent. Please try again shortly.'
+    return NextResponse.json({ error: message }, { status: 502 })
   }
 
   return NextResponse.json({ ok: true })

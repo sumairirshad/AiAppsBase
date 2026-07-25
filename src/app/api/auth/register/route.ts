@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { hashPassword, generateOtpCode, getOtpExpiry } from '@/lib/auth'
-import { sendOtpEmail } from '@/lib/email'
+import { sendOtpEmail, EmailSendError } from '@/lib/email'
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
@@ -51,8 +51,16 @@ export async function POST(req: NextRequest) {
   try {
     await sendOtpEmail(email.trim().toLowerCase(), otp)
   } catch (error) {
-    console.error('Failed to send OTP email', error)
+    console.error(`[register] Failed to send OTP email to ${email}`, error)
+    const message =
+      error instanceof EmailSendError
+        ? error.message
+        : 'The verification email could not be sent. Please try resending the code.'
+    // The account and OTP were already created above, so we still return 200 -
+    // the user can retry delivery from the OTP page. We do NOT report success here;
+    // the frontend must only show a success toast when emailSent is true.
+    return NextResponse.json({ ok: true, emailSent: false, emailError: message })
   }
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, emailSent: true })
 }
