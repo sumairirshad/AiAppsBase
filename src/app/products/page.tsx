@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { MarketplaceClient } from '@/components/marketplace/marketplace-client'
-import { CATEGORIES } from '@/lib/marketplace-config'
+import { CATEGORIES, ALL_SUBCATEGORIES } from '@/lib/marketplace-config'
 import { listApprovedProducts } from '@/lib/products'
 
 export const metadata: Metadata = {
@@ -19,6 +19,8 @@ export default async function ProductsPage({ searchParams }: { searchParams: SP 
 
   const categorySlug = one(searchParams.category)
   const validCat = CATEGORIES.find((c) => c.slug === categorySlug)?.slug
+  const subcategorySlug = one(searchParams.subcategory)
+  const validSubcat = ALL_SUBCATEGORIES.find((s) => s.slug === subcategorySlug)?.slug
   const tech = one(searchParams.tech)
   const q = one(searchParams.q)
   const featured = one(searchParams.featured) === 'true'
@@ -29,6 +31,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: SP 
       initial={{
         q: q ?? '',
         categories: validCat ? [validCat] : [],
+        subcategories: validSubcat ? [validSubcat] : [],
         techs: tech ? [decodeURIComponent(tech)] : [],
         featured,
       }}

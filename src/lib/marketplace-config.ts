@@ -5,18 +5,79 @@
  * src/lib/products.ts.
  */
 
-export const CATEGORIES = [
-  { name: 'SaaS Boilerplates', slug: 'saas' },
-  { name: 'Templates', slug: 'templates' },
-  { name: 'Components', slug: 'components' },
-  { name: 'Dashboards', slug: 'dashboards' },
-  { name: 'AI Projects', slug: 'ai' },
-  { name: 'E-commerce', slug: 'ecommerce' },
-  { name: 'Mobile Apps', slug: 'mobile' },
-  { name: 'Chrome Extensions', slug: 'extensions' },
-  { name: 'Scripts & Tools', slug: 'scripts' },
-  { name: 'Portfolio', slug: 'portfolio' },
-] as const
+export type Subcategory = { name: string; slug: string }
+export type CategoryDef = { name: string; slug: string; subcategories: Subcategory[] }
+
+/**
+ * Two-level catalog taxonomy: main category -> subcategories.
+ * `products.category` stores the main category name, `products.subcategory`
+ * stores the subcategory name (both plain TEXT columns; slugs are derived
+ * here for filtering/URLs).
+ */
+export const CATEGORIES: CategoryDef[] = [
+  {
+    name: 'Websites', slug: 'websites',
+    subcategories: [
+      { name: 'Landing Pages & Marketing', slug: 'landing-pages' },
+      { name: 'Portfolio Templates', slug: 'portfolio-templates' },
+      { name: 'Blog & Content Sites', slug: 'blog-sites' },
+    ],
+  },
+  {
+    name: 'Web Apps & SaaS', slug: 'web-apps',
+    subcategories: [
+      { name: 'SaaS Boilerplates', slug: 'saas-boilerplates' },
+      { name: 'Admin Dashboards', slug: 'dashboards' },
+    ],
+  },
+  {
+    name: 'AI Projects', slug: 'ai-projects',
+    subcategories: [
+      { name: 'LLM Apps & Agents', slug: 'llm-agents' },
+      { name: 'ML & Deep Learning Frameworks', slug: 'ml-frameworks' },
+    ],
+  },
+  {
+    name: 'E-commerce', slug: 'ecommerce',
+    subcategories: [
+      { name: 'Storefronts', slug: 'storefronts' },
+      { name: 'Headless Commerce Backends', slug: 'headless-commerce-backends' },
+    ],
+  },
+  {
+    name: 'Mobile Apps', slug: 'mobile-apps',
+    subcategories: [
+      { name: 'Cross-Platform (React Native / Flutter)', slug: 'cross-platform-mobile' },
+      { name: 'Native iOS & Android', slug: 'native-mobile' },
+    ],
+  },
+  {
+    name: 'Components & UI Kits', slug: 'components-ui',
+    subcategories: [
+      { name: 'Component Libraries', slug: 'component-libraries' },
+      { name: 'Design Systems & Blocks', slug: 'design-systems' },
+    ],
+  },
+  {
+    name: 'Browser Extensions', slug: 'browser-extensions',
+    subcategories: [
+      { name: 'Extension Boilerplates & Frameworks', slug: 'extension-boilerplates' },
+      { name: 'Real-World Extensions', slug: 'real-world-extensions' },
+    ],
+  },
+  {
+    name: 'Scripts & Developer Tools', slug: 'scripts-tools',
+    subcategories: [
+      { name: 'CLI Tools', slug: 'cli-tools' },
+      { name: 'Automation & DevOps Scripts', slug: 'automation-devops' },
+    ],
+  },
+]
+
+/** Flat list of all subcategories, each tagged with its parent category. */
+export const ALL_SUBCATEGORIES = CATEGORIES.flatMap((c) =>
+  c.subcategories.map((s) => ({ ...s, categoryName: c.name, categorySlug: c.slug }))
+)
 
 export const LANGUAGES = [
   { name: 'TypeScript', color: '#3178c6' },
@@ -35,7 +96,7 @@ export const TECHS = [
   'PostgreSQL', 'MongoDB', 'GraphQL', 'Redis', 'Docker',
 ]
 
-export const LICENSES = ['MIT', 'Personal', 'Commercial', 'Extended', 'Extended Commercial'] as const
+export const LICENSES = ['MIT', 'Apache-2.0', 'GPL-3.0', 'MPL-2.0', 'BSD-3-Clause', 'Personal', 'Commercial', 'Extended', 'Extended Commercial'] as const
 
 export const GRADIENTS = [
   'from-indigo-500 via-violet-500 to-fuchsia-500',
@@ -57,6 +118,12 @@ export function gradientFor(id: string): string {
 
 export function slugifyCategory(name: string): string {
   const found = CATEGORIES.find((c) => c.name.toLowerCase() === name.toLowerCase())
+  if (found) return found.slug
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+}
+
+export function slugifySubcategory(name: string): string {
+  const found = ALL_SUBCATEGORIES.find((s) => s.name.toLowerCase() === name.toLowerCase())
   if (found) return found.slug
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
 }
@@ -109,6 +176,8 @@ export type Repo = {
   originalPrice?: number
   category: string
   categorySlug: string
+  subcategory: string
+  subcategorySlug: string
   language: string
   languageColor: string
   techStack: string[]

@@ -221,6 +221,12 @@ export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: 
         <Link href="/products" className="hover:text-foreground">Marketplace</Link>
         <ChevronRight className="size-3.5" />
         <Link href={`/products?category=${repo.categorySlug}`} className="hover:text-foreground">{repo.category}</Link>
+        {repo.subcategory && (
+          <>
+            <ChevronRight className="size-3.5" />
+            <Link href={`/products?subcategory=${repo.subcategorySlug}`} className="hover:text-foreground">{repo.subcategory}</Link>
+          </>
+        )}
         <ChevronRight className="size-3.5" />
         <span className="truncate text-foreground">{repo.title}</span>
       </nav>
@@ -233,6 +239,7 @@ export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: 
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="brand">{repo.category}</Badge>
+              {repo.subcategory && <Badge variant="muted">{repo.subcategory}</Badge>}
               {repo.trending && <Badge variant="warning"><Flame className="size-3" /> Trending</Badge>}
               {repo.isNew && <Badge variant="success"><Sparkles className="size-3" /> New</Badge>}
               <Badge variant="muted">{repo.license} license</Badge>
