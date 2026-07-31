@@ -6,16 +6,26 @@ import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { posts } from '@/lib/blog-data'
+import { Breadcrumbs } from '@/components/seo/breadcrumbs'
+import { JsonLd } from '@/components/seo/json-ld'
+import { collectionPageSchema } from '@/lib/seo'
+import { posts, blogCategories } from '@/lib/blog-data'
 
 export const metadata: Metadata = {
   title: 'Blog — AI Tools, Tips & Marketplace Insights',
   description:
-    'Read the latest articles on AI-powered development, how to build and sell apps with AI tools, and marketplace tips from the AIAppsBase team.',
+    'Read the latest articles on AI tools, productivity, automation, marketing, and how to build and sell apps with AI — from the AIAppsBase team.',
+  alternates: { canonical: '/blog' },
   openGraph: {
     title: 'AIAppsBase Blog — AI Tools, Tips & Insights',
-    description: 'Articles on AI-powered development, building and selling with AI tools.',
+    description: 'Articles on AI tools, productivity, automation, and building and selling with AI.',
     type: 'website',
+    url: '/blog',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'AIAppsBase Blog — AI Tools, Tips & Insights',
+    description: 'Articles on AI tools, productivity, automation, and building and selling with AI.',
   },
 }
 
@@ -25,14 +35,28 @@ export default function BlogPage() {
 
   return (
     <div className="container py-16">
+      <JsonLd
+        data={collectionPageSchema({
+          name: 'AIAppsBase Blog',
+          description: 'Articles on AI tools, productivity, automation, and building and selling with AI.',
+          url: '/blog',
+        })}
+      />
+      <Breadcrumbs items={[{ label: 'Home', href: '/' }, { label: 'Blog', href: '/blog' }]} />
+
       <div className="mx-auto max-w-2xl text-center">
         <Badge variant="brand" className="px-3 py-1"><Sparkles className="size-3" /> The AIAppsBase Blog</Badge>
         <h1 className="mt-4 font-display text-4xl font-bold tracking-tight sm:text-5xl">
           Insights for builders &amp; sellers
         </h1>
         <p className="mt-4 text-lg text-muted-foreground">
-          Guides, data, and stories on building and selling AI-crafted software.
+          Guides, data, and stories on AI tools, productivity, automation, and building and selling AI-crafted software.
         </p>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+          {blogCategories.map((c) => (
+            <Badge key={c} variant="muted">{c}</Badge>
+          ))}
+        </div>
       </div>
 
       {/* Featured */}

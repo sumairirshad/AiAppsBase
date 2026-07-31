@@ -31,14 +31,14 @@ export const megaMenus: MegaMenu[] = [
       {
         title: 'Categories',
         items: [
-          { label: 'Websites', href: '/products?category=websites', icon: 'LayoutTemplate' },
-          { label: 'Web Apps & SaaS', href: '/products?category=web-apps', icon: 'Layers' },
-          { label: 'AI Projects', href: '/products?category=ai-projects', icon: 'Bot' },
-          { label: 'E-commerce', href: '/products?category=ecommerce', icon: 'ShoppingBag' },
-          { label: 'Mobile Apps', href: '/products?category=mobile-apps', icon: 'Smartphone' },
-          { label: 'Components & UI Kits', href: '/products?category=components-ui', icon: 'Component' },
-          { label: 'Browser Extensions', href: '/products?category=browser-extensions', icon: 'Puzzle' },
-          { label: 'Scripts & Developer Tools', href: '/products?category=scripts-tools', icon: 'Terminal' },
+          { label: 'Websites', href: '/templates', icon: 'LayoutTemplate' },
+          { label: 'Web Apps & SaaS', href: '/apps', icon: 'Layers' },
+          { label: 'AI Projects', href: '/ai-projects', icon: 'Bot' },
+          { label: 'E-commerce', href: '/ecommerce', icon: 'ShoppingBag' },
+          { label: 'Mobile Apps', href: '/mobile-apps', icon: 'Smartphone' },
+          { label: 'Components & UI Kits', href: '/components', icon: 'Component' },
+          { label: 'Browser Extensions', href: '/browser-extensions', icon: 'Puzzle' },
+          { label: 'Scripts & Developer Tools', href: '/developer-tools', icon: 'Terminal' },
         ],
       },
     ],
@@ -84,6 +84,7 @@ export const megaMenus: MegaMenu[] = [
           { label: 'Documentation', href: '/docs', description: 'Guides & references', icon: 'BookOpen' },
           { label: 'API', href: '/api-docs', description: 'Build with our API', icon: 'Terminal' },
           { label: 'Blog', href: '/blog', description: 'News & tutorials', icon: 'Newspaper' },
+          { label: 'Best AI Coding Tools', href: '/best-ai-coding-tools', description: 'Compare ChatGPT, Claude & more', icon: 'Sparkles' },
           { label: 'Changelog', href: '/changelog', description: "What's new", icon: 'GitCommitHorizontal' },
         ],
       },
@@ -140,6 +141,19 @@ export const footerColumns: NavColumn[] = [
     ],
   },
   {
+    title: 'Categories',
+    items: [
+      { label: 'Website templates', href: '/templates' },
+      { label: 'Web apps & SaaS', href: '/apps' },
+      { label: 'AI projects', href: '/ai-projects' },
+      { label: 'E-commerce', href: '/ecommerce' },
+      { label: 'Mobile apps', href: '/mobile-apps' },
+      { label: 'Components & UI kits', href: '/components' },
+      { label: 'Browser extensions', href: '/browser-extensions' },
+      { label: 'Developer tools', href: '/developer-tools' },
+    ],
+  },
+  {
     title: 'Product',
     items: [
       { label: 'Pricing', href: '/pricing' },
@@ -166,6 +180,7 @@ export const footerColumns: NavColumn[] = [
     items: [
       { label: 'Help Center', href: '/support' },
       { label: 'Community', href: '/community' },
+      { label: 'Best AI coding tools', href: '/best-ai-coding-tools' },
       { label: 'Changelog', href: '/changelog' },
       { label: 'Status', href: '/status' },
       { label: 'Contact', href: '/contact' },

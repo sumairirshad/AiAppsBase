@@ -7,6 +7,8 @@ import { ThemeProvider } from '@/components/theme-provider'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Toaster } from '@/components/ui/sonner'
 import { cn } from '@/lib/utils'
+import { JsonLd } from '@/components/seo/json-ld'
+import { APP_URL, SITE_NAME } from '@/lib/seo'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -25,8 +27,6 @@ const jetbrainsMono = JetBrains_Mono({
   variable: '--font-mono',
   display: 'swap',
 })
-
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://aiappsbase.dev'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -83,6 +83,33 @@ export const metadata: Metadata = {
   },
 }
 
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: SITE_NAME,
+  url: APP_URL,
+  description:
+    'Marketplace for buying and selling websites, web apps, mobile apps, and UI components built with AI tools.',
+  sameAs: [
+    'https://github.com',
+    'https://x.com',
+    'https://discord.com',
+    'https://linkedin.com',
+  ],
+}
+
+const websiteSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: SITE_NAME,
+  url: APP_URL,
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: `${APP_URL}/products?q={search_term_string}`,
+    'query-input': 'required name=search_term_string',
+  },
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -94,6 +121,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           'min-h-screen bg-background font-sans text-foreground antialiased'
         )}
       >
+        <JsonLd data={[organizationSchema, websiteSchema]} />
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
