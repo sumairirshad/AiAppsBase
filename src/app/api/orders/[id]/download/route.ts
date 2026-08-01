@@ -3,6 +3,7 @@ import { Readable } from 'stream'
 import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
 import { downloadDeliverableStream } from '@/lib/sftp'
+import { decryptToken } from '@/lib/token-crypto'
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await getSessionUserId()
@@ -12,9 +13,11 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
   const orderRes = await query(
     `SELECT o.buyer_id, o.status, p.github_repo_name, p.github_default_branch,
-            p.deliverable_remote_path, p.deliverable_original_name
+            p.deliverable_remote_path, p.deliverable_original_name,
+            u.github_access_token AS seller_github_access_token
      FROM orders o
      JOIN products p ON o.product_id = p.id
+     JOIN users u ON u.id = p.seller_id
      WHERE o.id = $1`,
     [params.id]
   )
@@ -35,6 +38,46 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
   if (order.github_repo_name) {
     const branch = order.github_default_branch || 'main'
+    const accessToken = decryptToken(order.seller_github_access_token)
+
+    // Private repos need an authenticated request — a plain redirect can't carry
+    // an Authorization header through the browser. Fetch server-side and stream
+    // the archive back to the buyer instead.
+    if (accessToken) {
+      try {
+        const ghRes = await fetch(
+          `https://api.github.com/repos/${order.github_repo_name}/zipball/${branch}`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              Accept: 'application/vnd.github+json',
+              'User-Agent': 'AIAppsBase-App',
+            },
+          }
+        )
+
+        if (ghRes.ok && ghRes.body) {
+          const repoSlug = order.github_repo_name.split('/').pop() || 'repo'
+          return new NextResponse(ghRes.body as unknown as ReadableStream, {
+            headers: {
+              'Content-Disposition': `attachment; filename="${repoSlug}-${branch}.zip"`,
+              'Content-Type': 'application/zip',
+            },
+          })
+        }
+
+        console.error(
+          '[orders/download] GitHub zipball fetch failed:',
+          ghRes.status,
+          await ghRes.text().catch(() => '')
+        )
+      } catch (err) {
+        console.error('[orders/download] GitHub zipball fetch error:', err)
+      }
+    }
+
+    // Fallback: a direct public-archive link. Only works for public repos, but
+    // matches the previous behavior when we don't have a usable seller token.
     const downloadUrl = `https://github.com/${order.github_repo_name}/archive/refs/heads/${branch}.zip`
     return NextResponse.redirect(downloadUrl)
   }

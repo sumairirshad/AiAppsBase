@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
 import { stripe } from '@/lib/stripe'
+import { completeCheckoutSession, expireCheckoutSession } from '@/lib/orders'
 
 export async function GET(
   _req: NextRequest,
@@ -31,38 +32,18 @@ export async function GET(
 
   const row = res.rows[0]
 
-  // If still pending, ask Stripe directly (webhook may not have arrived yet)
+  // If still pending, ask Stripe directly — this is a fallback for the common
+  // path (the webhook usually beats the browser redirect anyway). The real
+  // source of truth is the /api/checkout/webhook handler; this just avoids
+  // making the buyer wait on webhook latency for their own purchase.
   if (row.status === 'pending') {
     const stripeSession = await stripe.checkout.sessions.retrieve(sessionId)
 
     if (stripeSession.payment_status === 'paid') {
-      // Ensure order is created (webhook fallback)
-      const existingOrder = await query(
-        `SELECT id FROM orders WHERE product_id = $1 AND buyer_id = $2`,
-        [row.product_id, userId]
-      )
-      if ((existingOrder.rowCount ?? 0) === 0) {
-        await query(
-          `INSERT INTO orders (product_id, buyer_id, amount, license_type)
-           VALUES ($1, $2, $3, $4)`,
-          [row.product_id, userId, Number(row.amount), row.license_type]
-        )
-      }
-
-      await query(`DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2`, [userId, row.product_id])
-
-      await query(
-        `UPDATE checkout_sessions
-         SET status = 'completed', completed_at = NOW()
-         WHERE stripe_session_id = $1`,
-        [sessionId]
-      )
+      await completeCheckoutSession(sessionId)
       row.status = 'completed'
     } else if (stripeSession.status === 'expired') {
-      await query(
-        `UPDATE checkout_sessions SET status = 'expired' WHERE stripe_session_id = $1`,
-        [sessionId]
-      )
+      await expireCheckoutSession(sessionId)
       row.status = 'expired'
     }
   }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
+import { decryptToken } from '@/lib/token-crypto'
 
 export async function GET() {
   const userId = await getSessionUserId()
@@ -19,7 +20,9 @@ export async function GET() {
 
   const { github_access_token, github_username } = userRes.rows[0]
 
-  if (!github_access_token || !github_username) {
+  const accessToken = decryptToken(github_access_token)
+
+  if (!accessToken || !github_username) {
     return NextResponse.json({ connected: false, repos: [], listedRepoNames: [] })
   }
 
@@ -27,7 +30,7 @@ export async function GET() {
     'https://api.github.com/user/repos?type=public&sort=updated&per_page=100',
     {
       headers: {
-        Authorization: `Bearer ${github_access_token}`,
+        Authorization: `Bearer ${accessToken}`,
         Accept: 'application/vnd.github+json',
         'User-Agent': 'AIAppsBase-App',
       },

@@ -111,7 +111,7 @@ export default function SupportPage() {
           <MessageCircle className="w-10 h-10 text-brand-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-white mb-2">Still need help?</h3>
           <p className="text-surface-400 text-sm mb-6">
-            Can't find what you're looking for? Email us and we'll get back to you within 24 hours.
+            Can&apos;t find what you&apos;re looking for? Email us and we&apos;ll get back to you within 24 hours.
           </p>
           <a
             href="mailto:support@aiappsbase.dev"

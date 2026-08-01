@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
 import { uploadDeliverable, deleteDeliverable } from '@/lib/sftp'
+import { isAllowedDeliverableUpload } from '@/lib/upload-safety'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await getSessionUserId()
@@ -29,8 +30,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: 'Please choose a .zip or .rar file' }, { status: 400 })
   }
 
-  const lowerName = deliverableFile.name.toLowerCase()
-  if (!lowerName.endsWith('.zip') && !lowerName.endsWith('.rar')) {
+  if (!isAllowedDeliverableUpload(deliverableFile.name)) {
     return NextResponse.json({ error: 'The deliverable file must be a .zip or .rar archive' }, { status: 400 })
   }
 
