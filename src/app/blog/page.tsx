@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowRight, Clock, Sparkles } from 'lucide-react'
 
-import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -64,8 +64,14 @@ export default function BlogPage() {
         {featured.map((p) => (
           <Link key={p.slug} href={`/blog/${p.slug}`}>
             <Card interactive className="group h-full overflow-hidden">
-              <div className={cn('relative h-56 bg-gradient-to-br', p.gradient)}>
-                <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-20" />
+              <div className="relative h-56 overflow-hidden">
+                <Image
+                  src={p.coverImage}
+                  alt={p.coverImageAlt}
+                  fill
+                  sizes="(min-width: 1024px) 50vw, 100vw"
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                />
                 <Badge className="absolute left-4 top-4 border-0 bg-black/30 text-white backdrop-blur-md">{p.category}</Badge>
               </div>
               <div className="p-6">
@@ -88,8 +94,14 @@ export default function BlogPage() {
         {rest.map((p) => (
           <Link key={p.slug} href={`/blog/${p.slug}`}>
             <Card interactive className="group flex h-full flex-col overflow-hidden">
-              <div className={cn('relative h-40 bg-gradient-to-br', p.gradient)}>
-                <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-20" />
+              <div className="relative h-40 overflow-hidden">
+                <Image
+                  src={p.coverImage}
+                  alt={p.coverImageAlt}
+                  fill
+                  sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                />
                 <Badge className="absolute left-4 top-4 border-0 bg-black/30 text-white backdrop-blur-md">{p.category}</Badge>
               </div>
               <div className="flex flex-1 flex-col p-5">

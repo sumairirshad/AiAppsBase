@@ -31,7 +31,7 @@ export type Post = {
   publishedAt: string
   updatedAt: string
   readTime: string
-  gradient: string
+  coverImage: string
   coverImageAlt: string
   featured?: boolean
   content: BlogBlock[]
@@ -61,8 +61,8 @@ export const posts: Post[] = [
     publishedAt: '2026-06-28T09:00:00.000Z',
     updatedAt: '2026-06-28T09:00:00.000Z',
     readTime: '8 min read',
-    gradient: 'from-indigo-500 via-violet-500 to-fuchsia-500',
-    coverImageAlt: 'A dashboard showing a rising revenue chart next to a pricing calculator',
+    coverImage: 'https://images.unsplash.com/photo-1543286386-713bdd548da4?auto=format&fit=crop&w=1600&q=80',
+    coverImageAlt: 'A hand-drawn chart on paper showing a value trending up from "the past" to "the future," next to a pen and ruler',
     featured: true,
     content: [
       { type: 'p', text: "Every seller asks the same question in their first week: \"what should I actually charge?\" There's no universal answer, but there is a pattern. We looked at pricing and sales data across several hundred listings on AIAppsBase and found that the sellers doing best weren't the cheapest — they were the ones who priced like they understood what they were selling." },
@@ -112,8 +112,8 @@ export const posts: Post[] = [
     publishedAt: '2026-06-20T09:00:00.000Z',
     updatedAt: '2026-06-20T09:00:00.000Z',
     readTime: '10 min read',
-    gradient: 'from-sky-500 via-cyan-500 to-emerald-500',
-    coverImageAlt: 'A step-by-step checklist for listing a product on a marketplace',
+    coverImage: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=1600&q=80',
+    coverImageAlt: 'A laptop screen showing a code editor with a website\'s source files open',
     featured: true,
     content: [
       { type: 'p', text: "I built the first version of the seller flow on a Saturday afternoon, mostly because I was tired of watching friends finish a great project built with ChatGPT or Claude and then let it rot in a private repo. This guide is the process I still tell people to follow, updated for how the platform actually works today." },
@@ -165,8 +165,8 @@ export const posts: Post[] = [
     publishedAt: '2026-06-12T09:00:00.000Z',
     updatedAt: '2026-06-12T09:00:00.000Z',
     readTime: '7 min read',
-    gradient: 'from-amber-500 via-orange-500 to-rose-500',
-    coverImageAlt: 'A sequence diagram showing a purchase event triggering a GitHub repository invite',
+    coverImage: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=1600&q=80',
+    coverImageAlt: 'A close-up of source code displayed on a computer screen',
     content: [
       { type: 'p', text: "\"How do you actually deliver a private repo without giving away the whole platform's source?\" is the question we get most from technical buyers evaluating whether to trust the marketplace with a purchase. Here's the honest answer, end to end." },
       { type: 'h2', text: 'Two delivery paths, chosen per listing' },
@@ -216,8 +216,8 @@ export const posts: Post[] = [
     publishedAt: '2026-06-04T09:00:00.000Z',
     updatedAt: '2026-06-04T09:00:00.000Z',
     readTime: '8 min read',
-    gradient: 'from-fuchsia-500 via-pink-500 to-rose-500',
-    coverImageAlt: 'A grid of UI components — buttons, cards, and modals — in a consistent design system',
+    coverImage: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?auto=format&fit=crop&w=1600&q=80',
+    coverImageAlt: 'A designer\'s desk with color swatches, a style guide, and a tablet showing UI sketches',
     content: [
       { type: 'p', text: "I review a lot of component library submissions, and after a while you stop noticing the visual style and start noticing the structure underneath it. The libraries that sell well and keep selling share a set of decisions that have almost nothing to do with which color palette they picked." },
       { type: 'h2', text: 'Tokens before components' },
@@ -265,8 +265,8 @@ export const posts: Post[] = [
     publishedAt: '2026-05-27T09:00:00.000Z',
     updatedAt: '2026-05-27T09:00:00.000Z',
     readTime: '5 min read',
-    gradient: 'from-emerald-500 via-teal-500 to-cyan-500',
-    coverImageAlt: 'A shield icon overlaid on a checkout confirmation screen',
+    coverImage: 'https://images.unsplash.com/photo-1614064641938-3bbee52942c7?auto=format&fit=crop&w=1600&q=80',
+    coverImageAlt: 'A padlock resting on a laptop keyboard, lit in red and green',
     content: [
       { type: 'p', text: "Marketplaces live or die on trust, and trust breaks down fastest at the moment money changes hands for something the buyer hasn't fully tested yet. That's the entire reason buyer protection exists, and it's worth explaining exactly how it works instead of leaving it as fine print." },
       { type: 'h2', text: 'The 14-day window' },
@@ -312,8 +312,8 @@ export const posts: Post[] = [
     publishedAt: '2026-05-18T09:00:00.000Z',
     updatedAt: '2026-05-18T09:00:00.000Z',
     readTime: '9 min read',
-    gradient: 'from-violet-500 via-purple-500 to-indigo-500',
-    coverImageAlt: 'A weekend calendar with milestones for launching a SaaS product',
+    coverImage: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=1600&q=80',
+    coverImageAlt: 'A laptop showing code on a desk next to a coffee mug and a small plant',
     content: [
       { type: 'p', text: "I've launched four small SaaS products in the last two years, and the one thing that changed everything was giving up on building the boring 80% from scratch. Auth, billing, and a dashboard shell are solved problems — buying a solid boilerplate and spending your weekend on the 20% that's actually your idea is how you ship in 48 hours instead of six weeks." },
       { type: 'h2', text: 'Friday night: pick your foundation, don\'t build it' },
@@ -367,8 +367,8 @@ export const posts: Post[] = [
     publishedAt: '2026-07-02T09:00:00.000Z',
     updatedAt: '2026-07-02T09:00:00.000Z',
     readTime: '11 min read',
-    gradient: 'from-blue-500 via-indigo-500 to-violet-500',
-    coverImageAlt: 'Four browser windows side by side showing different AI coding tool interfaces',
+    coverImage: 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=1600&q=80',
+    coverImageAlt: 'A small humanoid robot sitting on a bench holding a tablet',
     featured: true,
     content: [
       { type: 'p', text: "Every week someone on our review team gets asked \"which AI tool should I use to build my next listing?\" as if there's one right answer. There isn't. After reviewing thousands of submissions built with every major tool, the honest answer is that each one is genuinely best at a different stage of building software, and the sellers who get the most out of AI tooling usually use more than one." },
@@ -425,8 +425,8 @@ export const posts: Post[] = [
     publishedAt: '2026-07-08T09:00:00.000Z',
     updatedAt: '2026-07-08T09:00:00.000Z',
     readTime: '7 min read',
-    gradient: 'from-cyan-500 via-sky-500 to-blue-500',
-    coverImageAlt: 'A minimal desk setup with a laptop showing a daily task list',
+    coverImage: 'https://images.unsplash.com/photo-1499951360447-b19be8fe80f5?auto=format&fit=crop&w=1600&q=80',
+    coverImageAlt: 'A home office desk with a monitor and laptop showing analytics dashboards',
     content: [
       { type: 'p', text: "I run my product business alone, which means every hour I spend on something that isn't customers or code is an hour I'm not getting back. The productivity advice that actually stuck for me isn't about time-blocking apps — it's about which tasks I've handed to an AI tool entirely, and which ones I still insist on doing myself." },
       { type: 'h2', text: 'Morning: triage before I touch code' },
@@ -473,8 +473,8 @@ export const posts: Post[] = [
     publishedAt: '2026-07-14T09:00:00.000Z',
     updatedAt: '2026-07-14T09:00:00.000Z',
     readTime: '9 min read',
-    gradient: 'from-teal-500 via-emerald-500 to-lime-500',
-    coverImageAlt: 'A flowchart showing an automated business workflow with decision points',
+    coverImage: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=1600&q=80',
+    coverImageAlt: 'A white humanoid robot with an illuminated face standing indoors',
     content: [
       { type: 'p', text: "\"AI agent\" has become one of those terms that gets stretched to mean everything from a chatbot with a system prompt to a fully autonomous system making decisions across your business. Talking to the sellers building agent tooling for our AI Projects category, a much more useful distinction has emerged: reliable automation today is narrow and supervised, not broad and autonomous." },
       { type: 'h2', text: 'What\'s actually reliable right now' },
@@ -527,8 +527,8 @@ export const posts: Post[] = [
     publishedAt: '2026-07-18T09:00:00.000Z',
     updatedAt: '2026-07-18T09:00:00.000Z',
     readTime: '8 min read',
-    gradient: 'from-rose-500 via-pink-500 to-fuchsia-500',
-    coverImageAlt: 'Two versions of the same landing page headline side by side, one generic and one specific',
+    coverImage: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1600&q=80',
+    coverImageAlt: 'A fountain pen writing cursive text on lined paper',
     content: [
       { type: 'p', text: "I've read hundreds of product descriptions submitted to the marketplace, and I can spot AI-drafted copy that was never edited within the first sentence. It's not that AI can't write good marketing copy — it's that the raw first draft has a specific set of tells, and skipping the edit pass is the single biggest reason a listing with a genuinely good product still underperforms." },
       { type: 'h2', text: 'The tells that make readers skim past your copy' },
@@ -574,8 +574,8 @@ export const posts: Post[] = [
     publishedAt: '2026-07-21T09:00:00.000Z',
     updatedAt: '2026-07-21T09:00:00.000Z',
     readTime: '9 min read',
-    gradient: 'from-orange-500 via-amber-500 to-yellow-500',
-    coverImageAlt: 'A code editor split-screen with a prompt panel and generated code output',
+    coverImage: 'https://images.unsplash.com/photo-1607799279861-4dd421887fb3?auto=format&fit=crop&w=1600&q=80',
+    coverImageAlt: 'A close-up of colorful code on a laptop screen in a dimly lit room',
     content: [
       { type: 'p', text: "Most prompt engineering advice is written for getting a good demo output, not for getting production-usable code on a real, messy codebase. After reviewing thousands of AI-assisted submissions, the techniques that actually correlate with higher-quality delivered code are narrower and less exciting than the listicle version, but they work." },
       { type: 'h2', text: 'Show constraints, not just goals' },
@@ -623,8 +623,8 @@ export const posts: Post[] = [
     publishedAt: '2026-07-24T09:00:00.000Z',
     updatedAt: '2026-07-24T09:00:00.000Z',
     readTime: '7 min read',
-    gradient: 'from-lime-500 via-green-500 to-emerald-500',
-    coverImageAlt: 'A teacher\'s desk with a laptop showing a lesson plan generated with AI assistance',
+    coverImage: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1600&q=80',
+    coverImageAlt: 'A stack of books topped with an apple next to colorful alphabet blocks',
     content: [
       { type: 'p', text: "The public conversation about AI in education is mostly stuck on whether students are using it to cheat on essays. Talking to teachers who buy educational templates and coding-curriculum projects from our marketplace, the more interesting and less discussed story is how much time AI tools are saving on the unglamorous work behind teaching, not the writing itself." },
       { type: 'h2', text: 'Lesson planning and differentiation' },
@@ -670,8 +670,8 @@ export const posts: Post[] = [
     publishedAt: '2026-07-27T09:00:00.000Z',
     updatedAt: '2026-07-27T09:00:00.000Z',
     readTime: '6 min read',
-    gradient: 'from-fuchsia-500 via-violet-500 to-indigo-500',
-    coverImageAlt: 'A moodboard of contemporary UI screens with soft gradients and rounded cards',
+    coverImage: 'https://images.unsplash.com/photo-1522542550221-31fd19575a2d?auto=format&fit=crop&w=1600&q=80',
+    coverImageAlt: 'Hand-drawn watercolor sketches of website wireframes',
     content: [
       { type: 'p', text: "Looking at hundreds of listings a month gives you a strange vantage point on design trends — you start noticing not just what looks current, but which specific defaults are shaping that look, because so many products start from the same handful of generative tools." },
       { type: 'h2', text: 'The convergence problem' },
@@ -718,8 +718,8 @@ export const posts: Post[] = [
     publishedAt: '2026-07-30T09:00:00.000Z',
     updatedAt: '2026-07-30T09:00:00.000Z',
     readTime: '8 min read',
-    gradient: 'from-indigo-500 via-purple-500 to-pink-500',
-    coverImageAlt: 'A developer describing an idea out loud while code appears on screen',
+    coverImage: 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?auto=format&fit=crop&w=1600&q=80',
+    coverImageAlt: 'A hand resting on a laptop trackpad with code on screen, a coffee mug and plant nearby',
     featured: true,
     content: [
       { type: 'p', text: "\"Vibe coding\" started as a joke about describing what you want in plain language and accepting whatever an AI tool generates without reading it closely. It's an easy trend to dismiss, and plenty of the discourse around it deserves the dismissal. But underneath the meme is a genuine, durable shift in who gets to build software, and it's worth separating the real change from the hype." },

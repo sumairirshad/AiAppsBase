@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, Clock, Calendar, List } from 'lucide-react'
 
@@ -38,11 +39,13 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
       authors: [post.author],
       section: post.category,
       tags: post.tags,
+      images: [{ url: post.coverImage, alt: post.coverImageAlt }],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description: post.metaDescription,
+      images: [post.coverImage],
     },
   }
 }
@@ -101,12 +104,15 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
         </div>
       </div>
 
-      <div
-        role="img"
-        aria-label={post.coverImageAlt}
-        className={cn('relative mx-auto mt-8 h-64 max-w-5xl overflow-hidden rounded-2xl bg-gradient-to-br sm:h-80', post.gradient)}
-      >
-        <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-20" />
+      <div className="relative mx-auto mt-8 h-64 max-w-5xl overflow-hidden rounded-2xl sm:h-80">
+        <Image
+          src={post.coverImage}
+          alt={post.coverImageAlt}
+          fill
+          priority
+          sizes="(min-width: 1024px) 1024px, 100vw"
+          className="object-cover"
+        />
       </div>
 
       <div className="container mt-10 max-w-3xl">
@@ -201,8 +207,14 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
           {related.map((p) => (
             <Link key={p.slug} href={`/blog/${p.slug}`}>
               <Card interactive className="group h-full overflow-hidden">
-                <div className={cn('relative h-28 bg-gradient-to-br', p.gradient)}>
-                  <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-20" />
+                <div className="relative h-28 overflow-hidden">
+                  <Image
+                    src={p.coverImage}
+                    alt={p.coverImageAlt}
+                    fill
+                    sizes="(min-width: 640px) 33vw, 100vw"
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
                 </div>
                 <div className="p-4">
                   <h3 className="text-sm font-semibold group-hover:text-primary">{p.title}</h3>
