@@ -9,6 +9,7 @@ import { cn, formatNumber } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { productPath } from '@/lib/seo'
 import type { Repo } from '@/lib/marketplace-config'
 
 function Price({ repo, className }: { repo: Repo; className?: string }) {
@@ -43,7 +44,7 @@ function Bookmarkable({ repo, className }: { repo: Repo; className?: string }) {
 export function ProductCard({ repo }: { repo: Repo }) {
   return (
     <Card interactive className="group flex flex-col overflow-hidden">
-      <Link href={`/product/${repo.id}`} className="relative block h-36 overflow-hidden">
+      <Link href={productPath(repo)} className="relative block h-36 overflow-hidden">
         <div className={cn('absolute inset-0 bg-gradient-to-br transition-transform duration-500 group-hover:scale-105', repo.gradient)} />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.35),transparent_55%)]" />
         <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-20" />
@@ -82,7 +83,7 @@ export function ProductCard({ repo }: { repo: Repo }) {
           <div className="flex items-center gap-3">
             <Price repo={repo} />
             <Button size="sm" asChild>
-              <Link href={`/product/${repo.id}`}>View <ArrowUpRight className="size-4" /></Link>
+              <Link href={productPath(repo)}>View <ArrowUpRight className="size-4" /></Link>
             </Button>
           </div>
         </div>
@@ -94,7 +95,7 @@ export function ProductCard({ repo }: { repo: Repo }) {
 export function ProductRow({ repo }: { repo: Repo }) {
   return (
     <Card interactive className="group flex flex-col gap-4 overflow-hidden p-4 sm:flex-row">
-      <Link href={`/product/${repo.id}`} className="relative block h-28 shrink-0 overflow-hidden rounded-lg sm:w-56">
+      <Link href={productPath(repo)} className="relative block h-28 shrink-0 overflow-hidden rounded-lg sm:w-56">
         <div className={cn('absolute inset-0 bg-gradient-to-br', repo.gradient)} />
         <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-20" />
         <span className="absolute bottom-2 left-3 font-display text-lg font-bold text-white drop-shadow">{repo.title}</span>
@@ -103,7 +104,7 @@ export function ProductRow({ repo }: { repo: Repo }) {
 
       <div className="flex flex-1 flex-col">
         <div className="flex flex-wrap items-center gap-2">
-          <Link href={`/product/${repo.id}`} className="font-semibold hover:text-primary">{repo.title}</Link>
+          <Link href={productPath(repo)} className="font-semibold hover:text-primary">{repo.title}</Link>
           {repo.verified && <BadgeCheck className="size-4 text-primary" />}
           <Badge variant="muted">{repo.category}</Badge>
           {repo.trending && <Badge variant="warning"><Flame className="size-3" /> Trending</Badge>}
@@ -120,7 +121,7 @@ export function ProductRow({ repo }: { repo: Repo }) {
       <div className="flex shrink-0 flex-row items-center justify-between gap-3 border-t border-border pt-3 sm:flex-col sm:items-end sm:justify-center sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0">
         <Price repo={repo} />
         <Button size="sm" asChild>
-          <Link href={`/product/${repo.id}`}>View <ArrowUpRight className="size-4" /></Link>
+          <Link href={productPath(repo)}>View <ArrowUpRight className="size-4" /></Link>
         </Button>
       </div>
     </Card>

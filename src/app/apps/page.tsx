@@ -24,7 +24,10 @@ export const metadata: Metadata = {
     title: 'AI-Built Web & Mobile Apps | AIAppsBase',
     description: 'Full-stack apps, SaaS platforms, dashboards, and e-commerce stores built with AI.',
   },
+  alternates: { canonical: '/apps' },
 }
+
+export const revalidate = 300
 
 const subcategories = [
   { label: 'Full-Stack Apps', href: '/products?category=Full-Stack+App', icon: Zap },
@@ -35,15 +38,20 @@ const subcategories = [
 ]
 
 export default async function AppsPage() {
-  const result = await query(
-    `SELECT p.*, u.full_name AS seller_name
-     FROM products p
-     JOIN users u ON p.seller_id = u.id
-     WHERE p.status = 'approved'
-       AND p.category IN ('Full-Stack App','SaaS','Dashboard','E-commerce','Mobile App')
-     ORDER BY p.created_at DESC`
-  )
-  const products = result.rows || []
+  let products: any[] = []
+  try {
+    const result = await query(
+      `SELECT p.*, u.full_name AS seller_name
+       FROM products p
+       JOIN users u ON p.seller_id = u.id
+       WHERE p.status = 'approved'
+         AND p.category IN ('Full-Stack App','SaaS','Dashboard','E-commerce','Mobile App')
+       ORDER BY p.created_at DESC`
+    )
+    products = result.rows || []
+  } catch (err) {
+    console.error('AppsPage query failed:', (err as Error).message)
+  }
 
   return (
     <div className="min-h-screen bg-surface-950">

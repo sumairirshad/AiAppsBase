@@ -24,7 +24,10 @@ export const metadata: Metadata = {
     title: 'AI-Built Website Templates | AIAppsBase',
     description: 'Premium landing pages, portfolios, and business websites crafted with AI.',
   },
+  alternates: { canonical: '/templates' },
 }
+
+export const revalidate = 300
 
 const subcategories = [
   { label: 'Landing Pages', href: '/products?category=Landing+Page', icon: Globe },
@@ -34,15 +37,20 @@ const subcategories = [
 ]
 
 export default async function TemplatesPage() {
-  const result = await query(
-    `SELECT p.*, u.full_name AS seller_name
-     FROM products p
-     JOIN users u ON p.seller_id = u.id
-     WHERE p.status = 'approved'
-       AND p.category IN ('Website Template','Landing Page','Portfolio','Blog')
-     ORDER BY p.created_at DESC`
-  )
-  const products = result.rows || []
+  let products: any[] = []
+  try {
+    const result = await query(
+      `SELECT p.*, u.full_name AS seller_name
+       FROM products p
+       JOIN users u ON p.seller_id = u.id
+       WHERE p.status = 'approved'
+         AND p.category IN ('Website Template','Landing Page','Portfolio','Blog')
+       ORDER BY p.created_at DESC`
+    )
+    products = result.rows || []
+  } catch (err) {
+    console.error('TemplatesPage query failed:', (err as Error).message)
+  }
 
   return (
     <div className="min-h-screen bg-surface-950">

@@ -16,11 +16,12 @@ import { HeroSearch } from '@/components/landing/hero-search'
 import { NewsletterForm } from '@/components/landing/newsletter-form'
 import { FaqSection } from '@/components/landing/faq-section'
 import { CATEGORIES, TECHS, LANGUAGES, gradientFor } from '@/lib/marketplace-config'
-import { trustedBy, features, workflow, plans } from '@/lib/landing-data'
+import { trustedBy, features, workflow, plans, faqs } from '@/lib/landing-data'
 import { getFeaturedProducts, getTopSellers, getPlatformStats, type PlatformStats } from '@/lib/products'
+import { faqJsonLd } from '@/lib/seo'
 import type { Repo, Seller } from '@/lib/marketplace-config'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 300
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Github, ShieldCheck, Wallet, LineChart, BadgeCheck, Globe,
@@ -430,8 +431,11 @@ export default async function HomePage() {
     getFeaturedProducts(6), getTopSellers(4), getPlatformStats(),
   ])
 
+  const jsonLd = faqJsonLd(faqs)
+
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <Hero stats={stats} sellers={sellers} />
       <TrustedBy />
       <Stats stats={stats} />

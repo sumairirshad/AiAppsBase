@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/components/theme-provider'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Toaster } from '@/components/ui/sonner'
 import { cn } from '@/lib/utils'
+import { organizationJsonLd, websiteJsonLd } from '@/lib/seo'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -84,8 +85,19 @@ export const metadata: Metadata = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const jsonLd = [organizationJsonLd(), websiteJsonLd()]
+
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {jsonLd.map((entry, i) => (
+          <script
+            key={i}
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(entry) }}
+          />
+        ))}
+      </head>
       <body
         className={cn(
           inter.variable,

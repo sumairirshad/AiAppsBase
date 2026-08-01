@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { posts, getPost } from '@/lib/blog-data'
+import { absoluteUrl, articleJsonLd } from '@/lib/seo'
 
 export function generateStaticParams() {
   return posts.map((p) => ({ slug: p.slug }))
@@ -17,7 +18,14 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
   const post = getPost(params.slug)
   if (!post) return { title: 'Article not found' }
-  return { title: post.title, description: post.excerpt, openGraph: { title: post.title, description: post.excerpt, type: 'article' } }
+  const url = absoluteUrl(`/blog/${post.slug}`)
+  return {
+    title: post.title,
+    description: post.excerpt,
+    alternates: { canonical: url },
+    openGraph: { title: post.title, description: post.excerpt, url, type: 'article', publishedTime: post.date },
+    twitter: { card: 'summary_large_image', title: post.title, description: post.excerpt },
+  }
 }
 
 export default function BlogPostPage({ params }: { params: { slug: string } }) {
@@ -25,9 +33,11 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
   if (!post) notFound()
 
   const related = posts.filter((p) => p.slug !== post.slug).slice(0, 3)
+  const jsonLd = articleJsonLd(post)
 
   return (
     <article className="py-10">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <div className="container max-w-3xl">
         <Link href="/blog" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="size-4" /> All articles

@@ -1,86 +1,71 @@
 import type { MetadataRoute } from 'next'
 import { query } from '@/lib/db'
+import { posts } from '@/lib/blog-data'
+import { productPath, APP_URL } from '@/lib/seo'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://aiappsbase.dev'
+const route = (
+  path: string,
+  changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'],
+  priority: number
+): MetadataRoute.Sitemap[number] => ({
+  url: `${APP_URL}${path}`,
+  lastModified: new Date(),
+  changeFrequency,
+  priority,
+})
 
 const staticRoutes: MetadataRoute.Sitemap = [
-  {
-    url: APP_URL,
-    lastModified: new Date(),
-    changeFrequency: 'daily',
-    priority: 1,
-  },
-  {
-    url: `${APP_URL}/products`,
-    lastModified: new Date(),
-    changeFrequency: 'hourly',
-    priority: 0.9,
-  },
-  {
-    url: `${APP_URL}/templates`,
-    lastModified: new Date(),
-    changeFrequency: 'daily',
-    priority: 0.9,
-  },
-  {
-    url: `${APP_URL}/apps`,
-    lastModified: new Date(),
-    changeFrequency: 'daily',
-    priority: 0.9,
-  },
-  {
-    url: `${APP_URL}/components`,
-    lastModified: new Date(),
-    changeFrequency: 'daily',
-    priority: 0.9,
-  },
-  {
-    url: `${APP_URL}/about`,
-    lastModified: new Date(),
-    changeFrequency: 'monthly',
-    priority: 0.6,
-  },
-  {
-    url: `${APP_URL}/blog`,
-    lastModified: new Date(),
-    changeFrequency: 'weekly',
-    priority: 0.7,
-  },
-  {
-    url: `${APP_URL}/support`,
-    lastModified: new Date(),
-    changeFrequency: 'monthly',
-    priority: 0.5,
-  },
-  {
-    url: `${APP_URL}/terms`,
-    lastModified: new Date(),
-    changeFrequency: 'yearly',
-    priority: 0.3,
-  },
-  {
-    url: `${APP_URL}/privacy`,
-    lastModified: new Date(),
-    changeFrequency: 'yearly',
-    priority: 0.3,
-  },
-  {
-    url: `${APP_URL}/cookies`,
-    lastModified: new Date(),
-    changeFrequency: 'yearly',
-    priority: 0.3,
-  },
+  route('/', 'daily', 1),
+  route('/products', 'hourly', 0.9),
+  route('/templates', 'daily', 0.9),
+  route('/apps', 'daily', 0.9),
+  route('/components', 'daily', 0.9),
+  route('/top-sellers', 'daily', 0.7),
+  route('/about', 'monthly', 0.6),
+  route('/pricing', 'monthly', 0.6),
+  route('/blog', 'weekly', 0.7),
+  route('/docs', 'weekly', 0.5),
+  route('/api-docs', 'monthly', 0.4),
+  route('/support', 'monthly', 0.5),
+  route('/contact', 'monthly', 0.4),
+  route('/community', 'weekly', 0.4),
+  route('/careers', 'weekly', 0.4),
+  route('/press', 'monthly', 0.3),
+  route('/partners', 'monthly', 0.4),
+  route('/affiliates', 'monthly', 0.4),
+  route('/enterprise', 'monthly', 0.5),
+  route('/integrations', 'monthly', 0.5),
+  route('/roadmap', 'weekly', 0.4),
+  route('/changelog', 'weekly', 0.4),
+  route('/trust', 'monthly', 0.5),
+  route('/security', 'monthly', 0.5),
+  route('/status', 'daily', 0.3),
+  route('/terms', 'yearly', 0.3),
+  route('/privacy', 'yearly', 0.3),
+  route('/cookies', 'yearly', 0.3),
+  route('/refund', 'yearly', 0.3),
+  route('/license', 'yearly', 0.3),
+  route('/dmca', 'yearly', 0.3),
+  route('/gdpr', 'yearly', 0.3),
+  route('/accessibility', 'yearly', 0.3),
 ]
+
+const blogRoutes: MetadataRoute.Sitemap = posts.map((p) => ({
+  url: `${APP_URL}/blog/${p.slug}`,
+  lastModified: new Date(p.date),
+  changeFrequency: 'monthly',
+  priority: 0.6,
+}))
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let productRoutes: MetadataRoute.Sitemap = []
 
   try {
     const result = await query(
-      `SELECT id, updated_at FROM products WHERE status = 'approved' ORDER BY updated_at DESC`
+      `SELECT id, title, updated_at FROM products WHERE status = 'approved' ORDER BY updated_at DESC`
     )
     productRoutes = (result.rows || []).map((p) => ({
-      url: `${APP_URL}/product/${p.id}`,
+      url: `${APP_URL}${productPath({ id: p.id, title: p.title })}`,
       lastModified: new Date(p.updated_at),
       changeFrequency: 'weekly' as const,
       priority: 0.8,
@@ -89,5 +74,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // DB unavailable during static build — return static routes only
   }
 
-  return [...staticRoutes, ...productRoutes]
+  return [...staticRoutes, ...blogRoutes, ...productRoutes]
 }
