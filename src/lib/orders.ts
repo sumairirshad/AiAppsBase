@@ -4,8 +4,7 @@ import { query } from '@/lib/db'
  * Idempotently finalizes a paid checkout session: creates the order (if one
  * doesn't already exist for this buyer/product), clears the matching cart
  * item, and marks the checkout session completed. Safe to call more than
- * once for the same session — both the Stripe webhook and the client-side
- * verify-page fallback call this, and either may run first.
+ * once for the same session (e.g. the buyer reloading /checkout/success).
  */
 export async function completeCheckoutSession(stripeSessionId: string): Promise<void> {
   const res = await query(
@@ -32,7 +31,7 @@ export async function completeCheckoutSession(stripeSessionId: string): Promise<
   )
 }
 
-/** Marks a checkout session expired — only if it's still pending, so a late-arriving "expired" event can't clobber a completed order. */
+/** Marks a checkout session expired — only if it's still pending, so this can never clobber a session that already completed. */
 export async function expireCheckoutSession(stripeSessionId: string): Promise<void> {
   await query(
     `UPDATE checkout_sessions SET status = 'expired' WHERE stripe_session_id = $1 AND status = 'pending'`,

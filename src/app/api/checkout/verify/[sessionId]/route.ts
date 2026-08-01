@@ -32,10 +32,9 @@ export async function GET(
 
   const row = res.rows[0]
 
-  // If still pending, ask Stripe directly — this is a fallback for the common
-  // path (the webhook usually beats the browser redirect anyway). The real
-  // source of truth is the /api/checkout/webhook handler; this just avoids
-  // making the buyer wait on webhook latency for their own purchase.
+  // If still pending, ask Stripe directly and finalize the order here — this
+  // is the only fulfillment path (no webhook), so it's what the buyer's own
+  // redirect back to /checkout/success relies on to mark the order complete.
   if (row.status === 'pending') {
     const stripeSession = await stripe.checkout.sessions.retrieve(sessionId)
 
