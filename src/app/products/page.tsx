@@ -7,9 +7,10 @@ export const metadata: Metadata = {
   title: 'Marketplace — Browse AI-built projects & repos',
   description:
     'Browse production-ready websites, SaaS boilerplates, UI kits, dashboards, and mobile apps. Filter by category, tech stack, language, price, and more.',
+  alternates: { canonical: '/products' },
 }
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 300
 
 type SP = Record<string, string | string[] | undefined>
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)

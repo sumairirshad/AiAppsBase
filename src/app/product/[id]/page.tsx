@@ -1,40 +1,50 @@
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 
 import { ProductDetail } from '@/components/marketplace/product-detail'
 import { getProductById, getRelatedProducts } from '@/lib/products'
 import { JsonLd } from '@/components/seo/json-ld'
-import { breadcrumbSchema, softwareApplicationSchema } from '@/lib/seo'
+import { breadcrumbSchema, softwareApplicationSchema, extractProductId, productPath } from '@/lib/seo'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 300
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const found = await getProductById(params.id)
+  const found = await getProductById(extractProductId(params.id))
   if (!found) return { title: 'Project not found' }
+  const { repo } = found
+  const path = productPath(repo)
+
   return {
-    title: `${found.repo.title} — ${found.repo.category}`,
-    description: found.repo.description,
-    alternates: { canonical: `/product/${params.id}` },
+    title: `${repo.title} — ${repo.category}`,
+    description: repo.description,
+    keywords: [repo.category, repo.subcategory, repo.language, repo.aiTool, ...repo.techStack].filter(Boolean),
+    alternates: { canonical: path },
     openGraph: {
-      title: found.repo.title,
-      description: found.repo.description,
+      title: repo.title,
+      description: repo.description,
       type: 'website',
-      url: `/product/${params.id}`,
+      url: path,
     },
     twitter: {
       card: 'summary_large_image',
-      title: found.repo.title,
-      description: found.repo.description,
+      title: repo.title,
+      description: repo.description,
     },
   }
 }
 
 export default async function ProductPage({ params }: { params: { id: string } }) {
-  const found = await getProductById(params.id)
+  const id = extractProductId(params.id)
+  const found = await getProductById(id)
   if (!found) notFound()
 
-  const related = await getRelatedProducts(found.repo, 3)
   const { repo } = found
+  const canonicalPath = productPath(repo)
+  if (`/product/${params.id}` !== canonicalPath) {
+    permanentRedirect(canonicalPath)
+  }
+
+  const related = await getRelatedProducts(repo, 3)
 
   return (
     <>
@@ -44,13 +54,13 @@ export default async function ProductPage({ params }: { params: { id: string } }
             { label: 'Home', href: '/' },
             { label: 'Marketplace', href: '/products' },
             { label: repo.category, href: `/products?category=${repo.categorySlug}` },
-            { label: repo.title, href: `/product/${repo.id}` },
+            { label: repo.title, href: canonicalPath },
           ]),
           softwareApplicationSchema({
             name: repo.title,
             description: repo.description,
             category: repo.category,
-            url: `/product/${repo.id}`,
+            url: canonicalPath,
             price: repo.price,
             ratingValue: repo.rating || undefined,
             ratingCount: repo.reviewCount || undefined,

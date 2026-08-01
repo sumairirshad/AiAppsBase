@@ -14,6 +14,28 @@ export function absoluteUrl(path: string): string {
   return `${APP_URL}${path.startsWith('/') ? path : `/${path}`}`
 }
 
+/** UUID v4-ish pattern used to pull the real product id back out of a slugged URL segment. */
+const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+export function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    .slice(0, 60)
+}
+
+/** Canonical `/product/{slug}-{id}` path for a listing — keyword-rich but still id-addressable. */
+export function productPath(repo: { id: string; title: string }): string {
+  return `/product/${slugify(repo.title || 'product')}-${repo.id}`
+}
+
+/** Extracts the underlying UUID from a `/product/[id]` route param, whether it's a bare id or a slugged one. */
+export function extractProductId(param: string): string {
+  const match = param.match(UUID_RE)
+  return match ? match[0] : param
+}
+
 export type BreadcrumbEntry = { label: string; href: string }
 
 export function breadcrumbSchema(items: BreadcrumbEntry[]) {

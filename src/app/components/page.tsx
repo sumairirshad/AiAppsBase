@@ -23,7 +23,10 @@ export const metadata: Metadata = {
     title: 'AI-Built UI Components & Libraries | AIAppsBase',
     description: 'UI component libraries and design systems built with AI.',
   },
+  alternates: { canonical: '/components' },
 }
+
+export const revalidate = 300
 
 const subcategories = [
   { label: 'Component Libraries', href: '/products?category=Component+Library', icon: Layers },
@@ -33,15 +36,20 @@ const subcategories = [
 ]
 
 export default async function ComponentsPage() {
-  const result = await query(
-    `SELECT p.*, u.full_name AS seller_name
-     FROM products p
-     JOIN users u ON p.seller_id = u.id
-     WHERE p.status = 'approved'
-       AND p.category = 'Component Library'
-     ORDER BY p.created_at DESC`
-  )
-  const products = result.rows || []
+  let products: any[] = []
+  try {
+    const result = await query(
+      `SELECT p.*, u.full_name AS seller_name
+       FROM products p
+       JOIN users u ON p.seller_id = u.id
+       WHERE p.status = 'approved'
+         AND p.category = 'Component Library'
+       ORDER BY p.created_at DESC`
+    )
+    products = result.rows || []
+  } catch (err) {
+    console.error('ComponentsPage query failed:', (err as Error).message)
+  }
 
   return (
     <div className="min-h-screen bg-surface-950">

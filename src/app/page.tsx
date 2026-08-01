@@ -16,11 +16,13 @@ import { HeroSearch } from '@/components/landing/hero-search'
 import { NewsletterForm } from '@/components/landing/newsletter-form'
 import { FaqSection } from '@/components/landing/faq-section'
 import { CATEGORIES, TECHS, LANGUAGES, gradientFor } from '@/lib/marketplace-config'
-import { trustedBy, features, workflow, plans } from '@/lib/landing-data'
+import { trustedBy, features, workflow, plans, faqs } from '@/lib/landing-data'
 import { getFeaturedProducts, getTopSellers, getPlatformStats, type PlatformStats } from '@/lib/products'
+import { JsonLd } from '@/components/seo/json-ld'
+import { faqSchema } from '@/lib/seo'
 import type { Repo, Seller } from '@/lib/marketplace-config'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 300
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Github, ShieldCheck, Wallet, LineChart, BadgeCheck, Globe,
@@ -391,6 +393,7 @@ function Security() {
 function Faq() {
   return (
     <section className="container py-20">
+      <JsonLd data={faqSchema(faqs)} />
       <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr]">
         <SectionHeading center={false} eyebrow="FAQ" title="Questions, answered"
           description="Everything you need to know about buying and selling on AIAppsBase." />
