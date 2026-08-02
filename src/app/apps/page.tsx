@@ -35,15 +35,29 @@ const subcategories = [
 ]
 
 export default async function AppsPage() {
-  const result = await query(
-    `SELECT p.*, u.full_name AS seller_name
-     FROM products p
-     JOIN users u ON p.seller_id = u.id
-     WHERE p.status = 'approved'
-       AND p.category IN ('Full-Stack App','SaaS','Dashboard','E-commerce','Mobile App')
-     ORDER BY p.created_at DESC`
-  )
-  const products = result.rows || []
+  let products: any[] = []
+  try {
+    const result = await query(
+      `SELECT p.*, u.full_name AS seller_name,
+              agg.avg_rating AS rating, agg.review_count, ord.sales
+       FROM products p
+       JOIN users u ON p.seller_id = u.id
+       LEFT JOIN (
+         SELECT product_id, AVG(rating)::float AS avg_rating, COUNT(*)::int AS review_count
+         FROM reviews GROUP BY product_id
+       ) agg ON agg.product_id = p.id
+       LEFT JOIN (
+         SELECT product_id, COUNT(*)::int AS sales
+         FROM orders WHERE status = 'completed' GROUP BY product_id
+       ) ord ON ord.product_id = p.id
+       WHERE p.status = 'approved'
+         AND p.category IN ('Full-Stack App','SaaS','Dashboard','E-commerce','Mobile App')
+       ORDER BY p.created_at DESC`
+    )
+    products = result.rows || []
+  } catch (err) {
+    console.error('AppsPage query failed:', (err as Error).message)
+  }
 
   return (
     <div className="min-h-screen bg-surface-950">

@@ -37,7 +37,6 @@ export default function LoginPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error ?? 'Login failed')
-      if (data.token) localStorage.setItem('auth_token', data.token)
       toast.success('Logged in successfully')
       const role = data.user?.role
       if (role === 'admin') window.location.href = '/admin'

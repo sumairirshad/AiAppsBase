@@ -317,7 +317,7 @@ export default function EditProductPage() {
 
             {isGithub ? (
               <p className="rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
-                This is a GitHub-based listing — buyers download the linked repository directly, so there's no uploaded file to manage here.
+                This is a GitHub-based listing — buyers download the linked repository directly, so there&apos;s no uploaded file to manage here.
               </p>
             ) : (
               <div className="space-y-3">
@@ -427,7 +427,7 @@ export default function EditProductPage() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              Saving changes to an already-approved product sends it back for admin re-review before it's visible to buyers again.
+              Saving changes to an already-approved product sends it back for admin re-review before it&apos;s visible to buyers again.
             </p>
           </div>
         )}
