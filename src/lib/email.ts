@@ -24,6 +24,10 @@ function maskApiKey(key: string) {
 }
 
 export async function sendOtpEmail(to: string, otp: string) {
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`\n[dev] OTP for ${to}: ${otp}\n`)
+  }
+
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {
     console.error('[email] RESEND_API_KEY is not set in the environment')

@@ -1,6 +1,7 @@
 import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
 import { gradientFor } from '@/lib/marketplace-config'
+import { getPlatformFeePercent } from '@/lib/payouts'
 
 /**
  * Server data-access for the seller & buyer dashboards. Every function reads
@@ -46,19 +47,68 @@ export async function getSellerStats(userId: string): Promise<SellerStats> {
                    WHERE p.seller_id=$1 AND o.status='completed'),0)::int AS customers,
          COALESCE((SELECT AVG(r.rating) FROM reviews r JOIN products p ON r.product_id=p.id
                    WHERE p.seller_id=$1),0)::float AS avg_rating,
-         COALESCE((SELECT SUM(o.amount) FROM orders o JOIN products p ON o.product_id=p.id
-                   WHERE p.seller_id=$1 AND o.status='completed' AND o.created_at < NOW() - INTERVAL '14 days'),0)::float AS payout,
-         COALESCE((SELECT SUM(o.amount) FROM orders o JOIN products p ON o.product_id=p.id
-                   WHERE p.seller_id=$1 AND o.status='completed' AND o.created_at >= NOW() - INTERVAL '14 days'),0)::float AS pending`,
+         COALESCE((SELECT SUM(requested_amount) FROM withdrawal_requests
+                   WHERE seller_id=$1 AND status IN ('pending','approved','failed')),0)::float AS withdrawn_or_pending,
+         COALESCE((SELECT SUM(requested_amount) FROM withdrawal_requests
+                   WHERE seller_id=$1 AND status='pending'),0)::float AS pending_withdrawals`,
       [userId]
     )
     const r = res.rows[0] as any
+    const available = Math.max(0, r.revenue - r.withdrawn_or_pending)
     return {
       revenue: Math.round(r.revenue), sales: r.sales, products: r.products, customers: r.customers,
       avgRating: Math.round(r.avg_rating * 10) / 10, conversion: 0,
-      payout: Math.round(r.payout), pending: Math.round(r.pending),
+      payout: Math.round(available), pending: Math.round(r.pending_withdrawals),
     }
   } catch { return empty }
+}
+
+export type SellerWithdrawal = {
+  id: string; requestedAmount: number; feeAmount: number; netAmount: number
+  status: string; rejectionReason: string | null; createdAt: string; processedAt: string | null
+}
+
+export async function getSellerWithdrawals(userId: string): Promise<SellerWithdrawal[]> {
+  try {
+    const res = await query(
+      `SELECT id, requested_amount::float, fee_amount::float, net_amount::float,
+              status, rejection_reason, created_at, processed_at
+       FROM withdrawal_requests WHERE seller_id=$1 ORDER BY created_at DESC LIMIT 50`,
+      [userId]
+    )
+    return res.rows.map((r: any) => ({
+      id: r.id, requestedAmount: r.requested_amount, feeAmount: r.fee_amount, netAmount: r.net_amount,
+      status: r.status, rejectionReason: r.rejection_reason,
+      createdAt: new Date(r.created_at).toISOString().slice(0, 10),
+      processedAt: r.processed_at ? new Date(r.processed_at).toISOString().slice(0, 10) : null,
+    }))
+  } catch { return [] }
+}
+
+export type SellerStripeStatus = {
+  connected: boolean; onboardingStatus: string; chargesEnabled: boolean; payoutsEnabled: boolean
+}
+
+export async function getSellerStripeStatus(userId: string): Promise<SellerStripeStatus> {
+  try {
+    const res = await query(
+      `SELECT stripe_account_id, stripe_onboarding_status, stripe_charges_enabled, stripe_payouts_enabled
+       FROM users WHERE id=$1`,
+      [userId]
+    )
+    if ((res.rowCount ?? 0) === 0) {
+      return { connected: false, onboardingStatus: 'not_started', chargesEnabled: false, payoutsEnabled: false }
+    }
+    const r = res.rows[0]
+    return {
+      connected: Boolean(r.stripe_account_id),
+      onboardingStatus: r.stripe_onboarding_status,
+      chargesEnabled: r.stripe_charges_enabled,
+      payoutsEnabled: r.stripe_payouts_enabled,
+    }
+  } catch {
+    return { connected: false, onboardingStatus: 'not_started', chargesEnabled: false, payoutsEnabled: false }
+  }
 }
 
 export async function getSellerRevenueSeries(userId: string): Promise<{ month: string; revenue: number; sales: number }[]> {
@@ -233,9 +283,37 @@ export async function getAdminFinances(): Promise<AdminFinances> {
     )
     const r = res.rows[0] as any
     const revenue = Math.round(r.revenue)
-    const commission = Math.round(revenue * 0.1)
+    const commission = Math.round(revenue * (getPlatformFeePercent() / 100))
     return { revenue, commission, net: revenue - commission, sales: r.sales, pending: Math.round(r.pending) }
   } catch { return { revenue: 0, commission: 0, net: 0, sales: 0, pending: 0 } }
+}
+
+export type Settlement = {
+  id: string; sellerId: string; sellerName: string; sellerEmail: string
+  requestedAmount: number; feeAmount: number; netAmount: number
+  status: string; stripeTransferId: string | null; rejectionReason: string | null
+  createdAt: string; processedAt: string | null
+}
+
+export async function getSettlements(status?: string): Promise<Settlement[]> {
+  try {
+    const res = await query(
+      `SELECT w.id, w.seller_id, w.requested_amount::float, w.fee_amount::float, w.net_amount::float,
+              w.status, w.stripe_transfer_id, w.rejection_reason, w.created_at, w.processed_at,
+              u.full_name AS seller_name, u.email AS seller_email
+       FROM withdrawal_requests w JOIN users u ON w.seller_id = u.id
+       ${status ? 'WHERE w.status = $1' : ''}
+       ORDER BY w.created_at DESC LIMIT 100`,
+      status ? [status] : []
+    )
+    return res.rows.map((r: any) => ({
+      id: r.id, sellerId: r.seller_id, sellerName: r.seller_name, sellerEmail: r.seller_email,
+      requestedAmount: r.requested_amount, feeAmount: r.fee_amount, netAmount: r.net_amount,
+      status: r.status, stripeTransferId: r.stripe_transfer_id, rejectionReason: r.rejection_reason,
+      createdAt: new Date(r.created_at).toISOString().slice(0, 10),
+      processedAt: r.processed_at ? new Date(r.processed_at).toISOString().slice(0, 10) : null,
+    }))
+  } catch { return [] }
 }
 
 export async function getRecentTransactions(limit = 20) {
