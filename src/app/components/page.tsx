@@ -39,9 +39,18 @@ export default async function ComponentsPage() {
   let products: any[] = []
   try {
     const result = await query(
-      `SELECT p.*, u.full_name AS seller_name
+      `SELECT p.*, u.full_name AS seller_name,
+              agg.avg_rating AS rating, agg.review_count, ord.sales
        FROM products p
        JOIN users u ON p.seller_id = u.id
+       LEFT JOIN (
+         SELECT product_id, AVG(rating)::float AS avg_rating, COUNT(*)::int AS review_count
+         FROM reviews GROUP BY product_id
+       ) agg ON agg.product_id = p.id
+       LEFT JOIN (
+         SELECT product_id, COUNT(*)::int AS sales
+         FROM orders WHERE status = 'completed' GROUP BY product_id
+       ) ord ON ord.product_id = p.id
        WHERE p.status = 'approved'
          AND p.category = 'Component Library'
        ORDER BY p.created_at DESC`

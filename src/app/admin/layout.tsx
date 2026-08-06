@@ -8,15 +8,17 @@ import {
   Package,
   Users,
   DollarSign,
+  Landmark,
   Zap,
   ShieldCheck,
 } from 'lucide-react'
 
 const NAV = [
-  { label: 'Dashboard',  href: '/admin',           icon: LayoutDashboard },
-  { label: 'Products',   href: '/admin/products',   icon: Package },
-  { label: 'Users',      href: '/admin/users',      icon: Users },
-  { label: 'Finances',   href: '/admin/finances',   icon: DollarSign },
+  { label: 'Dashboard',    href: '/admin',              icon: LayoutDashboard },
+  { label: 'Products',     href: '/admin/products',      icon: Package },
+  { label: 'Users',        href: '/admin/users',         icon: Users },
+  { label: 'Finances',     href: '/admin/finances',      icon: DollarSign },
+  { label: 'Settlements',  href: '/admin/settlements',   icon: Landmark },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

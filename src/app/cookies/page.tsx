@@ -115,7 +115,7 @@ export default function CookiesPage() {
           <p className="text-surface-400 text-sm leading-relaxed">
             You can control cookies through your browser settings. Most browsers allow you to refuse
             or delete cookies. Note that disabling strictly necessary cookies will prevent you from
-            logging in. For detailed instructions, visit your browser's help documentation or{' '}
+            logging in. For detailed instructions, visit your browser&apos;s help documentation or{' '}
             <a
               href="https://www.allaboutcookies.org"
               target="_blank"

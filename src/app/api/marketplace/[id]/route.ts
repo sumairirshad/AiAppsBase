@@ -13,7 +13,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         p.status, p.featured, p.tags,
         p.created_at, p.updated_at,
         u.id AS seller_id, u.full_name AS seller_name,
-        u.email AS seller_email, u.role AS seller_role,
+        u.role AS seller_role,
         u.created_at AS seller_member_since,
         ROUND(COALESCE(AVG(r.rating), 0)::numeric, 1) AS rating,
         COUNT(DISTINCT r.id)::int AS review_count,
@@ -38,7 +38,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         r.id, r.rating, r.code_quality, r.design, r.documentation,
         r.value_for_money, r.comment, r.verified, r.helpful,
         r.seller_response, r.created_at,
-        u.id AS user_id, u.full_name AS user_name, u.email AS user_email
+        u.id AS user_id, u.full_name AS user_name
       FROM reviews r
       JOIN users u ON r.user_id = u.id
       WHERE r.product_id = $1
@@ -69,7 +69,6 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       seller: {
         id: row.seller_id,
         name: row.seller_name,
-        email: row.seller_email,
         role: row.seller_role,
         avatar: '',
         memberSince: row.seller_member_since,
@@ -92,7 +91,6 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       user: {
         id: r.user_id,
         name: r.user_name,
-        email: r.user_email,
         avatar: '',
         role: 'buyer',
         memberSince: '',

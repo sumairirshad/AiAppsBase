@@ -23,21 +23,43 @@ function strength(pw: string) {
 
 export default function ResetPasswordPage() {
   const router = useRouter()
+  const [token, setToken] = React.useState<string | null | undefined>(undefined)
   const [pw, setPw] = React.useState('')
   const [confirm, setConfirm] = React.useState('')
   const [show, setShow] = React.useState(false)
   const [loading, setLoading] = React.useState(false)
 
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return
+    setToken(new URLSearchParams(window.location.search).get('token'))
+  }, [])
+
   const score = strength(pw)
   const labels = ['Too weak', 'Weak', 'Fair', 'Good', 'Strong']
   const colors = ['bg-destructive', 'bg-destructive', 'bg-warning', 'bg-warning', 'bg-success']
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault()
+    if (!token) return toast.error('This reset link is invalid or has expired')
+    if (pw.length < 8) return toast.error('Password must be at least 8 characters')
     if (score < 2) return toast.error('Please choose a stronger password')
     if (pw !== confirm) return toast.error('Passwords do not match')
     setLoading(true)
-    setTimeout(() => { setLoading(false); toast.success('Password updated'); router.push('/auth/login') }, 900)
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, password: pw }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(data?.error ?? 'Could not reset password')
+      toast.success('Password updated')
+      router.push('/auth/login')
+    } catch (error) {
+      toast.error((error as Error).message || 'Could not reset password')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -55,6 +77,18 @@ export default function ResetPasswordPage() {
           <span className="font-display text-lg font-bold">AIAppsBase</span>
         </Link>
 
+        {token === null ? (
+          <div className="space-y-4 text-center">
+            <h1 className="font-display text-2xl font-bold">Link invalid or expired</h1>
+            <p className="text-sm text-muted-foreground">
+              This password reset link is missing or no longer valid. Request a new one to continue.
+            </p>
+            <Button variant="outline" className="w-full" asChild>
+              <Link href="/auth/forgot-password">Request a new link</Link>
+            </Button>
+          </div>
+        ) : (
+        <>
         <h1 className="font-display text-2xl font-bold">Set a new password</h1>
         <p className="mt-1 text-sm text-muted-foreground">Choose a strong password you don&apos;t use elsewhere.</p>
 
@@ -89,6 +123,8 @@ export default function ResetPasswordPage() {
           </div>
           <Button type="submit" variant="gradient" className="w-full" loading={loading}>Update password</Button>
         </form>
+        </>
+        )}
       </Card>
     </div>
   )
