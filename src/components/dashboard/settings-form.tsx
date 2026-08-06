@@ -10,11 +10,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { StripeConnectCard } from '@/components/dashboard/stripe-connect-card'
+import type { SellerStripeStatus } from '@/lib/dashboard'
 
 export function SettingsForm({
-  user,
+  user, stripeStatus,
 }: {
   user: { full_name: string; email: string; role: string; github_username?: string | null; is_verified?: boolean }
+  stripeStatus?: SellerStripeStatus
 }) {
   const router = useRouter()
   const [fullName, setFullName] = React.useState(user.full_name)
@@ -114,6 +117,8 @@ export function SettingsForm({
           </form>
         </CardContent>
       </Card>
+
+      {stripeStatus && <StripeConnectCard status={stripeStatus} />}
     </div>
   )
 }

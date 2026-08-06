@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto'
 import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
 import { uploadDeliverable } from '@/lib/sftp'
+import { safeFileName, isAllowedImageUpload, isAllowedDeliverableUpload } from '@/lib/upload-safety'
 import fs from 'fs'
 import path from 'path'
 
@@ -81,8 +82,15 @@ export async function POST(req: NextRequest) {
     for (const file of files) {
       if (file.size === 0) continue
 
+      if (!isAllowedImageUpload(file.name, file.type)) {
+        return NextResponse.json(
+          { error: `"${file.name}" isn't a supported image type. Use JPG, PNG, WEBP, or GIF.` },
+          { status: 400 }
+        )
+      }
+
       const buffer = Buffer.from(await file.arrayBuffer())
-      const fileName = `${Date.now()}-${file.name.replace(/\s+/g, '-').toLowerCase()}`
+      const fileName = `${Date.now()}-${safeFileName(file.name)}`
       const filePath = path.join(uploadDir, fileName)
 
       fs.writeFileSync(filePath, buffer)
@@ -105,8 +113,7 @@ export async function POST(req: NextRequest) {
         )
       }
 
-      const lowerName = deliverableFile.name.toLowerCase()
-      if (!lowerName.endsWith('.zip') && !lowerName.endsWith('.rar')) {
+      if (!isAllowedDeliverableUpload(deliverableFile.name)) {
         return NextResponse.json(
           { error: 'The deliverable file must be a .zip or .rar archive' },
           { status: 400 }

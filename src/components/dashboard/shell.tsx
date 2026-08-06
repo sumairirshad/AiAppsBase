@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, BarChart3, Package, PlusCircle, Github, ShoppingBag, Users,
   Star, Wallet, Settings, Heart, Download, Receipt, LogOut, Zap, ArrowLeft, Menu, Store,
-  ShieldCheck, Bell, FileText, ClipboardList, MessageSquare, DollarSign,
+  ShieldCheck, Bell, FileText, ClipboardList, MessageSquare, DollarSign, Landmark,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -48,6 +48,7 @@ const ADMIN_NAV: Item[] = [
   { label: 'Orders', href: '/admin/orders', icon: ShoppingBag },
   { label: 'Reviews', href: '/admin/reviews', icon: MessageSquare },
   { label: 'Finances', href: '/admin/finances', icon: DollarSign },
+  { label: 'Settlements', href: '/admin/settlements', icon: Landmark },
   { label: 'Reports', href: '/admin/reports', icon: FileText },
   { label: 'Notifications', href: '/admin/notifications', icon: Bell },
   { label: 'Audit Logs', href: '/admin/audit-logs', icon: ClipboardList },

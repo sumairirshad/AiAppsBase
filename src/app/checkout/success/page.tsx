@@ -66,7 +66,7 @@ function SuccessContent() {
           return
         }
 
-        // Still pending — retry (webhook may be in flight)
+        // Still pending — retry (Stripe may not have marked the session paid yet)
         attempts++
         if (attempts < maxAttempts) {
           setTimeout(verify, 2000)

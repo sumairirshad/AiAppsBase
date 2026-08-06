@@ -1,5 +1,6 @@
 import SftpClient from 'ssh2-sftp-client'
 import { PassThrough } from 'stream'
+import { safeFileName } from '@/lib/upload-safety'
 
 function sftpConfig() {
   const host = process.env.SFTP_HOST
@@ -20,10 +21,6 @@ function sftpConfig() {
   }
 }
 
-function sanitizeFileName(name: string) {
-  return name.replace(/\s+/g, '-').toLowerCase()
-}
-
 export async function uploadDeliverable(
   buffer: Buffer,
   productId: string,
@@ -38,7 +35,7 @@ export async function uploadDeliverable(
     const dir = `${remoteDir}/${productId}`
     await client.mkdir(dir, true)
 
-    const fileName = `${Date.now()}-${sanitizeFileName(originalFileName)}`
+    const fileName = `${Date.now()}-${safeFileName(originalFileName)}`
     const remotePath = `${dir}/${fileName}`
 
     await client.put(buffer, remotePath)

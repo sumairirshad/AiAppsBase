@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { getSessionUserId, setSession } from '@/lib/session'
 import { hashPassword } from '@/lib/auth'
+import { encryptToken } from '@/lib/token-crypto'
 import { query } from '@/lib/db'
 
 function redirectToDashboard(origin: string, role: string) {
@@ -70,7 +71,7 @@ export async function GET(req: NextRequest) {
 
     await query(
       'UPDATE users SET github_id = $1, github_username = $2, github_access_token = $3 WHERE id = $4',
-      [githubId, githubUsername, accessToken, userId]
+      [githubId, githubUsername, encryptToken(accessToken), userId]
     )
 
     return NextResponse.redirect(`${origin}/panel/seller/github?connected=1`)

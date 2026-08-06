@@ -1,7 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
-import { Star, ShoppingCart, Eye, Package } from 'lucide-react'
+import { toast } from 'sonner'
+import { Star, ShoppingCart, Eye, Package, Loader2 } from 'lucide-react'
 import { formatPrice, formatNumber } from '@/lib/utils'
 
 const aiToolColors: Record<string, string> = {
@@ -15,11 +17,34 @@ const aiToolColors: Record<string, string> = {
 }
 
 export function ProductCard({ product }: { product: any }) {
+  const [addingToCart, setAddingToCart] = useState(false)
+
   const handlePreview = (e: React.MouseEvent) => {
     if (product.preview_url) {
       e.preventDefault()
       e.stopPropagation()
       window.open(product.preview_url, '_blank')
+    }
+  }
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (addingToCart) return
+    setAddingToCart(true)
+    try {
+      const res = await fetch('/api/cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: product.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to add to cart')
+      toast.success(`${product.title} added to cart`)
+    } catch (err) {
+      toast.error((err as Error).message)
+    } finally {
+      setAddingToCart(false)
     }
   }
 
@@ -51,11 +76,13 @@ export function ProductCard({ product }: { product: any }) {
                   <Eye className="w-5 h-5" />
                 </button>
               )}
-              <button 
-                className="p-2.5 glass rounded-full hover:bg-brand-500 hover:text-white transition-all transform hover:scale-110"
+              <button
+                onClick={handleAddToCart}
+                disabled={addingToCart}
+                className="p-2.5 glass rounded-full hover:bg-brand-500 hover:text-white transition-all transform hover:scale-110 disabled:opacity-60"
                 title="Add to Cart"
               >
-                <ShoppingCart className="w-5 h-5" />
+                {addingToCart ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShoppingCart className="w-5 h-5" />}
               </button>
             </div>
           </div>
@@ -92,11 +119,17 @@ export function ProductCard({ product }: { product: any }) {
           {/* Meta */}
           <div className="flex items-center justify-between pt-1">
             <div className="flex items-center gap-1.5">
-              <div className="flex items-center gap-1">
-                <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                <span className="text-[11px] text-white font-medium">4.5</span>
-              </div>
-              <span className="text-[10px] text-surface-500">24 sales</span>
+              {Number(product.review_count) > 0 ? (
+                <div className="flex items-center gap-1">
+                  <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                  <span className="text-[11px] text-white font-medium">{Number(product.rating).toFixed(1)}</span>
+                </div>
+              ) : (
+                <span className="text-[10px] text-surface-500">No reviews yet</span>
+              )}
+              {Number(product.sales) > 0 && (
+                <span className="text-[10px] text-surface-500">{formatNumber(Number(product.sales))} sales</span>
+              )}
             </div>
             <span className="text-sm font-bold text-white">
               {product.price === 0 ? 'Free' : `$${parseFloat(product.price).toFixed(2)}`}
