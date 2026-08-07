@@ -121,11 +121,12 @@ export async function GET(req: NextRequest) {
     const fullName = (ghUser.name as string | undefined)?.trim() || githubUsername
 
     try {
+      const sellerStatus = pendingRole === 'seller' ? 'pending' : 'approved'
       const inserted = await query(
-        `INSERT INTO users (full_name, email, password_hash, role, is_verified, github_id, github_username)
-         VALUES ($1, $2, $3, $4, TRUE, $5, $6)
+        `INSERT INTO users (full_name, email, password_hash, role, is_verified, github_id, github_username, seller_status)
+         VALUES ($1, $2, $3, $4, TRUE, $5, $6, $7)
          RETURNING id, role`,
-        [fullName, normalizedEmail, passwordHash, pendingRole, githubId, githubUsername]
+        [fullName, normalizedEmail, passwordHash, pendingRole, githubId, githubUsername, sellerStatus]
       )
       const newUser = inserted.rows[0]
       await setSession(newUser.id)

@@ -1,151 +1,164 @@
-'use client'
-
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
-  DollarSign, Users, Package, TrendingUp, ShoppingCart, ArrowRight,
-  UserPlus, Star, FileCheck, Loader2,
+  Users, Store, UserCheck, Clock, ShieldAlert, ShieldX, Ban, UserPlus,
+  ShoppingBag, CheckCircle, RotateCcw, DollarSign, ArrowRight, Package, Star,
 } from 'lucide-react'
-import { formatNumber } from '@/lib/utils'
 
-interface AdminStats {
-  totalUsers: number
-  totalSellers: number
-  totalProducts: number
-  gmv: number
-  totalSales: number
-  platformRevenue: number
-  pendingProducts: number
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { StatCard } from '@/components/dashboard/stat-card'
+import { PageHead } from '@/components/dashboard/page-head'
+import { EmptyState } from '@/components/dashboard/empty-state'
+import { GrowthAreaChart, RevenueAreaChart, CategoryDonut } from '@/components/dashboard/charts'
+import {
+  getAdminDashboardStats, getAdminGrowthSeries, getAdminRevenueSeries,
+  getOrderStatusDistribution, getAdminRecentActivity, getLatestReviews, getSystemHealth,
+} from '@/lib/admin-data'
+
+export const dynamic = 'force-dynamic'
+
+const activityLabel: Record<string, (a: { context: string; actor: string }) => string> = {
+  order: (a) => `Purchase: ${a.context} by ${a.actor}`,
+  submission: (a) => `Submission: ${a.context} by ${a.actor}`,
+  signup: (a) => `New signup: ${a.actor} (${a.context})`,
 }
 
-interface Activity {
-  type: string
-  id: string
-  context: string
-  actor: string
-  ts: string
-}
-
-export default function AdminDashboard() {
-  const [stats, setStats] = useState<AdminStats | null>(null)
-  const [activity, setActivity] = useState<Activity[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    fetch('/api/admin/stats')
-      .then((r) => r.json())
-      .then((data) => {
-        setStats(data.stats ?? null)
-        setActivity(data.activity ?? [])
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [])
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-brand-400" />
-      </div>
-    )
-  }
-
-  const kpis = [
-    { label: 'GMV', value: `$${formatNumber(stats?.gmv ?? 0)}`, icon: DollarSign, color: 'text-emerald-400' },
-    { label: 'Total Users', value: formatNumber(stats?.totalUsers ?? 0), icon: Users, color: 'text-brand-400' },
-    { label: 'Active Sellers', value: formatNumber(stats?.totalSellers ?? 0), icon: ShoppingCart, color: 'text-purple-400' },
-    { label: 'Platform Revenue', value: `$${formatNumber(stats?.platformRevenue ?? 0)}`, icon: TrendingUp, color: 'text-amber-400' },
-    { label: 'Pending Review', value: String(stats?.pendingProducts ?? 0), icon: UserPlus, color: 'text-cyan-400' },
-  ]
-
-  const quickActions = [
-    { label: 'Product Review Queue', description: 'Review pending submissions', href: '/admin/products', icon: Package, color: 'text-brand-400 bg-brand-500/10' },
-    { label: 'User Management', description: 'Manage users and roles', href: '/admin/users', icon: Users, color: 'text-purple-400 bg-purple-500/10' },
-    { label: 'Financial Overview', description: 'Revenue and payouts', href: '/admin/finances', icon: DollarSign, color: 'text-emerald-400 bg-emerald-500/10' },
-  ]
-
-  const activityIcon: Record<string, typeof Package> = {
-    order: ShoppingCart,
-    submission: Package,
-    review: Star,
-    approved: FileCheck,
-  }
-
-  const activityColor: Record<string, string> = {
-    order: 'text-emerald-400 bg-emerald-500/10',
-    submission: 'text-brand-400 bg-brand-500/10',
-    review: 'text-amber-400 bg-amber-500/10',
-    approved: 'text-green-400 bg-green-500/10',
-  }
+export default async function AdminDashboard() {
+  const [stats, growth, revenue, statusDist, activity, reviews, health] = await Promise.all([
+    getAdminDashboardStats(), getAdminGrowthSeries(), getAdminRevenueSeries(),
+    getOrderStatusDistribution(), getAdminRecentActivity(8), getLatestReviews(5), getSystemHealth(),
+  ])
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="mb-10">
-        <h1 className="text-3xl font-bold text-white mb-2">Admin Dashboard</h1>
-        <p className="text-surface-400">Platform overview and management.</p>
+    <div className="mx-auto max-w-7xl space-y-6">
+      <PageHead title="Admin Dashboard" description="Platform-wide overview of users, sellers, and bookings." />
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <StatCard label="Total users" value={stats.totalUsers} icon={Users} />
+        <StatCard label="Total providers" value={stats.totalSellers} icon={Store} />
+        <StatCard label="Active providers" value={stats.activeSellers} icon={UserCheck} />
+        <StatCard label="Pending approvals" value={stats.pendingSellerApprovals} icon={Clock} />
+        <StatCard label="Suspended users" value={stats.suspendedUsers} icon={ShieldAlert} />
+        <StatCard label="Blocked users" value={stats.blockedUsers} icon={ShieldX} />
+        <StatCard label="Banned users" value={stats.bannedUsers} icon={Ban} />
+        <StatCard label="Recent signups (7d)" value={stats.recentSignups} icon={UserPlus} />
+        <StatCard label="Total bookings" value={stats.totalOrders} icon={ShoppingBag} />
+        <StatCard label="Completed bookings" value={stats.completedOrders} icon={CheckCircle} />
+        <StatCard label="Refunded / disputed" value={stats.refundedOrders + stats.disputedOrders} icon={RotateCcw} />
+        <StatCard label="Total revenue" value={stats.totalRevenue} prefix="$" icon={DollarSign} />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
-        {kpis.map((kpi) => (
-          <div key={kpi.label} className="glass rounded-xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-surface-400 text-xs">{kpi.label}</span>
-              <kpi.icon className={`w-4 h-4 ${kpi.color}`} />
-            </div>
-            <p className="text-xl font-bold text-white mb-1">{kpi.value}</p>
-          </div>
-        ))}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader><CardTitle>User &amp; provider growth</CardTitle></CardHeader>
+          <CardContent>
+            {growth.length > 0
+              ? <GrowthAreaChart data={growth} series={[{ key: 'users', label: 'Users' }, { key: 'sellers', label: 'Providers' }]} />
+              : <EmptyState icon="BarChart3" title="No data yet" description="Growth trends appear as users sign up." className="border-0" />}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle>Booking status</CardTitle></CardHeader>
+          <CardContent>
+            {statusDist.length > 0
+              ? <CategoryDonut data={statusDist} valueSuffix="" />
+              : <EmptyState icon="ShoppingBag" title="No bookings yet" description="Status breakdown appears after the first booking." className="border-0" />}
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 glass rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-6">Recent Activity</h2>
-          {activity.length === 0 ? (
-            <p className="text-surface-400 text-sm">No recent activity.</p>
-          ) : (
-            <div className="space-y-4">
-              {activity.map((item, i) => {
-                const Icon = activityIcon[item.type] ?? Package
-                const color = activityColor[item.type] ?? 'text-brand-400 bg-brand-500/10'
-                const label =
-                  item.type === 'order'
-                    ? `Purchase: ${item.context} by ${item.actor}`
-                    : `Submission: ${item.context} by ${item.actor}`
-                return (
-                  <div key={i} className="flex items-start gap-3 p-3 rounded-lg hover:bg-white/5 transition-colors">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${color}`}>
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm text-white">{label}</p>
-                      <p className="text-xs text-surface-500 mt-0.5">{new Date(item.ts).toLocaleString()}</p>
-                    </div>
-                  </div>
-                )
-              })}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader><CardTitle>Revenue trend</CardTitle></CardHeader>
+          <CardContent>
+            {revenue.some((r) => r.revenue > 0)
+              ? <RevenueAreaChart data={revenue} />
+              : <EmptyState icon="DollarSign" title="No revenue yet" description="Revenue trends appear after completed bookings." className="border-0" />}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle>System health</CardTitle></CardHeader>
+          <CardContent className="space-y-4 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Database</span>
+              <Badge variant={health.dbOk ? 'success' : 'destructive'}>{health.dbOk ? 'Operational' : 'Unreachable'}</Badge>
             </div>
-          )}
-        </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">DB latency</span>
+              <span className="font-medium">{health.dbLatencyMs}ms</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Pending products</span>
+              <span className="font-medium">{health.pendingProducts}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Pending providers</span>
+              <span className="font-medium">{health.pendingSellers}</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-        <div className="glass rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-6">Quick Actions</h2>
-          <div className="space-y-3">
-            {quickActions.map((action) => (
-              <Link key={action.label} href={action.href}>
-                <div className="flex items-center gap-3 p-4 rounded-lg bg-white/5 hover:bg-white/[0.07] transition-colors group">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${action.color}`}>
-                    <action.icon className="w-5 h-5" />
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex-row items-center justify-between space-y-0">
+            <CardTitle>Recent activity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {activity.length === 0 ? (
+              <EmptyState icon="Activity" title="No recent activity" description="New signups, submissions, and orders show up here." className="border-0" />
+            ) : (
+              <div className="space-y-1">
+                {activity.map((item, i) => {
+                  const Icon = item.type === 'order' ? ShoppingBag : item.type === 'signup' ? UserPlus : Package
+                  const label = (activityLabel[item.type] ?? activityLabel.submission)(item)
+                  return (
+                    <div key={`${item.type}-${item.id}-${i}`} className="flex items-start gap-3 rounded-lg p-2.5 transition-colors hover:bg-muted/50">
+                      <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+                        <Icon className="size-4" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm">{label}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{new Date(item.ts).toLocaleString()}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex-row items-center justify-between space-y-0">
+            <CardTitle>Latest reviews</CardTitle>
+            <Link href="/admin/reviews" className="text-xs text-muted-foreground hover:text-primary">
+              View all <ArrowRight className="inline size-3" />
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {reviews.length === 0 ? (
+              <EmptyState icon="Star" title="No reviews yet" description="Reviews across the platform appear here." className="border-0" />
+            ) : (
+              <div className="space-y-3">
+                {reviews.map((r: any) => (
+                  <div key={r.id} className="rounded-lg border border-border p-3 text-sm">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star key={i} className={`size-3 ${i < r.rating ? 'fill-amber-400 text-amber-400' : 'text-muted'}`} />
+                        ))}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{r.date}</span>
+                    </div>
+                    <p className="mt-1.5 truncate text-muted-foreground">&ldquo;{r.comment}&rdquo;</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{r.author} on {r.product}</p>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-medium text-white group-hover:text-brand-400 transition-colors">{action.label}</h3>
-                    <p className="text-xs text-surface-400">{action.description}</p>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-surface-500 group-hover:text-brand-400 transition-colors" />
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

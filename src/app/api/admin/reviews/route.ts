@@ -1,21 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isAdminGuardError, requireAdmin } from '@/lib/admin'
-import { listAdminUsers } from '@/lib/admin-data'
+import { listAdminReviews } from '@/lib/admin-data'
 
 export async function GET(req: NextRequest) {
   const guard = await requireAdmin()
   if (isAdminGuardError(guard)) return guard
 
   const { searchParams } = new URL(req.url)
-  const { users, total } = await listAdminUsers({
+  const ratingParam = searchParams.get('rating')
+  const { reviews, total } = await listAdminReviews({
     search: searchParams.get('search') || undefined,
-    role: searchParams.get('role') || undefined,
-    status: searchParams.get('status') || undefined,
-    sortBy: searchParams.get('sortBy') || undefined,
-    sortDir: (searchParams.get('sortDir') as 'asc' | 'desc') || undefined,
+    rating: ratingParam ? Number(ratingParam) : undefined,
     page: Number(searchParams.get('page')) || 1,
     pageSize: Number(searchParams.get('pageSize')) || 20,
   })
 
-  return NextResponse.json({ users, total })
+  return NextResponse.json({ reviews, total })
 }

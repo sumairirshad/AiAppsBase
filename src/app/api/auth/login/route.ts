@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   }
 
   const userRes = await query(
-    'SELECT id, password_hash, is_verified, role, login_failed_attempts, login_locked_until FROM users WHERE email = $1',
+    'SELECT id, password_hash, is_verified, role, account_status, login_failed_attempts, login_locked_until FROM users WHERE email = $1',
     [email.trim().toLowerCase()]
   )
 
@@ -48,6 +48,19 @@ export async function POST(req: NextRequest) {
 
   if (!user.is_verified) {
     return NextResponse.json({ error: 'Please verify your email address before signing in' }, { status: 401 })
+  }
+
+  const statusMessages: Record<string, string> = {
+    banned: 'Your account has been banned. Contact support if you believe this is a mistake.',
+    blocked: 'Your account has been blocked. Contact support if you believe this is a mistake.',
+    suspended: 'Your account is currently suspended. Contact support for more information.',
+    inactive: 'Your account has been deactivated. Contact support to reactivate it.',
+  }
+  if (user.account_status !== 'active') {
+    return NextResponse.json(
+      { error: statusMessages[user.account_status] ?? 'Your account cannot sign in right now.' },
+      { status: 403 }
+    )
   }
 
   if (user.login_failed_attempts > 0 || user.login_locked_until) {

@@ -1,20 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
-import { getSessionUserId } from '@/lib/session'
-
-async function requireAdmin() {
-  const userId = await getSessionUserId()
-  if (!userId) return null
-  const res = await query("SELECT role FROM users WHERE id = $1", [userId])
-  if ((res.rowCount ?? 0) === 0 || res.rows[0].role !== 'admin') return null
-  return userId
-}
+import { isAdminGuardError, requireAdmin } from '@/lib/admin'
 
 export async function GET(req: NextRequest) {
-  const adminId = await requireAdmin()
-  if (!adminId) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const guard = await requireAdmin()
+  if (isAdminGuardError(guard)) return guard
 
   const { searchParams } = new URL(req.url)
   const status = searchParams.get('status') || ''
