@@ -24,7 +24,10 @@ export const metadata: Metadata = {
     title: 'AI-Built Website Templates | AIAppsBase',
     description: 'Premium landing pages, portfolios, and business websites crafted with AI.',
   },
+  alternates: { canonical: '/templates' },
 }
+
+export const revalidate = 300
 
 const subcategories = [
   { label: 'Landing Pages', href: '/products?category=Landing+Page', icon: Globe },

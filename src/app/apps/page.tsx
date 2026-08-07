@@ -24,7 +24,10 @@ export const metadata: Metadata = {
     title: 'AI-Built Web & Mobile Apps | AIAppsBase',
     description: 'Full-stack apps, SaaS platforms, dashboards, and e-commerce stores built with AI.',
   },
+  alternates: { canonical: '/apps' },
 }
+
+export const revalidate = 300
 
 const subcategories = [
   { label: 'Full-Stack Apps', href: '/products?category=Full-Stack+App', icon: Zap },

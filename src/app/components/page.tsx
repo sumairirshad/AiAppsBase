@@ -23,7 +23,10 @@ export const metadata: Metadata = {
     title: 'AI-Built UI Components & Libraries | AIAppsBase',
     description: 'UI component libraries and design systems built with AI.',
   },
+  alternates: { canonical: '/components' },
 }
+
+export const revalidate = 300
 
 const subcategories = [
   { label: 'Component Libraries', href: '/products?category=Component+Library', icon: Layers },

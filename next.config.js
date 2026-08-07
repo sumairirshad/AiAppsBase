@@ -1,7 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['images.unsplash.com', 'via.placeholder.com'],
+    remotePatterns: [
+      { protocol: 'https', hostname: '**' },
+      { protocol: 'http', hostname: 'localhost' },
+    ],
+    formats: ['image/avif', 'image/webp'],
   },
   experimental: {
     serverComponentsExternalPackages: ['ssh2-sftp-client', 'ssh2'],

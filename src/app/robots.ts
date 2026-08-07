@@ -1,6 +1,5 @@
 import type { MetadataRoute } from 'next'
-
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://aiappsbase.dev'
+import { APP_URL } from '@/lib/seo'
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -13,9 +12,16 @@ export default function robots(): MetadataRoute.Robots {
           '/templates',
           '/apps',
           '/components',
+          '/ai-projects',
+          '/ecommerce',
+          '/mobile-apps',
+          '/browser-extensions',
+          '/developer-tools',
+          '/best-ai-coding-tools',
           '/product/',
           '/about',
           '/blog',
+          '/blog/',
           '/support',
           '/terms',
           '/privacy',
