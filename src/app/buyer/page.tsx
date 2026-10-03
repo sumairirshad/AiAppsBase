@@ -14,6 +14,7 @@ import { ProductCard } from '@/components/marketplace/product-card'
 import {
   getCurrentUser, getBuyerStats, getBuyerOrders, getBuyerWishlist, getBuyerSpendSeries,
 } from '@/lib/dashboard'
+import { ProductImage } from '@/components/products/product-image'
 import { listApprovedProducts } from '@/lib/products'
 
 const statusVariant: Record<string, 'success' | 'destructive' | 'warning'> = {
@@ -68,7 +69,7 @@ export default async function BuyerDashboard() {
               <EmptyState icon="ShoppingBag" title="No purchases yet" description="Browse the marketplace to find your next project." actionLabel="Browse marketplace" actionHref="/products" className="border-0" />
             ) : purchases.map((o) => (
               <div key={o.id} className="flex items-center gap-4 rounded-xl border border-border p-3">
-                <span className={cn('size-11 shrink-0 rounded-lg bg-gradient-to-br', o.gradient)} />
+                <span className="relative size-11 shrink-0 overflow-hidden rounded-lg"><ProductImage src={o.image} alt="" logoClassName="size-6" sizes="64px" /></span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <Link href={`/product/${o.productId}`} className="truncate text-sm font-medium hover:text-primary">{o.product}</Link>
@@ -103,7 +104,7 @@ export default async function BuyerDashboard() {
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {wishlist.slice(0, 4).map((p) => (
                 <Link key={p.id} href={`/product/${p.id}`} className="group flex items-center gap-3 rounded-xl border border-border p-3 transition-colors hover:border-primary/40">
-                  <span className={cn('size-12 shrink-0 rounded-lg bg-gradient-to-br', p.gradient)} />
+                  <span className="relative size-12 shrink-0 overflow-hidden rounded-lg"><ProductImage src={p.image} alt="" logoClassName="size-7" sizes="64px" /></span>
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium group-hover:text-primary">{p.title}</div>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">

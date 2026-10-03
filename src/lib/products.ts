@@ -13,6 +13,7 @@ function mapRow(row: any): Repo {
   const repoName: string | null = row.github_repo_name || null
   const owner = row.seller_handle || (row.seller_name ? String(row.seller_name).split(' ')[0].toLowerCase() : 'seller')
   const sales = Number(row.sales) || 0
+  const screenshots: string[] = (row.screenshots || []).filter(Boolean)
 
   return {
     id: row.id,
@@ -49,6 +50,8 @@ function mapRow(row: any): Repo {
     updatedAt: (row.updated_at ? new Date(row.updated_at) : created).toISOString().slice(0, 10),
     version: row.version || '1.0.0',
     gradient: gradientFor(row.id),
+    image: screenshots[0] || '',
+    images: screenshots,
     demoUrl: row.preview_url || '',
     repoUrl: repoName ? `https://github.com/${repoName}` : '',
     sellerId: row.seller_id,

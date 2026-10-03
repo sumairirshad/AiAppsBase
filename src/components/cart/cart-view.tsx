@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { ProductImage } from '@/components/products/product-image'
 import { Separator } from '@/components/ui/separator'
 import { EmptyState } from '@/components/dashboard/empty-state'
 import { claimFreeProduct } from '@/lib/client/claim-free-product'
@@ -95,7 +96,7 @@ export function CartView({ items: initial, authed }: { items: CartItem[]; authed
         {items.map((item) => (
           <Card key={item.id}>
             <CardContent className="flex items-center gap-4 p-4">
-              <Link href={`/product/${item.productId}`} className={cn('size-16 shrink-0 rounded-lg bg-gradient-to-br', item.gradient)} />
+              <Link href={`/product/${item.productId}`} aria-label={item.title} className="relative size-16 shrink-0 overflow-hidden rounded-lg"><ProductImage src={item.image} alt="" logoClassName="size-8" sizes="64px" /></Link>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <Link href={`/product/${item.productId}`} className="truncate font-semibold hover:text-primary">{item.title}</Link>

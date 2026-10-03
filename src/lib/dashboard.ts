@@ -142,7 +142,7 @@ export async function getSellerCategorySplit(userId: string): Promise<{ name: st
 export async function getSellerTopProducts(userId: string) {
   try {
     const res = await query(
-      `SELECT p.id, p.title, p.price::float AS price,
+      `SELECT p.id, p.title, p.price::float AS price, p.screenshots[1] AS image,
               COALESCE(agg.rating,0)::float AS rating,
               COALESCE(ord.sales,0)::int AS sales,
               COALESCE(ord.revenue,0)::float AS revenue
@@ -152,7 +152,7 @@ export async function getSellerTopProducts(userId: string) {
        WHERE p.seller_id=$1 ORDER BY ord.revenue DESC NULLS LAST, p.created_at DESC LIMIT 5`, [userId]
     )
     return res.rows.map((r: any) => ({
-      id: r.id, title: r.title, gradient: gradientFor(r.id), price: Number(r.price) || 0,
+      id: r.id, title: r.title, gradient: gradientFor(r.id), image: r.image || '', price: Number(r.price) || 0,
       sales: r.sales, revenue: Math.round(r.revenue), rating: Math.round(r.rating * 10) / 10,
     }))
   } catch { return [] }
@@ -227,12 +227,12 @@ export async function getBuyerOrders(userId: string, limit = 50) {
   try {
     const res = await query(
       `SELECT o.id, o.amount::float AS amount, o.status, o.license_type, o.license_key, o.created_at,
-              p.id AS product_id, p.title AS product, p.github_repo_name, p.deliverable_remote_path
+              p.id AS product_id, p.title AS product, p.screenshots[1] AS image, p.github_repo_name, p.deliverable_remote_path
        FROM orders o JOIN products p ON o.product_id=p.id
        WHERE o.buyer_id=$1 ORDER BY o.created_at DESC LIMIT $2`, [userId, limit]
     )
     return res.rows.map((r: any) => ({
-      id: r.id, productId: r.product_id, product: r.product, gradient: gradientFor(r.product_id),
+      id: r.id, productId: r.product_id, product: r.product, gradient: gradientFor(r.product_id), image: r.image || '',
       amount: Math.round(Number(r.amount)), status: r.status, license: r.license_type,
       licenseKey: r.license_key, downloadable: Boolean(r.github_repo_name || r.deliverable_remote_path),
       date: new Date(r.created_at).toISOString().slice(0, 10),
@@ -243,13 +243,13 @@ export async function getBuyerOrders(userId: string, limit = 50) {
 export async function getBuyerWishlist(userId: string) {
   try {
     const res = await query(
-      `SELECT p.id, p.title, p.price::float AS price, p.category,
+      `SELECT p.id, p.title, p.price::float AS price, p.category, p.screenshots[1] AS image,
               COALESCE((SELECT AVG(rating) FROM reviews WHERE product_id=p.id),0)::float AS rating
        FROM wishlists w JOIN products p ON w.product_id=p.id
        WHERE w.user_id=$1 ORDER BY w.created_at DESC LIMIT 24`, [userId]
     )
     return res.rows.map((r: any) => ({
-      id: r.id, title: r.title, gradient: gradientFor(r.id), price: Number(r.price) || 0,
+      id: r.id, title: r.title, gradient: gradientFor(r.id), image: r.image || '', price: Number(r.price) || 0,
       category: r.category, rating: Math.round(r.rating * 10) / 10,
     }))
   } catch { return [] }
