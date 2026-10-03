@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -73,18 +74,35 @@ function DesktopNav() {
             <NavigationMenuContent>
               <div className={cn('grid gap-2 p-4', menu.featured ? 'w-[640px] grid-cols-[1fr_1fr_1.1fr]' : 'w-[560px] grid-cols-3')}>
                 {menu.featured && (
-                  <Link
-                    href={menu.featured.href}
-                    className="group relative row-span-full flex flex-col justify-end overflow-hidden rounded-lg bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 p-4 text-white"
-                  >
-                    <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-20" />
-                    <Icon name={menu.featured.icon} className="relative mb-2 size-6" />
-                    <span className="relative text-sm font-semibold">{menu.featured.label}</span>
-                    <span className="relative mt-1 text-xs text-white/80">{menu.featured.description}</span>
-                    <span className="relative mt-3 inline-flex items-center gap-1 text-xs font-medium">
-                      Explore <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
-                    </span>
-                  </Link>
+                  menu.featured.image ? (
+                    <Link
+                      href={menu.featured.href}
+                      aria-label={menu.featured.label}
+                      className="group relative row-span-full min-h-[320px] overflow-hidden rounded-lg border border-border bg-slate-950"
+                    >
+                      <Image
+                        src={menu.featured.image}
+                        alt=""
+                        fill
+                        unoptimized
+                        sizes="200px"
+                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    </Link>
+                  ) : (
+                    <Link
+                      href={menu.featured.href}
+                      className="group relative row-span-full flex flex-col justify-end overflow-hidden rounded-lg bg-gradient-to-br from-slate-800 to-teal-800 p-4 text-white"
+                    >
+                      <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-20" />
+                      <Icon name={menu.featured.icon} className="relative mb-2 size-6" />
+                      <span className="relative text-sm font-semibold">{menu.featured.label}</span>
+                      <span className="relative mt-1 text-xs text-white/80">{menu.featured.description}</span>
+                      <span className="relative mt-3 inline-flex items-center gap-1 text-xs font-medium">
+                        Explore <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
+                      </span>
+                    </Link>
+                  )
                 )}
                 {menu.columns.map((col) => (
                   <div key={col.title} className="space-y-1">

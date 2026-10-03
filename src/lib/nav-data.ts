@@ -3,7 +3,7 @@
  * Single source of truth for the navbar mega-menu and the footer.
  */
 
-export type NavLink = { label: string; href: string; description?: string; icon?: string; badge?: string }
+export type NavLink = { label: string; href: string; description?: string; icon?: string; badge?: string; image?: string }
 export type NavColumn = { title: string; items: NavLink[] }
 export type MegaMenu = { label: string; columns: NavColumn[]; featured?: NavLink }
 
@@ -13,8 +13,7 @@ export const megaMenus: MegaMenu[] = [
     featured: {
       label: 'Explore the marketplace',
       href: '/products',
-      description: '12,400+ production-ready projects, repos, and templates from verified creators.',
-      icon: 'Sparkles',
+      image: '/images/marketplace-menu.svg',
     },
     columns: [
       {
