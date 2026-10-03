@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
-  Search, ShoppingCart, Menu, User, LogOut, LayoutDashboard, Zap, ArrowRight,
+  ShoppingCart, Menu, User, LogOut, LayoutDashboard, Zap, ArrowRight,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { megaMenus, simpleNavLinks } from '@/lib/nav-data'
+import { HeaderSearch } from '@/components/layout/header-search'
 
 type Me = { full_name: string; email: string; role: string }
 
@@ -251,21 +252,12 @@ export function Navbar() {
       <div className="container flex h-16 items-center gap-4">
         <Logo />
 
-        <div className="flex-1">
-          <DesktopNav />
-        </div>
+        <DesktopNav />
 
-        {/* Search (desktop) */}
-        <button
-          onClick={() => router.push('/products')}
-          className="hidden items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted md:flex"
-        >
-          <Search className="size-4" />
-          <span className="hidden lg:inline">Search projects…</span>
-          <kbd className="ml-2 hidden rounded border border-border bg-background px-1.5 text-[10px] font-medium lg:inline">⌘K</kbd>
-        </button>
+        {/* Search (desktop) — fills the space between the nav and the actions */}
+        <HeaderSearch className="hidden min-w-0 flex-1 md:block" />
 
-        <div className="flex items-center gap-1.5">
+        <div className="ml-auto flex items-center gap-1.5">
           <ThemeToggle />
           <Button  variant="ghost" size="icon" asChild aria-label="Cart">
             <Link href="/cart"><ShoppingCart className="size-5" /></Link>

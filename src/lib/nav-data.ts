@@ -74,53 +74,6 @@ export const megaMenus: MegaMenu[] = [
       },
     ],
   },
-  {
-    label: 'Resources',
-    columns: [
-      {
-        title: 'Learn',
-        items: [
-          { label: 'Documentation', href: '/docs', description: 'Guides & references', icon: 'BookOpen' },
-          { label: 'API', href: '/api-docs', description: 'Build with our API', icon: 'Terminal' },
-          { label: 'Blog', href: '/blog', description: 'News & tutorials', icon: 'Newspaper' },
-          { label: 'Best AI Coding Tools', href: '/best-ai-coding-tools', description: 'Compare ChatGPT, Claude & more', icon: 'Sparkles' },
-          { label: 'Changelog', href: '/changelog', description: "What's new", icon: 'GitCommitHorizontal' },
-        ],
-      },
-      {
-        title: 'Connect',
-        items: [
-          { label: 'Community', href: '/community', description: 'Join the conversation', icon: 'Users' },
-          { label: 'Support', href: '/support', description: 'Get help fast', icon: 'LifeBuoy' },
-          { label: 'Roadmap', href: '/roadmap', description: "Where we're headed", icon: 'Map' },
-          { label: 'Status', href: '/status', description: 'System health', icon: 'Activity' },
-        ],
-      },
-    ],
-  },
-  {
-    label: 'Company',
-    columns: [
-      {
-        title: 'Company',
-        items: [
-          { label: 'About', href: '/about', icon: 'Info' },
-          { label: 'Careers', href: '/careers', icon: 'Briefcase', badge: 'Hiring' },
-          { label: 'Enterprise', href: '/enterprise', icon: 'Building2' },
-          { label: 'Contact', href: '/contact', icon: 'Mail' },
-        ],
-      },
-      {
-        title: 'Programs',
-        items: [
-          { label: 'Partners', href: '/partners', icon: 'Handshake' },
-          { label: 'Affiliates', href: '/affiliates', icon: 'Share2' },
-          { label: 'Become a seller', href: '/auth/register', icon: 'Store' },
-          { label: 'Press', href: '/press', icon: 'Megaphone' },
-        ],
-      },
-    ],
-  },
 ]
 
 export const simpleNavLinks: NavLink[] = [{ label: 'Pricing', href: '/pricing' }]

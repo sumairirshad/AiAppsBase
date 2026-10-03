@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/select'
 import { ProductCard, ProductRow } from '@/components/marketplace/product-card'
 import { CATEGORIES, LANGUAGES, LICENSES, TECHS, type Repo } from '@/lib/marketplace-config'
+import { matchesAllTerms, searchTerms } from '@/lib/search'
 
 const SORTS = [
   { value: 'trending', label: 'Trending' },
@@ -208,11 +209,11 @@ export function MarketplaceClient({ products, initial }: { products: Repo[]; ini
   React.useEffect(() => setPage(1), [filters, sort])
 
   const filtered = React.useMemo(() => {
+    const terms = searchTerms(filters.q)
     let out = products.filter((p) => {
-      if (filters.q) {
-        const q = filters.q.toLowerCase()
-        const hay = `${p.title} ${p.name} ${p.description} ${p.techStack.join(' ')} ${p.tags.join(' ')}`.toLowerCase()
-        if (!hay.includes(q)) return false
+      if (terms.length) {
+        const hay = `${p.title} ${p.name} ${p.owner} ${p.description} ${p.category} ${p.subcategory} ${p.language} ${p.techStack.join(' ')} ${p.tags.join(' ')}`
+        if (!matchesAllTerms(hay, terms)) return false
       }
       if (filters.categories.length && !filters.categories.includes(p.categorySlug)) return false
       if (filters.subcategories.length && !filters.subcategories.includes(p.subcategorySlug)) return false
