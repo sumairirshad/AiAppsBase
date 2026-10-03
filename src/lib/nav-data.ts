@@ -3,7 +3,7 @@
  * Single source of truth for the navbar mega-menu and the footer.
  */
 
-export type NavLink = { label: string; href: string; description?: string; icon?: string; badge?: string }
+export type NavLink = { label: string; href: string; description?: string; icon?: string; badge?: string; image?: string }
 export type NavColumn = { title: string; items: NavLink[] }
 export type MegaMenu = { label: string; columns: NavColumn[]; featured?: NavLink }
 
@@ -13,8 +13,7 @@ export const megaMenus: MegaMenu[] = [
     featured: {
       label: 'Explore the marketplace',
       href: '/products',
-      description: '12,400+ production-ready projects, repos, and templates from verified creators.',
-      icon: 'Sparkles',
+      image: '/images/marketplace-menu.svg',
     },
     columns: [
       {
@@ -71,53 +70,6 @@ export const megaMenus: MegaMenu[] = [
           { label: 'React Native', href: '/products?tech=React+Native', icon: 'Smartphone' },
           { label: 'WordPress', href: '/products?tech=WordPress', icon: 'Globe' },
           { label: 'Shopify', href: '/products?tech=Shopify', icon: 'ShoppingBag' },
-        ],
-      },
-    ],
-  },
-  {
-    label: 'Resources',
-    columns: [
-      {
-        title: 'Learn',
-        items: [
-          { label: 'Documentation', href: '/docs', description: 'Guides & references', icon: 'BookOpen' },
-          { label: 'API', href: '/api-docs', description: 'Build with our API', icon: 'Terminal' },
-          { label: 'Blog', href: '/blog', description: 'News & tutorials', icon: 'Newspaper' },
-          { label: 'Best AI Coding Tools', href: '/best-ai-coding-tools', description: 'Compare ChatGPT, Claude & more', icon: 'Sparkles' },
-          { label: 'Changelog', href: '/changelog', description: "What's new", icon: 'GitCommitHorizontal' },
-        ],
-      },
-      {
-        title: 'Connect',
-        items: [
-          { label: 'Community', href: '/community', description: 'Join the conversation', icon: 'Users' },
-          { label: 'Support', href: '/support', description: 'Get help fast', icon: 'LifeBuoy' },
-          { label: 'Roadmap', href: '/roadmap', description: "Where we're headed", icon: 'Map' },
-          { label: 'Status', href: '/status', description: 'System health', icon: 'Activity' },
-        ],
-      },
-    ],
-  },
-  {
-    label: 'Company',
-    columns: [
-      {
-        title: 'Company',
-        items: [
-          { label: 'About', href: '/about', icon: 'Info' },
-          { label: 'Careers', href: '/careers', icon: 'Briefcase', badge: 'Hiring' },
-          { label: 'Enterprise', href: '/enterprise', icon: 'Building2' },
-          { label: 'Contact', href: '/contact', icon: 'Mail' },
-        ],
-      },
-      {
-        title: 'Programs',
-        items: [
-          { label: 'Partners', href: '/partners', icon: 'Handshake' },
-          { label: 'Affiliates', href: '/affiliates', icon: 'Share2' },
-          { label: 'Become a seller', href: '/auth/register', icon: 'Store' },
-          { label: 'Press', href: '/press', icon: 'Megaphone' },
         ],
       },
     ],

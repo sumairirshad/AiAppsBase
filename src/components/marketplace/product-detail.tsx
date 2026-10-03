@@ -21,6 +21,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { ProductCard } from '@/components/marketplace/product-card'
+import { ProductImage } from '@/components/products/product-image'
 import { claimFreeProduct } from '@/lib/client/claim-free-product'
 import type { Repo, Seller } from '@/lib/marketplace-config'
 
@@ -35,30 +36,36 @@ function StatTile({ icon: Icon, label, value }: { icon: any; label: string; valu
 }
 
 function Gallery({ repo }: { repo: Repo }) {
-  const panels = [repo.gradient, 'from-slate-700 to-slate-900', repo.gradient, 'from-zinc-700 to-zinc-900']
+  // Real screenshots; with none, a single panel shows the AIAppsBase logo.
+  const panels: (string | null)[] = repo.images.length ? repo.images : [null]
   const [active, setActive] = React.useState(0)
   return (
     <div className="space-y-3">
-      <div className={cn('relative aspect-[16/9] overflow-hidden rounded-2xl bg-gradient-to-br', panels[active])}>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.3),transparent_55%)]" />
-        <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-20" />
+      <div className="relative aspect-[16/9] overflow-hidden rounded-2xl bg-muted">
+        <ProductImage src={panels[active]} alt={repo.title} logoClassName="size-24 -translate-y-6" sizes="(min-width: 1024px) 60vw, 100vw" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
         <div className="absolute bottom-6 left-6">
           <div className="font-display text-3xl font-bold text-white drop-shadow">{repo.title}</div>
           <div className="mt-1 font-mono text-sm text-white/80">{repo.owner}/{repo.name}</div>
         </div>
-        <Badge className="absolute right-4 top-4 border-0 bg-black/30 text-white backdrop-blur-md">Preview {active + 1}/{panels.length}</Badge>
+        {panels.length > 1 && (
+          <Badge className="absolute right-4 top-4 border-0 bg-black/30 text-white backdrop-blur-md">Preview {active + 1}/{panels.length}</Badge>
+        )}
       </div>
-      <div className="grid grid-cols-4 gap-3">
-        {panels.map((g, i) => (
-          <button
-            key={i}
-            onClick={() => setActive(i)}
-            className={cn('relative aspect-[16/9] overflow-hidden rounded-lg bg-gradient-to-br transition-all', g, active === i ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : 'opacity-70 hover:opacity-100')}
-          >
-            <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-20" />
-          </button>
-        ))}
-      </div>
+      {panels.length > 1 && (
+        <div className="grid grid-cols-4 gap-3">
+          {panels.map((src, i) => (
+            <button
+              key={i}
+              onClick={() => setActive(i)}
+              aria-label={`Show preview ${i + 1}`}
+              className={cn('relative aspect-[16/9] overflow-hidden rounded-lg bg-muted transition-all', active === i ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : 'opacity-70 hover:opacity-100')}
+            >
+              <ProductImage src={src} alt="" logoClassName="size-8" sizes="160px" />
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

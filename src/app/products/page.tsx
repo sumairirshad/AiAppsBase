@@ -28,6 +28,8 @@ export default async function ProductsPage({ searchParams }: { searchParams: SP 
 
   return (
     <MarketplaceClient
+      // Remount when the URL changes (e.g. a new header search) so the filters pick up the new params.
+      key={JSON.stringify(searchParams)}
       products={products}
       initial={{
         q: q ?? '',

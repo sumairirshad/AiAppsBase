@@ -55,13 +55,16 @@ function OtpInput({ value, onChange }: { value: string; onChange: (v: string) =>
 
 export default function OtpPage() {
   const [email, setEmail] = useState('')
+  const [fromLogin, setFromLogin] = useState(false)
   const [code, setCode] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isResending, setIsResending] = useState(false)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    setEmail(new URLSearchParams(window.location.search).get('email') ?? '')
+    const params = new URLSearchParams(window.location.search)
+    setEmail(params.get('email') ?? '')
+    setFromLogin(params.get('from') === 'login')
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -76,7 +79,13 @@ export default function OtpPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error ?? 'Verification failed')
       toast.success('Email verified successfully!')
-      window.location.href = '/'
+      // Verification signs the user in; coming from sign-in, finish like a normal login.
+      if (fromLogin) {
+        const role = data?.user?.role
+        window.location.href = role === 'admin' ? '/admin' : role === 'seller' ? '/panel' : '/buyer'
+      } else {
+        window.location.href = '/'
+      }
     } catch (error) {
       toast.error((error as Error).message || 'Verification failed')
     } finally {
@@ -105,7 +114,13 @@ export default function OtpPage() {
   return (
     <AuthShell
       title="Verify your email"
-      subtitle={email ? `Enter the 6-digit code we sent to ${email}` : 'Confirm your email to continue'}
+      subtitle={
+        email
+          ? fromLogin
+            ? `Your account isn't verified yet. Enter the 6-digit code we sent to ${email} to finish signing in.`
+            : `Enter the 6-digit code we sent to ${email}`
+          : 'Confirm your email to continue'
+      }
       footer={<>Already verified? <Link href="/auth/login" className="font-medium text-primary hover:underline">Sign in</Link></>}
     >
       {!email ? (
@@ -118,7 +133,7 @@ export default function OtpPage() {
         <form onSubmit={handleSubmit} className="space-y-5">
           <OtpInput value={code} onChange={setCode} />
           <Button type="submit" variant="gradient" className="w-full" size="lg" loading={isLoading} disabled={code.length < LEN}>
-            Verify email
+            {fromLogin ? 'Verify and sign in' : 'Verify email'}
           </Button>
           <div className="text-center text-sm text-muted-foreground">
             Didn&apos;t get a code?{' '}

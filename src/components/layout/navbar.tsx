@@ -1,10 +1,11 @@
 'use client'
 
 import * as React from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
-  Search, ShoppingCart, Menu, User, LogOut, LayoutDashboard, Zap, ArrowRight,
+  ShoppingCart, Menu, User, LogOut, LayoutDashboard, Zap, ArrowRight,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -27,6 +28,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { megaMenus, simpleNavLinks } from '@/lib/nav-data'
+import { HeaderSearch } from '@/components/layout/header-search'
 
 type Me = { full_name: string; email: string; role: string }
 
@@ -73,18 +75,35 @@ function DesktopNav() {
             <NavigationMenuContent>
               <div className={cn('grid gap-2 p-4', menu.featured ? 'w-[640px] grid-cols-[1fr_1fr_1.1fr]' : 'w-[560px] grid-cols-3')}>
                 {menu.featured && (
-                  <Link
-                    href={menu.featured.href}
-                    className="group relative row-span-full flex flex-col justify-end overflow-hidden rounded-lg bg-gradient-to-br from-indigo-500 via-violet-500 to-fuchsia-500 p-4 text-white"
-                  >
-                    <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-20" />
-                    <Icon name={menu.featured.icon} className="relative mb-2 size-6" />
-                    <span className="relative text-sm font-semibold">{menu.featured.label}</span>
-                    <span className="relative mt-1 text-xs text-white/80">{menu.featured.description}</span>
-                    <span className="relative mt-3 inline-flex items-center gap-1 text-xs font-medium">
-                      Explore <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
-                    </span>
-                  </Link>
+                  menu.featured.image ? (
+                    <Link
+                      href={menu.featured.href}
+                      aria-label={menu.featured.label}
+                      className="group relative row-span-full min-h-[320px] overflow-hidden rounded-lg border border-border bg-slate-950"
+                    >
+                      <Image
+                        src={menu.featured.image}
+                        alt=""
+                        fill
+                        unoptimized
+                        sizes="200px"
+                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    </Link>
+                  ) : (
+                    <Link
+                      href={menu.featured.href}
+                      className="group relative row-span-full flex flex-col justify-end overflow-hidden rounded-lg bg-gradient-to-br from-slate-800 to-teal-800 p-4 text-white"
+                    >
+                      <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-20" />
+                      <Icon name={menu.featured.icon} className="relative mb-2 size-6" />
+                      <span className="relative text-sm font-semibold">{menu.featured.label}</span>
+                      <span className="relative mt-1 text-xs text-white/80">{menu.featured.description}</span>
+                      <span className="relative mt-3 inline-flex items-center gap-1 text-xs font-medium">
+                        Explore <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
+                      </span>
+                    </Link>
+                  )
                 )}
                 {menu.columns.map((col) => (
                   <div key={col.title} className="space-y-1">
@@ -233,21 +252,12 @@ export function Navbar() {
       <div className="container flex h-16 items-center gap-4">
         <Logo />
 
-        <div className="flex-1">
-          <DesktopNav />
-        </div>
+        <DesktopNav />
 
-        {/* Search (desktop) */}
-        <button
-          onClick={() => router.push('/products')}
-          className="hidden items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted md:flex"
-        >
-          <Search className="size-4" />
-          <span className="hidden lg:inline">Search projects…</span>
-          <kbd className="ml-2 hidden rounded border border-border bg-background px-1.5 text-[10px] font-medium lg:inline">⌘K</kbd>
-        </button>
+        {/* Search (desktop) — fills the space between the nav and the actions */}
+        <HeaderSearch className="hidden min-w-0 flex-1 md:block" />
 
-        <div className="flex items-center gap-1.5">
+        <div className="ml-auto flex items-center gap-1.5">
           <ThemeToggle />
           <Button  variant="ghost" size="icon" asChild aria-label="Cart">
             <Link href="/cart"><ShoppingCart className="size-5" /></Link>

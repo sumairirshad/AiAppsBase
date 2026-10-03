@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { PlusCircle, Package, Edit, Trash2, Eye } from 'lucide-react'
+import { PlusCircle, Edit, Trash2, Eye } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 import { cn } from '@/lib/utils'
@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { PageHead } from '@/components/dashboard/page-head'
 import { EmptyState } from '@/components/dashboard/empty-state'
+import { ProductImage } from '@/components/products/product-image'
 
 const statusVariant: Record<string, 'success' | 'warning' | 'destructive' | 'muted'> = {
   approved: 'success',
@@ -99,17 +100,12 @@ export default function MyProductsPage() {
           {products.map((product) => (
             <Card key={product.id} interactive className="group flex flex-col overflow-hidden">
               <div className="relative aspect-video overflow-hidden bg-muted">
-                {product.screenshots && product.screenshots[0] ? (
-                  <img
-                    src={product.screenshots[0]}
-                    alt={product.title}
-                    className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                ) : (
-                  <div className="grid size-full place-items-center text-muted-foreground">
-                    <Package className="size-8" />
-                  </div>
-                )}
+                <ProductImage
+                  src={product.screenshots?.[0]}
+                  alt={product.title}
+                  logoClassName="size-12"
+                  className="transition-transform duration-500 group-hover:scale-105"
+                />
                 <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
                   <Badge className="border-0 bg-black/40 text-white backdrop-blur-md">{product.category}</Badge>
                   <Badge variant={statusVariant[product.status] ?? 'muted'}>{product.status}</Badge>

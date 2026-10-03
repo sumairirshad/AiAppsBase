@@ -201,6 +201,9 @@ export type Repo = {
   updatedAt: string
   version: string
   gradient: string
+  /** First screenshot, or '' when the product has none. */
+  image: string
+  images: string[]
   demoUrl: string
   repoUrl: string
   sellerId: string

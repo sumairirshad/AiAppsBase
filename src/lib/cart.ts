@@ -9,6 +9,7 @@ export type CartItem = {
   category: string
   license: string
   gradient: string
+  image: string
   owner: string
   ownedAlready: boolean
 }
@@ -20,7 +21,7 @@ export async function getCart(userId: string): Promise<Cart> {
   try {
     const res = await query(
       `SELECT c.id, c.license_type, p.id AS product_id, p.title, p.price::float AS price,
-              p.category, u.full_name AS seller, u.github_username AS handle,
+              p.category, p.screenshots[1] AS image, u.full_name AS seller, u.github_username AS handle,
               EXISTS (SELECT 1 FROM orders o WHERE o.product_id = p.id AND o.buyer_id = $1) AS owned
        FROM cart_items c
        JOIN products p ON c.product_id = p.id
@@ -37,6 +38,7 @@ export async function getCart(userId: string): Promise<Cart> {
       category: r.category,
       license: r.license_type,
       gradient: gradientFor(r.product_id),
+      image: r.image || '',
       owner: r.handle || String(r.seller).split(' ')[0].toLowerCase(),
       ownedAlready: Boolean(r.owned),
     }))

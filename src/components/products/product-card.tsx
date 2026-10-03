@@ -2,11 +2,11 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { toast } from 'sonner'
-import { Star, ShoppingCart, Eye, Package, Loader2 } from 'lucide-react'
+import { Star, ShoppingCart, Eye, Loader2 } from 'lucide-react'
 import { formatPrice, formatNumber } from '@/lib/utils'
 import { productPath } from '@/lib/seo'
+import { ProductImage } from '@/components/products/product-image'
 
 const aiToolColors: Record<string, string> = {
   ChatGPT: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
@@ -55,19 +55,13 @@ export function ProductCard({ product }: { product: any }) {
       <div className="glass rounded-xl overflow-hidden card-hover group border border-white/5 hover:border-brand-500/30 transition-all duration-300">
         {/* Thumbnail */}
         <div className="relative aspect-[16/10] bg-surface-800 overflow-hidden">
-          {product.screenshots && product.screenshots[0] ? (
-            <Image
-              src={product.screenshots[0]}
-              alt={product.title}
-              fill
-              sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw"
-              className="object-cover group-hover:scale-105 transition-transform duration-500"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-surface-600 bg-gradient-to-br from-surface-800 to-surface-950">
-              <Package className="w-10 h-10" />
-            </div>
-          )}
+          <ProductImage
+            src={product.screenshots?.[0]}
+            alt={product.title}
+            logoClassName="size-12"
+            sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw"
+            className="group-hover:scale-105 transition-transform duration-500"
+          />
           
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
             <div className="flex gap-3">

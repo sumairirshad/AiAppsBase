@@ -6,11 +6,12 @@ import { Star, Trash2, ArrowUpRight } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { cn } from '@/lib/utils'
+import { ProductImage } from '@/components/products/product-image'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { EmptyState } from '@/components/dashboard/empty-state'
 
-type Item = { id: string; title: string; gradient: string; price: number; category: string; rating: number }
+type Item = { id: string; title: string; gradient: string; image: string; price: number; category: string; rating: number }
 
 export function WishlistGrid({ items: initial }: { items: Item[] }) {
   const [items, setItems] = React.useState(initial)
@@ -52,8 +53,8 @@ export function WishlistGrid({ items: initial }: { items: Item[] }) {
             <Trash2 className="size-4" />
           </button>
           <Link href={`/product/${p.id}`}>
-            <div className={cn('relative h-28 bg-gradient-to-br', p.gradient)}>
-              <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-20" />
+            <div className="relative h-28 overflow-hidden">
+              <ProductImage src={p.image} alt={p.title} logoClassName="size-10" sizes="(min-width: 1024px) 25vw, 50vw" />
             </div>
             <div className="p-4">
               <div className="flex items-center justify-between gap-2">

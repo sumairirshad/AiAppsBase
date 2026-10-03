@@ -9,6 +9,7 @@ import { PageHead } from '@/components/dashboard/page-head'
 import { EmptyState } from '@/components/dashboard/empty-state'
 import { LicenseKey } from '@/components/dashboard/license-key'
 import { getCurrentUser, getBuyerOrders } from '@/lib/dashboard'
+import { ProductImage } from '@/components/products/product-image'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,7 +32,7 @@ export default async function PurchasesPage() {
             <Card key={order.id}>
               <CardContent className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex min-w-0 flex-1 items-start gap-4">
-                  <span className={cn('size-12 shrink-0 rounded-lg bg-gradient-to-br', order.gradient)} />
+                  <span className="relative size-12 shrink-0 overflow-hidden rounded-lg"><ProductImage src={order.image} alt="" logoClassName="size-7" sizes="64px" /></span>
                   <div className="min-w-0 space-y-1.5">
                     <Link href={`/product/${order.productId}`} className="font-semibold hover:text-primary">{order.product}</Link>
                     <p className="text-xs text-muted-foreground">
