@@ -30,7 +30,17 @@ export function productPath(repo: { id: string; title: string }): string {
   return `/product/${slugify(repo.title || 'product')}-${repo.id}`
 }
 
-/** Extracts the underlying UUID from a `/product/[id]` route param, whether it's a bare id or a slugged one. */
+/** Public @handle for a seller: their GitHub username, else the first word of their name. */
+export function sellerHandle(u: { github_username?: string | null; full_name?: string | null }): string {
+  return u.github_username || String(u.full_name || 'seller').split(' ')[0].toLowerCase()
+}
+
+/** Canonical `/seller/{handle}-{id}` storefront path. Handles aren't unique, so the id stays in the URL. */
+export function sellerPath(seller: { id: string; handle?: string; name?: string }): string {
+  return `/seller/${slugify(seller.handle || seller.name || 'seller') || 'seller'}-${seller.id}`
+}
+
+/** Extracts the underlying UUID from a `/product/[id]` or `/seller/[id]` route param, whether it's a bare id or a slugged one. */
 export function extractProductId(param: string): string {
   const match = param.match(UUID_RE)
   return match ? match[0] : param
@@ -138,5 +148,25 @@ export function collectionPageSchema(opts: { name: string; description: string; 
     name: opts.name,
     description: opts.description,
     url: absoluteUrl(opts.url),
+  }
+}
+
+export function sellerProfileSchema(opts: {
+  name: string
+  description: string
+  url: string
+  sameAs?: string[]
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ProfilePage',
+    url: absoluteUrl(opts.url),
+    mainEntity: {
+      '@type': 'Person',
+      name: opts.name,
+      description: opts.description,
+      url: absoluteUrl(opts.url),
+      ...(opts.sameAs && opts.sameAs.length ? { sameAs: opts.sameAs } : {}),
+    },
   }
 }

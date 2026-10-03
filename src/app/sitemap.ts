@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { query } from '@/lib/db'
 import { posts } from '@/lib/blog-data'
-import { APP_URL, productPath } from '@/lib/seo'
+import { APP_URL, productPath, sellerHandle, sellerPath } from '@/lib/seo'
 
 const staticRoutes: MetadataRoute.Sitemap = [
   {
@@ -243,6 +243,7 @@ const blogRoutes: MetadataRoute.Sitemap = posts.map((p) => ({
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let productRoutes: MetadataRoute.Sitemap = []
+  let sellerRoutes: MetadataRoute.Sitemap = []
 
   try {
     const result = await query(
@@ -254,9 +255,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     }))
+
+    const sellers = await query(
+      `SELECT u.id, u.full_name, u.github_username, MAX(p.updated_at) AS updated_at
+       FROM users u JOIN products p ON p.seller_id = u.id AND p.status = 'approved'
+       WHERE u.role = 'seller' AND u.account_status = 'active' AND u.seller_status = 'approved'
+       GROUP BY u.id`
+    )
+    sellerRoutes = (sellers.rows || []).map((u) => ({
+      url: `${APP_URL}${sellerPath({ id: u.id, handle: sellerHandle(u) })}`,
+      lastModified: new Date(u.updated_at),
+      changeFrequency: 'weekly' as const,
+      priority: 0.6,
+    }))
   } catch {
     // DB unavailable during static build — return static routes only
   }
 
-  return [...staticRoutes, ...blogRoutes, ...productRoutes]
+  return [...staticRoutes, ...blogRoutes, ...productRoutes, ...sellerRoutes]
 }

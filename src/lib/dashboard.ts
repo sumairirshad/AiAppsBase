@@ -9,14 +9,17 @@ import { getPlatformFeePercent } from '@/lib/payouts'
  * is no session or the database is unreachable — no mock data anywhere.
  */
 
-export type CurrentUser = { id: string; full_name: string; email: string; role: string; github_username: string | null }
+export type CurrentUser = {
+  id: string; full_name: string; email: string; role: string; github_username: string | null
+  bio: string | null; location: string | null; website_url: string | null
+}
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   try {
     const id = await getSessionUserId()
     if (!id) return null
     const res = await query(
-      `SELECT id, full_name, email, role, github_username FROM users WHERE id = $1`, [id]
+      `SELECT id, full_name, email, role, github_username, bio, location, website_url FROM users WHERE id = $1`, [id]
     )
     return res.rowCount ? (res.rows[0] as CurrentUser) : null
   } catch {

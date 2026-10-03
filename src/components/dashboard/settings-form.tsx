@@ -2,26 +2,36 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
-import { User, Mail, Lock, ShieldCheck } from 'lucide-react'
+import Link from 'next/link'
+import { User, Mail, Lock, ShieldCheck, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { StripeConnectCard } from '@/components/dashboard/stripe-connect-card'
 import type { SellerStripeStatus } from '@/lib/dashboard'
+import { sellerHandle, sellerPath } from '@/lib/seo'
 
 export function SettingsForm({
   user, stripeStatus,
 }: {
-  user: { full_name: string; email: string; role: string; github_username?: string | null; is_verified?: boolean }
+  user: {
+    id?: string; full_name: string; email: string; role: string; github_username?: string | null; is_verified?: boolean
+    bio?: string | null; location?: string | null; website_url?: string | null
+  }
   stripeStatus?: SellerStripeStatus
 }) {
   const router = useRouter()
   const [fullName, setFullName] = React.useState(user.full_name)
+  const [bio, setBio] = React.useState(user.bio ?? '')
+  const [location, setLocation] = React.useState(user.location ?? '')
+  const [website, setWebsite] = React.useState(user.website_url ?? '')
   const [savingProfile, setSavingProfile] = React.useState(false)
+  const isSeller = user.role === 'seller'
 
   const [current, setCurrent] = React.useState('')
   const [next, setNext] = React.useState('')
@@ -34,7 +44,9 @@ export function SettingsForm({
     try {
       const res = await fetch('/api/user/profile', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ full_name: fullName }),
+        body: JSON.stringify(
+          isSeller ? { full_name: fullName, bio, location, website_url: website } : { full_name: fullName }
+        ),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to update profile')
@@ -85,6 +97,32 @@ export function SettingsForm({
               </div>
               <p className="text-xs text-muted-foreground">Email is used for sign-in and can&apos;t be changed here.</p>
             </div>
+            {isSeller && (
+              <>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="bio">Storefront bio</Label>
+                    {user.id && (
+                      <Link href={sellerPath({ id: user.id, handle: sellerHandle(user) })} target="_blank" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                        View storefront <ExternalLink className="size-3" />
+                      </Link>
+                    )}
+                  </div>
+                  <Textarea id="bio" value={bio} onChange={(e) => setBio(e.target.value)} maxLength={1000} rows={4} placeholder="Tell buyers what you build and how you use AI." />
+                  <p className="text-xs text-muted-foreground">Shown publicly on your storefront. {bio.length}/1000</p>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="location">Location</Label>
+                    <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} maxLength={100} placeholder="Berlin, Germany" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="website">Website</Label>
+                    <Input id="website" value={website} onChange={(e) => setWebsite(e.target.value)} maxLength={200} placeholder="https://example.com" />
+                  </div>
+                </div>
+              </>
+            )}
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="muted" className="capitalize">{user.role}</Badge>
               {user.is_verified && <Badge variant="success"><ShieldCheck className="size-3" /> Verified</Badge>}
