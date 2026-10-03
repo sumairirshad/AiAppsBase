@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   }
 
   const userRes = await query(
-    'SELECT id, is_verified, otp_failed_attempts, otp_locked_until FROM users WHERE email = $1',
+    'SELECT id, role, is_verified, otp_failed_attempts, otp_locked_until FROM users WHERE email = $1',
     [email.trim().toLowerCase()]
   )
   if ((userRes?.rowCount ?? 0) === 0) {
@@ -75,5 +75,5 @@ export async function POST(req: NextRequest) {
 
   await setSession(user.id)
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, user: { id: user.id, role: user.role } })
 }

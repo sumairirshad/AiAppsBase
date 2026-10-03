@@ -36,6 +36,14 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       })
       const data = await res.json()
+      if (data?.needsVerification) {
+        // Unverified account: continue on the verification screen (a code was just emailed).
+        if (data.otpSent) toast.success(`We sent a verification code to ${data.email}`)
+        else toast.error(data.otpError ?? 'We could not send a verification code. Use Resend on the next screen.')
+        const params = new URLSearchParams({ email: data.email, from: 'login' })
+        window.location.href = `/auth/otp?${params.toString()}`
+        return
+      }
       if (!res.ok) throw new Error(data?.error ?? 'Login failed')
       toast.success('Logged in successfully')
       const role = data.user?.role

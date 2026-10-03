@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { verifyPassword, LOGIN_MAX_ATTEMPTS, LOGIN_LOCKOUT_MINUTES } from '@/lib/auth'
 import { setSession } from '@/lib/session'
+import { issueVerificationOtp } from '@/lib/otp'
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
   }
 
   const userRes = await query(
-    'SELECT id, password_hash, is_verified, role, account_status, login_failed_attempts, login_locked_until FROM users WHERE email = $1',
+    'SELECT id, password_hash, is_verified, role, account_status, login_failed_attempts, login_locked_until, otp_locked_until FROM users WHERE email = $1',
     [email.trim().toLowerCase()]
   )
 
@@ -46,10 +47,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
   }
 
-  if (!user.is_verified) {
-    return NextResponse.json({ error: 'Please verify your email address before signing in' }, { status: 401 })
-  }
-
   const statusMessages: Record<string, string> = {
     banned: 'Your account has been banned. Contact support if you believe this is a mistake.',
     blocked: 'Your account has been blocked. Contact support if you believe this is a mistake.',
@@ -65,6 +62,23 @@ export async function POST(req: NextRequest) {
 
   if (user.login_failed_attempts > 0 || user.login_locked_until) {
     await query('UPDATE users SET login_failed_attempts = 0, login_locked_until = NULL WHERE id = $1', [user.id])
+  }
+
+  // Correct password but unverified email: send a code and hand off to the
+  // verification screen instead of signing in. No session is created here.
+  if (!user.is_verified) {
+    const normalizedEmail = email.trim().toLowerCase()
+    const otp = await issueVerificationOtp(user, normalizedEmail, { reuseRecent: true })
+    return NextResponse.json(
+      {
+        error: 'Please verify your email address to continue.',
+        needsVerification: true,
+        email: normalizedEmail,
+        otpSent: otp.ok,
+        ...(otp.ok ? {} : { otpError: otp.message }),
+      },
+      { status: 403 }
+    )
   }
 
   await setSession(user.id)
