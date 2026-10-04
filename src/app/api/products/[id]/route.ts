@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
+import { deleteUnusedUploads, resolveImageList } from '@/lib/product-images'
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await getSessionUserId()
@@ -22,10 +23,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const existing = await query('SELECT id, status FROM products WHERE id = $1 AND seller_id = $2', [params.id, userId])
+  const existing = await query('SELECT id, status, screenshots FROM products WHERE id = $1 AND seller_id = $2', [params.id, userId])
   if ((existing.rowCount ?? 0) === 0) {
     return NextResponse.json({ error: 'Product not found' }, { status: 404 })
   }
+  const currentImages: string[] = existing.rows[0].screenshots ?? []
 
   let body: Record<string, unknown>
   try {
@@ -48,18 +50,28 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
+  // Images are optional in the body: omitted means "leave them as they are".
+  let images: string[] | null = null
+  if (body.screenshots !== undefined) {
+    const resolved = resolveImageList(body.screenshots, currentImages)
+    if (!resolved.ok) return NextResponse.json({ error: resolved.error }, { status: 400 })
+    images = resolved.images
+  }
+
   try {
     // Edited content needs a fresh admin review before it goes live again.
     const res = await query(
       `UPDATE products SET
         title = $1, description = $2, category = $3, human_mod_level = $4,
         license_type = $5, preview_url = $6, price = $7, tags = $8, ai_tools = $9,
+        screenshots = COALESCE($12::text[], screenshots),
         status = CASE WHEN status = 'approved' THEN 'pending' ELSE status END,
         updated_at = NOW()
        WHERE id = $10 AND seller_id = $11
        RETURNING id`,
-      [title, description, category, humanModLevel, licenseType, previewUrl, price, tags, aiTools, params.id, userId]
+      [title, description, category, humanModLevel, licenseType, previewUrl, price, tags, aiTools, params.id, userId, images]
     )
+    if (images) await deleteUnusedUploads(currentImages.filter((p) => !images!.includes(p)))
     return NextResponse.json({ ok: true, id: res.rows[0].id })
   } catch {
     return NextResponse.json({ error: 'Failed to update product' }, { status: 500 })
