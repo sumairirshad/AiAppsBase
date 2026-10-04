@@ -21,7 +21,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { ProductCard } from '@/components/marketplace/product-card'
-import { ProductImage } from '@/components/products/product-image'
+import { ProductImage, mediaChipClass, mediaScrimClass, mediaTextClass } from '@/components/products/product-image'
 import { claimFreeProduct } from '@/lib/client/claim-free-product'
 import { sellerPath } from '@/lib/seo'
 import type { Repo, Seller } from '@/lib/marketplace-config'
@@ -42,15 +42,15 @@ function Gallery({ repo }: { repo: Repo }) {
   const [active, setActive] = React.useState(0)
   return (
     <div className="space-y-3">
-      <div className="relative aspect-[16/9] overflow-hidden rounded-2xl bg-muted">
+      <div className="group/media relative aspect-[16/9] overflow-hidden rounded-2xl bg-muted has-[[data-fallback]]:ring-1 has-[[data-fallback]]:ring-inset has-[[data-fallback]]:ring-border dark:has-[[data-fallback]]:ring-0">
         <ProductImage src={panels[active]} alt={repo.title} logoClassName="size-24 -translate-y-6" sizes="(min-width: 1024px) 60vw, 100vw" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-        <div className="absolute bottom-6 left-6">
-          <div className="font-display text-3xl font-bold text-white drop-shadow">{repo.title}</div>
-          <div className="mt-1 font-mono text-sm text-white/80">{repo.owner}/{repo.name}</div>
+        <div className={cn('absolute inset-0', mediaScrimClass)} />
+        <div className={cn('absolute bottom-6 left-6', mediaTextClass)}>
+          <div className="font-display text-3xl font-bold">{repo.title}</div>
+          <div className="mt-1 font-mono text-sm opacity-80">{repo.owner}/{repo.name}</div>
         </div>
         {panels.length > 1 && (
-          <Badge className="absolute right-4 top-4 border-0 bg-black/30 text-white backdrop-blur-md">Preview {active + 1}/{panels.length}</Badge>
+          <Badge className={cn('absolute right-4 top-4 border-0', mediaChipClass)}>Preview {active + 1}/{panels.length}</Badge>
         )}
       </div>
       {panels.length > 1 && (

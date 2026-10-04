@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { productPath } from '@/lib/seo'
-import { ProductImage } from '@/components/products/product-image'
+import { ProductImage, mediaChipClass, mediaScrimClass, mediaTextClass } from '@/components/products/product-image'
 import type { Repo } from '@/lib/marketplace-config'
 
 function Price({ repo, className }: { repo: Repo; className?: string }) {
@@ -35,7 +35,7 @@ function Bookmarkable({ repo, className }: { repo: Repo; className?: string }) {
         setSaved((s) => !s)
         toast.success(saved ? 'Removed from wishlist' : `Saved ${repo.title} to wishlist`)
       }}
-      className={cn('grid size-8 place-items-center rounded-full bg-black/30 text-white backdrop-blur-md transition-transform hover:scale-110', className)}
+      className={cn('grid size-8 place-items-center rounded-full transition-transform hover:scale-110', mediaChipClass, className)}
     >
       <Bookmark className={cn('size-4', saved && 'fill-current')} />
     </button>
@@ -45,15 +45,15 @@ function Bookmarkable({ repo, className }: { repo: Repo; className?: string }) {
 export function ProductCard({ repo }: { repo: Repo }) {
   return (
     <Card interactive className="group flex flex-col overflow-hidden">
-      <Link href={productPath(repo)} className="relative block h-36 overflow-hidden">
+      <Link href={productPath(repo)} className="group/media relative block h-36 overflow-hidden">
         <ProductImage src={repo.image} alt={repo.title} logoClassName="size-12 -translate-y-3" className="transition-transform duration-500 group-hover:scale-105" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+        <div className={cn('absolute inset-0', mediaScrimClass)} />
         <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
-          {repo.trending && <Badge className="border-0 bg-black/30 text-white backdrop-blur-md"><Flame className="size-3" /> Trending</Badge>}
-          {repo.isNew && <Badge className="border-0 bg-black/30 text-white backdrop-blur-md"><Sparkles className="size-3" /> New</Badge>}
+          {repo.trending && <Badge className={cn('border-0', mediaChipClass)}><Flame className="size-3" /> Trending</Badge>}
+          {repo.isNew && <Badge className={cn('border-0', mediaChipClass)}><Sparkles className="size-3" /> New</Badge>}
         </div>
         <Bookmarkable repo={repo} className="absolute right-3 top-3" />
-        <span className="absolute bottom-3 left-3 right-3 truncate font-display text-xl font-bold text-white drop-shadow">{repo.title}</span>
+        <span className={cn('absolute bottom-3 left-3 right-3 truncate font-display text-xl font-bold', mediaTextClass)}>{repo.title}</span>
       </Link>
 
       <div className="flex flex-1 flex-col p-4">
@@ -95,10 +95,10 @@ export function ProductCard({ repo }: { repo: Repo }) {
 export function ProductRow({ repo }: { repo: Repo }) {
   return (
     <Card interactive className="group flex flex-col gap-4 overflow-hidden p-4 sm:flex-row">
-      <Link href={productPath(repo)} className="relative block h-28 shrink-0 overflow-hidden rounded-lg sm:w-56">
+      <Link href={productPath(repo)} className="group/media relative block h-28 shrink-0 overflow-hidden rounded-lg sm:w-56">
         <ProductImage src={repo.image} alt={repo.title} logoClassName="size-10 -translate-y-3" sizes="224px" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-        <span className="absolute bottom-2 left-3 right-3 truncate font-display text-lg font-bold text-white drop-shadow">{repo.title}</span>
+        <div className={cn('absolute inset-0', mediaScrimClass)} />
+        <span className={cn('absolute bottom-2 left-3 right-3 truncate font-display text-lg font-bold', mediaTextClass)}>{repo.title}</span>
         <Bookmarkable repo={repo} className="absolute right-2 top-2" />
       </Link>
 

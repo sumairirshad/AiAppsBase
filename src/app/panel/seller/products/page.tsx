@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { PageHead } from '@/components/dashboard/page-head'
 import { EmptyState } from '@/components/dashboard/empty-state'
-import { ProductImage } from '@/components/products/product-image'
+import { ProductImage, mediaChipClass } from '@/components/products/product-image'
 
 const statusVariant: Record<string, 'success' | 'warning' | 'destructive' | 'muted'> = {
   approved: 'success',
@@ -99,7 +99,7 @@ export default function MyProductsPage() {
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {products.map((product) => (
             <Card key={product.id} interactive className="group flex flex-col overflow-hidden">
-              <div className="relative aspect-video overflow-hidden bg-muted">
+              <div className="group/media relative aspect-video overflow-hidden bg-muted">
                 <ProductImage
                   src={product.screenshots?.[0]}
                   alt={product.title}
@@ -107,7 +107,7 @@ export default function MyProductsPage() {
                   className="transition-transform duration-500 group-hover:scale-105"
                 />
                 <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
-                  <Badge className="border-0 bg-black/40 text-white backdrop-blur-md">{product.category}</Badge>
+                  <Badge className={cn('border-0', mediaChipClass, 'bg-black/40 dark:group-has-[[data-fallback]]/media:bg-black/40')}>{product.category}</Badge>
                   <Badge variant={statusVariant[product.status] ?? 'muted'}>{product.status}</Badge>
                 </div>
               </div>
