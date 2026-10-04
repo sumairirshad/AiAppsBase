@@ -17,9 +17,10 @@ import {
 } from '@/components/ui/select'
 import { ProductCard, ProductRow } from '@/components/marketplace/product-card'
 import { CATEGORIES, LANGUAGES, LICENSES, TECHS, type Repo } from '@/lib/marketplace-config'
-import { matchesAllTerms, searchTerms } from '@/lib/search'
+import { buildSearchIndex, rankDiscovery, rankSearch, type Components, type RankItem } from '@/lib/ranking'
 
 const SORTS = [
+  { value: 'recommended', label: 'Recommended' },
   { value: 'trending', label: 'Trending' },
   { value: 'newest', label: 'Newest' },
   { value: 'top-rated', label: 'Top rated' },
@@ -28,6 +29,23 @@ const SORTS = [
   { value: 'price-high', label: 'Price: high to low' },
 ]
 const PER_PAGE = 12
+
+/** Used only if a product arrives without ranking data (keeps it rankable, mid-pack). */
+const NEUTRAL_RANK: Components = { quality: 0.5, popularity: 0, seller: 0.35, freshness: 0, exploration: 0, evidence: 0 }
+
+function toRankItem(p: Repo): RankItem<Repo> {
+  return {
+    id: p.id,
+    sellerId: p.sellerId,
+    doc: {
+      title: p.title, name: p.name, description: p.description, tags: p.tags, techStack: p.techStack,
+      category: p.category, subcategory: p.subcategory, language: p.language,
+    },
+    components: p.rank ?? NEUTRAL_RANK,
+    dupKey: p.repoUrl ? p.repoUrl.replace(/^https:\/\/github\.com\//, '') : undefined,
+    payload: p,
+  }
+}
 const MAX_PRICE = 150
 
 type Filters = {
@@ -199,22 +217,26 @@ function FiltersPanel({ filters, set, products }: { filters: Filters; set: React
   )
 }
 
-export function MarketplaceClient({ products, initial }: { products: Repo[]; initial?: Partial<Filters> }) {
+export function MarketplaceClient({
+  products, initial, initialSort = 'recommended',
+}: { products: Repo[]; initial?: Partial<Filters>; initialSort?: string }) {
   const [filters, setFilters] = React.useState<Filters>(() => emptyFilters(initial))
-  const [sort, setSort] = React.useState('trending')
+  const [sort, setSort] = React.useState(initialSort)
   const [view, setView] = React.useState<'grid' | 'list'>('grid')
   const [page, setPage] = React.useState(1)
+  // Keep typing responsive on large catalogs: ranking uses the deferred query.
+  const query = React.useDeferredValue(filters.q)
 
   // Reset page when filters/sort change
   React.useEffect(() => setPage(1), [filters, sort])
 
+  // The ranking engine is shared with the server: products arrive with their
+  // component scores, the index is built once over the whole catalog.
+  const rankItems = React.useMemo(() => products.map(toRankItem), [products])
+  const searchIndex = React.useMemo(() => buildSearchIndex(rankItems), [rankItems])
+
   const filtered = React.useMemo(() => {
-    const terms = searchTerms(filters.q)
-    let out = products.filter((p) => {
-      if (terms.length) {
-        const hay = `${p.title} ${p.name} ${p.owner} ${p.description} ${p.category} ${p.subcategory} ${p.language} ${p.techStack.join(' ')} ${p.tags.join(' ')}`
-        if (!matchesAllTerms(hay, terms)) return false
-      }
+    const candidates = rankItems.filter(({ payload: p }) => {
       if (filters.categories.length && !filters.categories.includes(p.categorySlug)) return false
       if (filters.subcategories.length && !filters.subcategories.includes(p.subcategorySlug)) return false
       if (filters.languages.length && !filters.languages.includes(p.language)) return false
@@ -228,18 +250,26 @@ export function MarketplaceClient({ products, initial }: { products: Repo[]; ini
       if (filters.trending && !p.trending) return false
       return true
     })
-    out = [...out].sort((a, b) => {
+
+    // Rank (and seller-diversify) the full filtered set, then paginate below.
+    const ranked = query.trim() ? rankSearch(candidates, searchIndex, query) : rankDiscovery(candidates)
+    const out = ranked.map((r) => r.item.payload)
+    if (sort === 'recommended') return out
+
+    // Explicit sorts chosen by the buyer (stable, so ties keep the ranked order).
+    return [...out].sort((a, b) => {
       switch (sort) {
         case 'newest': return b.createdAt.localeCompare(a.createdAt)
-        case 'top-rated': return b.rating - a.rating
+        case 'top-rated': return b.rating - a.rating || b.reviewCount - a.reviewCount
         case 'most-stars': return b.stars - a.stars
         case 'price-low': return a.price - b.price
         case 'price-high': return b.price - a.price
-        default: return Number(b.trending) - Number(a.trending) || b.sales - a.sales
+        // Trending = recent, normalised buyer activity rather than all-time sales.
+        case 'trending': return (b.rank?.popularity ?? 0) - (a.rank?.popularity ?? 0)
+        default: return 0
       }
     })
-    return out
-  }, [products, filters, sort])
+  }, [rankItems, searchIndex, filters, query, sort])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE))
   const pageItems = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE)
