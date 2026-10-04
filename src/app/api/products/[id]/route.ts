@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
-import { deleteUnusedUploads, resolveImageList } from '@/lib/product-images'
+import { deleteProductImageDir, deleteRemovedImages, resolveImageList } from '@/lib/product-images'
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await getSessionUserId()
@@ -53,7 +53,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   // Images are optional in the body: omitted means "leave them as they are".
   let images: string[] | null = null
   if (body.screenshots !== undefined) {
-    const resolved = resolveImageList(body.screenshots, currentImages)
+    const resolved = resolveImageList(body.screenshots, currentImages, { userId, productId: params.id })
     if (!resolved.ok) return NextResponse.json({ error: resolved.error }, { status: 400 })
     images = resolved.images
   }
@@ -71,7 +71,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
        RETURNING id`,
       [title, description, category, humanModLevel, licenseType, previewUrl, price, tags, aiTools, params.id, userId, images]
     )
-    if (images) await deleteUnusedUploads(currentImages.filter((p) => !images!.includes(p)))
+    if (images) await deleteRemovedImages(currentImages.filter((p) => !images!.includes(p)))
     return NextResponse.json({ ok: true, id: res.rows[0].id })
   } catch {
     return NextResponse.json({ error: 'Failed to update product' }, { status: 500 })
@@ -84,13 +84,17 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const existing = await query('SELECT id FROM products WHERE id = $1 AND seller_id = $2', [params.id, userId])
+  const existing = await query('SELECT id, screenshots FROM products WHERE id = $1 AND seller_id = $2', [params.id, userId])
   if ((existing.rowCount ?? 0) === 0) {
     return NextResponse.json({ error: 'Product not found' }, { status: 404 })
   }
 
   try {
     await query('DELETE FROM products WHERE id = $1 AND seller_id = $2', [params.id, userId])
+    // The product is gone: remove its image folder, plus any legacy
+    // /Uploads images no other product still uses.
+    deleteProductImageDir(userId, params.id)
+    await deleteRemovedImages(existing.rows[0].screenshots ?? [])
     return NextResponse.json({ ok: true })
   } catch (err: any) {
     // FK violation (orders reference this product) — can't hard-delete purchase history.

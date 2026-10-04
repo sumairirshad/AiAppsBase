@@ -3,9 +3,10 @@ import { randomUUID } from 'crypto'
 import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
 import { uploadDeliverable } from '@/lib/sftp'
-import { safeFileName, isAllowedImageUpload, isAllowedDeliverableUpload } from '@/lib/upload-safety'
-import fs from 'fs'
-import path from 'path'
+import { isAllowedDeliverableUpload } from '@/lib/upload-safety'
+import {
+  ImageUploadError, MAX_PRODUCT_IMAGES, deleteProductImageDir, readValidatedImage, writeProductImage,
+} from '@/lib/product-images'
 
 export async function GET() {
   const userId = await getSessionUserId()
@@ -71,30 +72,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    const screenshots: string[] = []
-    const files = formData.getAll('screenshotFiles') as File[]
+    // Allocate the product id up front so its images go straight into
+    // assets/products/{userId}/{productId}/.
+    const productId = randomUUID()
 
-    const uploadDir = path.join(process.cwd(), 'public', 'Uploads')
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true })
+    // Validate every image (type, size, real content) before storing anything.
+    const imageFiles = formData.getAll('screenshotFiles').filter((f): f is File => typeof f !== 'string' && f.size > 0)
+    if (imageFiles.length > MAX_PRODUCT_IMAGES) {
+      return NextResponse.json({ error: `You can upload at most ${MAX_PRODUCT_IMAGES} images` }, { status: 400 })
+    }
+    const validatedImages: { buf: Buffer; name: string }[] = []
+    for (const file of imageFiles) {
+      try {
+        validatedImages.push({ buf: await readValidatedImage(file), name: file.name })
+      } catch (err) {
+        if (err instanceof ImageUploadError) return NextResponse.json({ error: err.message }, { status: 400 })
+        throw err
+      }
     }
 
-    for (const file of files) {
-      if (file.size === 0) continue
-
-      if (!isAllowedImageUpload(file.name, file.type)) {
-        return NextResponse.json(
-          { error: `"${file.name}" isn't a supported image type. Use JPG, PNG, WEBP, or GIF.` },
-          { status: 400 }
-        )
+    // Writes the images and inserts the product; if the insert fails, the
+    // product's image folder is removed so nothing is left behind.
+    const storeImagesAndInsert = async (insert: (screenshots: string[]) => Promise<string>) => {
+      try {
+        const screenshots = validatedImages.map((img) => writeProductImage(img.buf, img.name, userId, productId))
+        return await insert(screenshots)
+      } catch (err) {
+        deleteProductImageDir(userId, productId)
+        throw err
       }
-
-      const buffer = Buffer.from(await file.arrayBuffer())
-      const fileName = `${Date.now()}-${safeFileName(file.name)}`
-      const filePath = path.join(uploadDir, fileName)
-
-      fs.writeFileSync(filePath, buffer)
-      screenshots.push(`/Uploads/${fileName}`)
     }
 
     // Manual-mode products (no GitHub repo) must ship an actual deliverable
@@ -120,7 +126,6 @@ export async function POST(req: NextRequest) {
         )
       }
 
-      const productId = randomUUID()
       const buffer = Buffer.from(await deliverableFile.arrayBuffer())
 
       try {
@@ -137,7 +142,7 @@ export async function POST(req: NextRequest) {
         )
       }
 
-      const res = await query(
+      const id = await storeImagesAndInsert(async (screenshots) => (await query(
         `INSERT INTO products (
           id, seller_id, title, description, price, category,
           ai_tools, tech_stack, human_mod_level, screenshots,
@@ -164,18 +169,19 @@ export async function POST(req: NextRequest) {
           deliverableOriginalName,
           deliverableSizeBytes,
         ]
-      )
+      )).rows[0].id)
 
-      return NextResponse.json({ ok: true, id: res.rows[0].id })
+      return NextResponse.json({ ok: true, id })
     }
 
-    const res = await query(
+    const id = await storeImagesAndInsert(async (screenshots) => (await query(
       `INSERT INTO products (
-        seller_id, title, description, price, category,
+        id, seller_id, title, description, price, category,
         ai_tools, tech_stack, human_mod_level, screenshots,
         preview_url, license_type, tags, github_repo_name, github_default_branch
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id`,
       [
+        productId,
         userId,
         title,
         description,
@@ -191,9 +197,9 @@ export async function POST(req: NextRequest) {
         githubRepoName,
         githubDefaultBranch,
       ]
-    )
+    )).rows[0].id)
 
-    return NextResponse.json({ ok: true, id: res.rows[0].id })
+    return NextResponse.json({ ok: true, id })
   } catch {
     return NextResponse.json({ error: 'Failed to create product' }, { status: 500 })
   }
