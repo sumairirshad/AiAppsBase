@@ -20,6 +20,7 @@ import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { ProductImagesEditor } from '@/components/dashboard/product-images-editor'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
@@ -80,6 +81,8 @@ export default function EditProductPage() {
   const [price, setPrice] = useState('')
   const [licenseType, setLicenseType] = useState<LicenseType | ''>('')
   const [isGithub, setIsGithub] = useState(false)
+  const [images, setImages] = useState<string[]>([])
+  const [savedImages, setSavedImages] = useState<string[]>([])
 
   const [deliverableName, setDeliverableName] = useState<string | null>(null)
   const [deliverableSize, setDeliverableSize] = useState<number | null>(null)
@@ -106,6 +109,8 @@ export default function EditProductPage() {
       setPrice(String(p.price ?? '0'))
       setLicenseType(p.license_type ?? '')
       setIsGithub(Boolean(p.github_repo_name))
+      setImages(p.screenshots ?? [])
+      setSavedImages(p.screenshots ?? [])
       setDeliverableName(p.deliverable_original_name ?? null)
       setDeliverableSize(p.deliverable_size_bytes ?? null)
     } catch (err) {
@@ -198,6 +203,7 @@ export default function EditProductPage() {
           previewUrl,
           price: parseFloat(price) || 0,
           licenseType,
+          screenshots: images,
         }),
       })
       const data = await res.json()
@@ -310,6 +316,12 @@ export default function EditProductPage() {
         {step === 2 && (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold">Media & deliverable</h2>
+            <ProductImagesEditor productId={params.id} images={images} onChange={setImages} />
+            {JSON.stringify(images) !== JSON.stringify(savedImages) && (
+              <p className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs text-primary">
+                Image changes are applied when you click <span className="font-semibold">Save changes</span> on the Review step.
+              </p>
+            )}
             <div className="space-y-2">
               <Label htmlFor="preview">Live preview URL</Label>
               <Input id="preview" type="url" value={previewUrl} onChange={(e) => setPreviewUrl(e.target.value)} placeholder="https://example.com/preview" />
@@ -413,6 +425,7 @@ export default function EditProductPage() {
                 { label: 'License', value: licenseType },
                 { label: 'Human modification', value: humanModLevel },
                 { label: 'Deliverable', value: isGithub ? 'GitHub repository' : deliverableName },
+                { label: 'Images', value: images.length ? `${images.length} image${images.length === 1 ? '' : 's'}${JSON.stringify(images) !== JSON.stringify(savedImages) ? ' (changed)' : ''}` : '' },
               ].map(({ label, value }) => (
                 <div key={label} className="rounded-lg border border-border bg-muted/40 p-4">
                   <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</div>

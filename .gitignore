@@ -421,3 +421,6 @@ FodyWeavers.xsd
 
 .env.local
 .env
+
+# Uploaded product images (assets/products/{userId}/{productId}/...)
+#/assets/

@@ -137,16 +137,16 @@ export default function BestAiCodingToolsPage() {
       <section className="container max-w-3xl pb-16">
         <h2 className="mb-3 font-display text-2xl font-bold tracking-tight">How to actually choose</h2>
         <p className="mb-3 text-muted-foreground">
-          Start from the stage of the work, not the tool's marketing. If you don't yet have a clear
+          Start from the stage of the work, not the tool&apos;s marketing. If you don&apos;t yet have a clear
           spec, a conversational model like ChatGPT or Claude will save you more time than an IDE
-          integration. If you're deep in an existing codebase making daily changes, an editor-native
-          tool like Cursor or Windsurf pays for itself in reduced context-switching. If you're
+          integration. If you&apos;re deep in an existing codebase making daily changes, an editor-native
+          tool like Cursor or Windsurf pays for itself in reduced context-switching. If you&apos;re
           starting completely from scratch and want to see something on screen in the next ten
           minutes, v0, Bolt, Lovable, or Replit Agent get you there fastest.
         </p>
         <p className="text-muted-foreground">
           For a deeper hands-on breakdown of ChatGPT, Claude, Cursor, and v0 specifically, read our
-          full comparison on the blog — it goes into the technical tradeoffs that matter once you're
+          full comparison on the blog — it goes into the technical tradeoffs that matter once you&apos;re
           past the first prototype.
         </p>
       </section>
@@ -170,7 +170,7 @@ export default function BestAiCodingToolsPage() {
         <h2 className="mb-4 font-display text-2xl font-bold tracking-tight">Put any of these tools to work today</h2>
         <p className="mx-auto mb-8 max-w-xl text-muted-foreground">
           Browse thousands of listings built with ChatGPT, Claude, v0, Bolt, Cursor, and more —
-          every one reviewed and disclosed, so you know exactly what you're buying.
+          every one reviewed and disclosed, so you know exactly what you&apos;re buying.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-3">
           <Button size="lg" variant="gradient" asChild>
@@ -184,7 +184,7 @@ export default function BestAiCodingToolsPage() {
           <li><Link href="/ai-projects" className="text-sm font-medium text-primary hover:underline">Browse AI projects &amp; LLM agents &rarr;</Link></li>
           <li><Link href="/developer-tools" className="text-sm font-medium text-primary hover:underline">Browse developer tools &amp; scripts &rarr;</Link></li>
           <li><Link href="/blog/prompt-engineering-for-developers" className="text-sm font-medium text-primary hover:underline">Prompt engineering for developers &rarr;</Link></li>
-          <li><Link href="/blog/vibe-coding-and-the-future-of-software" className="text-sm font-medium text-primary hover:underline">"Vibe coding" and the future of software &rarr;</Link></li>
+          <li><Link href="/blog/vibe-coding-and-the-future-of-software" className="text-sm font-medium text-primary hover:underline">&quot;Vibe coding&quot; and the future of software &rarr;</Link></li>
         </ul>
       </section>
     </div>

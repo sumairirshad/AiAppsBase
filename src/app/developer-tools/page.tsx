@@ -117,7 +117,7 @@ export default async function DeveloperToolsPage() {
         <h2 className="mb-2 font-display text-2xl font-bold tracking-tight">What makes a developer tool listing trustworthy</h2>
         <p className="mb-6 max-w-2xl text-muted-foreground">
           Scripts that touch your infrastructure or CI pipeline deserve more scrutiny than a
-          front-end template. Here's what we check, and what you should too.
+          front-end template. Here&apos;s what we check, and what you should too.
         </p>
         <ul className="grid gap-3 sm:grid-cols-2">
           {[
