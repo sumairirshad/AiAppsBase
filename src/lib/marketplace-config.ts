@@ -162,7 +162,11 @@ export type Seller = {
   followers: number
   joinedAt: string
   location: string
+  website: string
+  reviewCount: number
   gradient: string
+  /** False when the seller is pending/suspended/banned — their storefront 404s. */
+  hasStorefront?: boolean
 }
 
 export type Repo = {

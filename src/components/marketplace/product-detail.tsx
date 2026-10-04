@@ -23,6 +23,7 @@ import {
 import { ProductCard } from '@/components/marketplace/product-card'
 import { ProductImage } from '@/components/products/product-image'
 import { claimFreeProduct } from '@/lib/client/claim-free-product'
+import { sellerPath } from '@/lib/seo'
 import type { Repo, Seller } from '@/lib/marketplace-config'
 
 function StatTile({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
@@ -379,24 +380,28 @@ export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: 
               <h3 className="mb-4 text-sm font-semibold">About the seller</h3>
               <div className="flex items-center gap-3">
                 <Avatar className="size-12 ring-2 ring-primary/20">
-                  <AvatarImage src={seller.avatar} alt={seller.name} />
+                  {seller.avatar && <AvatarImage src={seller.avatar} alt={seller.name} />}
                   <AvatarFallback>{seller.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5 font-medium">
-                    {seller.name}
+                    {seller.hasStorefront ? <Link href={sellerPath(seller)} className="hover:text-primary">{seller.name}</Link> : seller.name}
                     {seller.verified && <BadgeCheck className="size-4 text-primary" />}
                   </div>
                   <div className="text-xs text-muted-foreground">@{seller.handle}</div>
                 </div>
               </div>
-              <p className="mt-3 text-sm text-muted-foreground">{seller.bio}</p>
+              {seller.bio && <p className="mt-3 line-clamp-4 text-sm text-muted-foreground">{seller.bio}</p>}
               <div className="mt-4 grid grid-cols-3 gap-2 text-center text-sm">
-                <div><div className="font-semibold">{seller.rating}</div><div className="text-xs text-muted-foreground">rating</div></div>
+                <div><div className="font-semibold">{seller.reviewCount ? seller.rating : '—'}</div><div className="text-xs text-muted-foreground">rating</div></div>
                 <div><div className="font-semibold">{formatNumber(seller.sales)}</div><div className="text-xs text-muted-foreground">sales</div></div>
                 <div><div className="font-semibold">{seller.productCount}</div><div className="text-xs text-muted-foreground">products</div></div>
               </div>
-              <Button variant="outline" className="mt-4 w-full" onClick={() => toast('Seller storefronts are coming soon')}>View storefront</Button>
+              {seller.hasStorefront && (
+                <Button variant="outline" className="mt-4 w-full" asChild>
+                  <Link href={sellerPath(seller)}>View storefront</Link>
+                </Button>
+              )}
             </Card>
           )}
         </div>

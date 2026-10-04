@@ -9,7 +9,7 @@ import { cn, formatNumber } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { ProductCard } from '@/components/marketplace/product-card'
 import { HeroSearch } from '@/components/landing/hero-search'
@@ -19,7 +19,7 @@ import { CATEGORIES, TECHS, LANGUAGES, gradientFor } from '@/lib/marketplace-con
 import { trustedBy, features, workflow, plans, faqs } from '@/lib/landing-data'
 import { getFeaturedProducts, getTopSellers, getPlatformStats, type PlatformStats } from '@/lib/products'
 import { JsonLd } from '@/components/seo/json-ld'
-import { faqSchema } from '@/lib/seo'
+import { faqSchema, sellerPath } from '@/lib/seo'
 import type { Repo, Seller } from '@/lib/marketplace-config'
 
 export const revalidate = 300
@@ -313,8 +313,9 @@ function FeaturedSellers({ sellers }: { sellers: Seller[] }) {
         description="Developers turning their repositories into real, recurring income." />
       <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {sellers.map((s) => (
-          <Card key={s.id} interactive className="p-6 text-center">
-            <Avatar className="mx-auto size-16 ring-2 ring-primary/20"><AvatarFallback>{s.name.charAt(0)}</AvatarFallback></Avatar>
+          <Link key={s.id} href={sellerPath(s)} className="block">
+          <Card interactive className="h-full p-6 text-center">
+            <Avatar className="mx-auto size-16 ring-2 ring-primary/20">{s.avatar && <AvatarImage src={s.avatar} alt={s.name} />}<AvatarFallback>{s.name.charAt(0)}</AvatarFallback></Avatar>
             <h3 className="mt-4 font-semibold">{s.name}</h3>
             <p className="text-xs text-muted-foreground">@{s.handle}</p>
             <Badge variant="brand" className="mt-3">{s.badge}</Badge>
@@ -325,6 +326,7 @@ function FeaturedSellers({ sellers }: { sellers: Seller[] }) {
               <div><div className="font-semibold">{s.productCount}</div><div className="text-xs text-muted-foreground">products</div></div>
             </div>
           </Card>
+          </Link>
         ))}
       </div>
     </section>
