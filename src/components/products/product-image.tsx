@@ -4,9 +4,11 @@ import * as React from 'react'
 import Image from 'next/image'
 
 import { cn } from '@/lib/utils'
+import { normalizeImageSrc } from '@/lib/image-src'
 
 /** The AIAppsBase logo, shown wherever a product has no image (or its image fails to load). */
 export const PRODUCT_IMAGE_FALLBACK = '/images/aiappsbase-logo.svg'
+
 
 /*
  * Overlays drawn on top of a ProductImage (title, badges, buttons). Add
@@ -50,10 +52,11 @@ export function ProductImage({
   logoClassName?: string
   sizes?: string
 }) {
+  const url = normalizeImageSrc(src)
   const [failed, setFailed] = React.useState(false)
-  React.useEffect(() => setFailed(false), [src])
+  React.useEffect(() => setFailed(false), [url])
 
-  if (!src || failed) {
+  if (!url || failed) {
     return (
       <div data-fallback="" className={cn('absolute inset-0 grid place-items-center bg-muted', className)}>
         <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-30" />
@@ -64,7 +67,7 @@ export function ProductImage({
 
   return (
     <Image
-      src={src}
+      src={url}
       alt={alt}
       fill
       unoptimized
