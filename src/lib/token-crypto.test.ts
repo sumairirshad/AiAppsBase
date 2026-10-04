@@ -7,7 +7,7 @@ beforeAll(() => {
 
 describe('encryptToken / decryptToken', () => {
   it('round-trips a plaintext value', () => {
-    const secret = 'gho_abcdefghijklmnopqrstuvwxyz0123456789'
+    const secret = 'test-secret-value-123'
     const ciphertext = encryptToken(secret)
     expect(ciphertext).not.toContain(secret)
     expect(decryptToken(ciphertext)).toBe(secret)
