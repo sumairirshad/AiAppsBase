@@ -117,7 +117,7 @@ export default async function MobileAppsPage() {
       <section className="container py-16">
         <h2 className="mb-2 font-display text-2xl font-bold tracking-tight">What to check before buying a mobile app template</h2>
         <p className="mb-6 max-w-2xl text-muted-foreground">
-          Mobile code is harder to evaluate at a glance than a website — you can't just open a URL.
+          Mobile code is harder to evaluate at a glance than a website — you can&apos;t just open a URL.
           These are the specific things worth confirming before you pay.
         </p>
         <ul className="grid gap-3 sm:grid-cols-2">

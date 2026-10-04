@@ -239,7 +239,7 @@ export function MarketplaceClient({ products, initial }: { products: Repo[]; ini
       }
     })
     return out
-  }, [filters, sort])
+  }, [products, filters, sort])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE))
   const pageItems = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE)
