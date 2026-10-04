@@ -8,7 +8,7 @@ import { sellerHandle } from '@/lib/seo'
 const DAY = 24 * 60 * 60 * 1000
 
 /* Map a joined product row (+ aggregates) to the Repo view model. */
-function mapRow(row: any): Repo {
+export function mapRow(row: any): Repo {
   const created = row.created_at ? new Date(row.created_at) : new Date()
   const price = Number(row.price) || 0
   const repoName: string | null = row.github_repo_name || null
