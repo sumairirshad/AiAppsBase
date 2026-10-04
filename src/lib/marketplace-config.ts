@@ -79,6 +79,9 @@ export const ALL_SUBCATEGORIES = CATEGORIES.flatMap((c) =>
   c.subcategories.map((s) => ({ ...s, categoryName: c.name, categorySlug: c.slug }))
 )
 
+/** Valid /products ?sort= values. 'recommended' is the ranked default. */
+export const SORT_VALUES = ['recommended', 'trending', 'newest', 'top-rated', 'most-stars', 'price-low', 'price-high']
+
 export const LANGUAGES = [
   { name: 'TypeScript', color: '#3178c6' },
   { name: 'JavaScript', color: '#f1e05a' },
@@ -134,6 +137,8 @@ export function languageColor(lang?: string | null): string {
 }
 
 /* --------------------------------- Types -------------------------------- */
+import type { Components as RankComponents } from '@/lib/ranking/signals'
+
 export type Review = {
   id: string
   author: string
@@ -210,4 +215,6 @@ export type Repo = {
   features: string[]
   changelog: ChangelogEntry[]
   reviews: Review[]
+  /** Ranking component scores (set by the ranking service; used to re-rank on the client). */
+  rank?: RankComponents
 }

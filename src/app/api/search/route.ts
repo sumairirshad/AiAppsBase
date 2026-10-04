@@ -1,45 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { query } from '@/lib/db'
-import { escapeLike, searchTerms } from '@/lib/search'
+import { searchRankedProducts } from '@/lib/ranking/service'
 
 const LIMIT = 6
 
-/** Live results for the header search box: approved products matching every word of `q`. */
+/**
+ * Live results for the header search box. Ranked by the shared ranking
+ * engine (relevance first, then quality, seller reputation, popularity,
+ * freshness and exploration, with seller diversity) over the full catalog
+ * before taking the top results.
+ */
 export async function GET(req: NextRequest) {
-  const q = req.nextUrl.searchParams.get('q') || ''
-  const terms = searchTerms(q)
-  if (terms.length === 0) return NextResponse.json({ results: [] })
-
-  const params: unknown[] = []
-  const conditions = terms.map((term) => {
-    params.push(`%${escapeLike(term)}%`)
-    const n = `$${params.length}`
-    return `(p.title ILIKE ${n} OR p.description ILIKE ${n} OR p.category ILIKE ${n}
-      OR COALESCE(p.subcategory, '') ILIKE ${n} OR COALESCE(p.github_repo_name, '') ILIKE ${n}
-      OR COALESCE(p.language, '') ILIKE ${n}
-      OR array_to_string(p.tags, ' ') ILIKE ${n} OR array_to_string(p.tech_stack, ' ') ILIKE ${n})`
-  })
-
-  params.push(`%${escapeLike(q.trim().slice(0, 100))}%`)
-  const titleParam = `$${params.length}`
-  params.push(LIMIT)
+  const q = (req.nextUrl.searchParams.get('q') || '').slice(0, 200)
+  if (!q.trim()) return NextResponse.json({ results: [] })
 
   try {
-    const res = await query(
-      `SELECT p.id, p.title, p.category, p.price, p.language
-       FROM products p
-       WHERE p.status = 'approved' AND ${conditions.join(' AND ')}
-       ORDER BY (p.title ILIKE ${titleParam}) DESC, p.featured DESC, p.stars DESC, p.created_at DESC
-       LIMIT $${params.length}`,
-      params
-    )
+    const ranked = await searchRankedProducts(q, LIMIT)
     return NextResponse.json({
-      results: res.rows.map((r: any) => ({
-        id: r.id,
-        title: r.title,
-        category: r.category,
-        price: Number(r.price) || 0,
-        language: r.language || '',
+      results: ranked.map(({ product: p }) => ({
+        id: p.id,
+        title: p.title,
+        category: p.category,
+        price: p.price,
+        language: p.language,
       })),
     })
   } catch (err) {
