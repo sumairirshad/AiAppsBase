@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>My Rentals — RUSH Car Rental</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="dash-wrap">
+  <aside class="dash-sidebar">
+    <a href="index.html" class="logo" style="color:var(--white)">RUSH<span style="color:var(--yellow)">.</span></a>
+    <nav class="dash-nav">
+      <a href="#" class="active">🏠 Dashboard</a>
+      <a href="#">🚗 My Rentals</a>
+      <a href="#">🪪 Driver Profile</a>
+      <a href="#">💳 Payment Methods</a>
+      <a href="#">🎁 RUSH Rewards</a>
+      <a href="#">💬 Support</a>
+      <a href="login.html">↩ Log Out</a>
+    </nav>
+  </aside>
+  <div class="dash-main">
+    <div class="dash-topbar">
+      <h2>Welcome back, Jordan</h2>
+      <div class="dash-user"><span>Tier: <strong>RUSH Gold</strong></span><img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80" alt="User avatar"></div>
+    </div>
+    <div class="dash-content">
+      <div class="dash-stat-row">
+        <div class="dash-stat"><span class="label">Active Rental</span><strong>1</strong></div>
+        <div class="dash-stat"><span class="label">Upcoming Bookings</span><strong>1</strong></div>
+        <div class="dash-stat"><span class="label">Total Rentals</span><strong>14</strong></div>
+        <div class="dash-stat"><span class="label">Reward Points</span><strong>3,920</strong></div>
+      </div>
+      <div class="dash-grid-2">
+        <div class="dash-card">
+          <h3>Current & Upcoming</h3>
+          <div class="rental-row">
+            <img src="https://images.unsplash.com/photo-1536700503339-1e4b06520771?auto=format&fit=crop&w=200&q=80" alt="Tesla Model 3">
+            <div class="info"><strong>Tesla Model 3</strong><span>Active · Returns Oct 12, 2025 · 6:00 PM</span></div>
+            <span class="status-pill active">Active</span>
+          </div>
+          <div class="rental-row">
+            <img src="https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=200&q=80" alt="Jeep Grand Cherokee">
+            <div class="info"><strong>Jeep Grand Cherokee</strong><span>Pickup Nov 2, 2025 · Denver Airport</span></div>
+            <span class="status-pill upcoming">Upcoming</span>
+          </div>
+          <h3 style="margin-top:26px">Rental History</h3>
+          <div class="rental-row"><img src="https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=200&q=80" alt="BMW 5 Series"><div class="info"><strong>BMW 5 Series</strong><span>Sep 2025 · 4 days · $516</span></div></div>
+          <div class="rental-row"><img src="https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&w=200&q=80" alt="Toyota Corolla"><div class="info"><strong>Toyota Corolla</strong><span>Jul 2025 · 7 days · $273</span></div></div>
+        </div>
+        <div class="dash-card">
+          <h3>Notifications</h3>
+          <div class="notif-item">Your Model 3 return is due tomorrow at 6:00 PM.<span>2 hours ago</span></div>
+          <div class="notif-item">You've earned 420 reward points from your last rental.<span>3 days ago</span></div>
+          <div class="notif-item">New: Weekend flash discount on SUVs in Denver.<span>5 days ago</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="js/script.js"></script>
+</body>
+</html>
