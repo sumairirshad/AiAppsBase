@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Log In — SkillNest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-media">
+    <div><a href="index.html" class="logo" style="color:var(--white)">Skill<span style="color:#ffe9ad">Nest</span></a></div>
+    <div class="auth-media-text"><h2>Pick up right where you left off — your courses are waiting.</h2></div>
+  </div>
+  <div class="auth-side">
+    <div class="auth-box">
+      <h1>Welcome back</h1>
+      <p class="sub">Log in to continue learning.</p>
+      <form id="loginForm">
+        <div class="form-group"><label for="email">Email</label><input type="email" id="email" placeholder="you@example.com" required></div>
+        <div class="form-group"><label for="password">Password</label><input type="password" id="password" placeholder="••••••••" required></div>
+        <p class="form-error" id="loginError">Incorrect credentials — try the demo login below.</p>
+        <div class="form-meta"><label class="checkbox-row"><input type="checkbox"> Remember me</label><a href="#" style="color:var(--blue);font-weight:600">Forgot password?</a></div>
+        <button type="submit" class="btn btn-blue btn-block">Log In</button>
+      </form>
+      <div class="demo-box"><strong>Demo Login</strong>Email: <code>demo@skillnest.com</code><br>Password: <code>Learn2025</code></div>
+      <p class="auth-switch">New to SkillNest? <a href="signup.html">Create an account</a></p>
+    </div>
+  </div>
+</div>
+<script src="js/script.js"></script>
+</body>
+</html>
