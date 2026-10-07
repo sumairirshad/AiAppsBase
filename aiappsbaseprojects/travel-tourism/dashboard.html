@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>My Trips — Horizon Travel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="dash-wrap">
+  <aside class="dash-sidebar">
+    <a href="index.html" class="logo">Horizon<span>.</span></a>
+    <nav class="dash-nav">
+      <a href="#" class="active">🏠 Dashboard</a>
+      <a href="#">🧳 My Bookings</a>
+      <a href="#">❤️ Saved Destinations</a>
+      <a href="#">👤 Profile</a>
+      <a href="#">💳 Payment Methods</a>
+      <a href="#">💬 Support</a>
+      <a href="login.html">↩ Log Out</a>
+    </nav>
+  </aside>
+  <div class="dash-main">
+    <div class="dash-topbar">
+      <h2>Welcome back, Ayesha 👋</h2>
+      <div class="dash-user">
+        <span>Reward tier: <strong>Explorer Gold</strong></span>
+        <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&q=80" alt="User avatar">
+      </div>
+    </div>
+    <div class="dash-content">
+      <div class="dash-stat-row">
+        <div class="dash-stat"><span class="label">Upcoming Trips</span><strong>2</strong></div>
+        <div class="dash-stat"><span class="label">Completed Trips</span><strong>7</strong></div>
+        <div class="dash-stat"><span class="label">Reward Points</span><strong>4,280</strong></div>
+        <div class="dash-stat"><span class="label">Saved Destinations</span><strong>11</strong></div>
+      </div>
+      <div class="dash-grid-2">
+        <div class="dash-card">
+          <h3>Upcoming Trips</h3>
+          <div class="trip-row">
+            <img src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=200&q=80" alt="Kyoto">
+            <div class="info"><strong>Kyoto & the Inland Sea</strong><span>Departs Nov 12, 2025 · 9 Days</span></div>
+            <span class="status-pill confirmed">Confirmed</span>
+          </div>
+          <div class="trip-row">
+            <img src="https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?auto=format&fit=crop&w=200&q=80" alt="Morocco">
+            <div class="info"><strong>Sahara Sands & Marrakech</strong><span>Departs Feb 3, 2026 · 7 Days</span></div>
+            <span class="status-pill pending">Pending Payment</span>
+          </div>
+          <h3 style="margin-top:28px">Booking History</h3>
+          <table class="booking-table">
+            <thead><tr><th>Tour</th><th>Date</th><th>Amount</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Patagonia Trekking</td><td>Mar 2024</td><td>$3,120</td><td>Completed</td></tr>
+              <tr><td>Bali Island Escape</td><td>Sep 2023</td><td>$890</td><td>Completed</td></tr>
+              <tr><td>Santorini Sunsets</td><td>Jun 2023</td><td>$1,050</td><td>Completed</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="dash-card">
+          <h3>Notifications</h3>
+          <div class="notif-item">Your Kyoto trip departs in 36 days — check your packing list.<span class="time">2 hours ago</span></div>
+          <div class="notif-item">Payment reminder: Sahara Sands balance due Dec 1.<span class="time">1 day ago</span></div>
+          <div class="notif-item">New guide available: "Autumn in Japan".<span class="time">3 days ago</span></div>
+        </div>
+      </div>
+      <div class="dash-card">
+        <h3>Recommended For You</h3>
+        <div class="destinations-grid" style="grid-template-columns:repeat(4,1fr)">
+          <div class="polaroid"><div class="img-wrap"><img src="https://images.unsplash.com/photo-1526392060635-9d6019884377?auto=format&fit=crop&w=300&q=80" alt="Peru"></div><h4>Peru</h4><p>Andes & Amazon</p></div>
+          <div class="polaroid"><div class="img-wrap"><img src="https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=300&q=80" alt="Greece"></div><h4>Greece</h4><p>Island hopping</p></div>
+          <div class="polaroid"><div class="img-wrap"><img src="https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=300&q=80" alt="Tanzania"></div><h4>Tanzania</h4><p>Safari lodges</p></div>
+          <div class="polaroid"><div class="img-wrap"><img src="https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=300&q=80" alt="Bali"></div><h4>Bali</h4><p>Temples & surf</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="js/script.js"></script>
+</body>
+</html>

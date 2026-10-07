@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Guest Portal — Aurelia Resorts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="dash-wrap">
+  <aside class="dash-sidebar">
+    <a href="index.html" class="logo">AU<em>RE</em>LIA</a>
+    <nav class="dash-nav">
+      <a href="#" class="active">🏠 Overview</a>
+      <a href="#">🛎 My Reservations</a>
+      <a href="#">❤️ Saved Properties</a>
+      <a href="#">👤 Guest Profile</a>
+      <a href="#">💳 Payment Methods</a>
+      <a href="#">💬 Concierge</a>
+      <a href="login.html">↩ Sign Out</a>
+    </nav>
+  </aside>
+  <div class="dash-main">
+    <div class="dash-topbar">
+      <h2>Welcome, Daniel</h2>
+      <div class="dash-user"><span>Tier: <strong>Aurelia Privé</strong></span><img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80" alt="Guest avatar"></div>
+    </div>
+    <div class="dash-content">
+      <div class="dash-stat-row">
+        <div class="dash-stat"><span class="label">Upcoming Stays</span><strong>1</strong></div>
+        <div class="dash-stat"><span class="label">Past Stays</span><strong>6</strong></div>
+        <div class="dash-stat"><span class="label">Privé Points</span><strong>18,400</strong></div>
+        <div class="dash-stat"><span class="label">Saved Properties</span><strong>3</strong></div>
+      </div>
+      <div class="dash-grid-2">
+        <div class="dash-card">
+          <h3>Upcoming Reservation</h3>
+          <div class="booking-row">
+            <img src="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=200&q=80" alt="Horizon Suite">
+            <div class="info"><strong>Horizon Suite — Aurelia Santorini</strong><span>Dec 18 – Dec 24, 2025 · 2 Guests</span></div>
+            <span class="status-pill confirmed">Confirmed</span>
+          </div>
+          <h3 style="margin-top:26px">Stay History</h3>
+          <table class="dtable">
+            <thead><tr><th>Property</th><th>Dates</th><th>Amount</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Aurelia Maldives</td><td>Apr 2025</td><td>$6,720</td><td>Completed</td></tr>
+              <tr><td>Aurelia Aspen</td><td>Jan 2025</td><td>$3,900</td><td>Completed</td></tr>
+              <tr><td>Aurelia Kyoto</td><td>Oct 2024</td><td>$2,850</td><td>Completed</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="dash-card">
+          <h3>Notifications</h3>
+          <div class="notif-item">Your Santorini reservation is confirmed — view arrival details.<span>1 hour ago</span></div>
+          <div class="notif-item">You've earned 1,200 Privé points from your last stay.<span>2 days ago</span></div>
+          <div class="notif-item">New seasonal offer: Wellness Retreat, 20% off.<span>5 days ago</span></div>
+        </div>
+      </div>
+      <div class="dash-card">
+        <h3>Saved Properties</h3>
+        <div class="rooms-grid" style="grid-template-columns:repeat(3,1fr)">
+          <div class="room-card"><div class="img-wrap"><img src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=300&q=80" alt="Lagoon Villa"></div><div class="body"><h4 style="font-size:1.1rem">Lagoon Villa</h4><p class="desc">Aurelia Maldives</p></div></div>
+          <div class="room-card"><div class="img-wrap"><img src="https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=300&q=80" alt="Summit Chalet"></div><div class="body"><h4 style="font-size:1.1rem">Summit Chalet</h4><p class="desc">Aurelia Aspen</p></div></div>
+          <div class="room-card"><div class="img-wrap"><img src="https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=300&q=80" alt="Garden Suite"></div><div class="body"><h4 style="font-size:1.1rem">Garden Suite</h4><p class="desc">Aurelia Kyoto</p></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="js/script.js"></script>
+</body>
+</html>

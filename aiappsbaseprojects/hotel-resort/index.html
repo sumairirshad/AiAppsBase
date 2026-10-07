@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Aurelia Resorts — Luxury Escapes, Thoughtfully Hosted</title>
+<meta name="description" content="Aurelia Resorts offers five-star stays across coastal and mountain destinations, with signature suites, dining and wellness.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="container">
+    <div><span>📞 +1 (800) 555-0142</span><span>✉ reservations@aurelia-resorts.com</span></div>
+    <div><span>EN / USD</span><span>5 Properties Worldwide</span></div>
+  </div>
+</div>
+
+<header class="site-header">
+  <div class="container nav-row">
+    <nav class="main-nav">
+      <a href="#rooms">Suites</a>
+      <a href="#dining">Dining</a>
+      <a href="#experiences">Experiences</a>
+      <a href="#locations">Locations</a>
+    </nav>
+    <a href="index.html" class="logo">AU<em>RE</em>LIA</a>
+    <div class="nav-actions">
+      <a href="login.html" class="login-link">Log In</a>
+      <a href="signup.html" class="btn btn-gold" style="padding:10px 22px">Book Now</a>
+      <button class="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-inner">
+    <span class="kicker">Five-Star Coastal & Mountain Retreats</span>
+    <h1>Where every stay becomes a memory</h1>
+    <p>Aurelia Resorts curates refined escapes across five destinations — signature suites, world-class dining and spa sanctuaries await.</p>
+    <div class="hero-actions">
+      <a href="#rooms" class="btn btn-gold">View Suites</a>
+      <a href="#locations" class="btn btn-outline-light">Our Locations</a>
+    </div>
+  </div>
+</section>
+
+<div class="container booking-bar">
+  <form class="booking-card">
+    <div class="booking-field"><label>Check In</label><input type="date"></div>
+    <div class="booking-field"><label>Check Out</label><input type="date"></div>
+    <div class="booking-field"><label>Guests</label><select><option>2 Adults</option><option>1 Adult</option><option>2 Adults, 1 Child</option><option>Family (4+)</option></select></div>
+    <div class="booking-field"><label>Property</label><select><option>Aurelia Santorini</option><option>Aurelia Maldives</option><option>Aurelia Aspen</option><option>Aurelia Kyoto</option></select></div>
+    <button type="submit" class="btn btn-gold">Check Availability</button>
+  </form>
+</div>
+
+<section>
+  <div class="container intro-split">
+    <div class="frame"><img src="https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=700&q=80" alt="Aurelia resort pool"></div>
+    <div>
+      <span class="kicker" style="text-align:left">Our Philosophy</span>
+      <h2>Hospitality as a quiet art</h2>
+      <p>For over two decades, Aurelia has hosted travelers seeking more than luxury — a sense of place. Each property is designed in dialogue with its landscape, staffed by people who treat hospitality as craft.</p>
+      <p>From oceanfront Santorini to alpine Aspen, every detail — linen, light, silence — is considered.</p>
+      <div class="intro-stats">
+        <div><strong>5</strong><span>Signature Properties</span></div>
+        <div><strong>22</strong><span>Years Hosting</span></div>
+        <div><strong>4.9</strong><span>Guest Rating</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="rooms" style="background:var(--ivory-dim)">
+  <div class="container">
+    <div class="section-title"><span class="kicker">Signature Stays</span><h2>Suites & Villas</h2><div class="rule"></div></div>
+    <div class="rooms-grid">
+      <div class="room-card">
+        <div class="img-wrap"><img src="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=500&q=80" alt="Ocean View Suite"></div>
+        <div class="body">
+          <span class="tag">Oceanfront</span>
+          <h4>Horizon Suite</h4>
+          <p class="desc">65m² of private terrace, plunge pool and uninterrupted Aegean views.</p>
+          <div class="room-footer"><div class="price">$640<span>/night</span></div><a href="signup.html" class="btn btn-outline-navy" style="padding:10px 20px">Reserve</a></div>
+        </div>
+      </div>
+      <div class="room-card">
+        <div class="img-wrap"><img src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=500&q=80" alt="Overwater Villa"></div>
+        <div class="body">
+          <span class="tag">Overwater</span>
+          <h4>Lagoon Villa</h4>
+          <p class="desc">Glass-floor lounge, private deck steps and butler service.</p>
+          <div class="room-footer"><div class="price">$1,120<span>/night</span></div><a href="signup.html" class="btn btn-outline-navy" style="padding:10px 20px">Reserve</a></div>
+        </div>
+      </div>
+      <div class="room-card">
+        <div class="img-wrap"><img src="https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=500&q=80" alt="Alpine Chalet"></div>
+        <div class="body">
+          <span class="tag">Alpine</span>
+          <h4>Summit Chalet</h4>
+          <p class="desc">Floor-to-ceiling fireplace, cedar sauna and private ski access.</p>
+          <div class="room-footer"><div class="price">$780<span>/night</span></div><a href="signup.html" class="btn btn-outline-navy" style="padding:10px 20px">Reserve</a></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="amenities-band">
+  <div class="container">
+    <div class="section-title"><span class="kicker">Resort Amenities</span><h2>Everything, considered</h2><div class="rule"></div></div>
+  </div>
+  <div class="amenities-grid">
+    <div class="amenity"><div class="glyph">◆</div><h4>Infinity Pools</h4><p>Heated, cliff-edge, open year round</p></div>
+    <div class="amenity"><div class="glyph">✦</div><h4>Private Beach</h4><p>Reserved loungers & water sports</p></div>
+    <div class="amenity"><div class="glyph">❖</div><h4>Butler Service</h4><p>24-hour dedicated suite attendants</p></div>
+    <div class="amenity"><div class="glyph">✧</div><h4>Helicopter Transfer</h4><p>Direct arrival from regional airports</p></div>
+  </div>
+</section>
+
+<section id="dining">
+  <div class="container dining-split" style="padding:0">
+    <div class="img-side"><img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=700&q=80" alt="Fine dining restaurant"></div>
+    <div class="text-side">
+      <span class="kicker" style="text-align:left">Dining</span>
+      <h2 style="font-size:2rem;margin-bottom:20px">Four restaurants, one philosophy</h2>
+      <div class="dining-item"><h4>Horizon Grill</h4><span>Coastal fine dining</span></div>
+      <div class="dining-item"><h4>Olive & Stone</h4><span>Mediterranean tasting menu</span></div>
+      <div class="dining-item"><h4>The Cellar</h4><span>Wine bar & small plates</span></div>
+      <div class="dining-item"><h4>Sunrise Terrace</h4><span>All-day café & breakfast</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-title"><span class="kicker">Gallery</span><h2>A glimpse inside Aurelia</h2><div class="rule"></div></div>
+    <div class="mosaic">
+      <a href="#"><img src="https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=600&q=80" alt="Pool"></a>
+      <a href="#"><img src="https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=400&q=80" alt="Suite interior"></a>
+      <a href="#"><img src="https://images.unsplash.com/photo-1455587734955-081b22074882?auto=format&fit=crop&w=400&q=80" alt="Spa"></a>
+      <a href="#"><img src="https://images.unsplash.com/photo-1519449556851-5720b33024e7?auto=format&fit=crop&w=600&q=80" alt="Dining terrace"></a>
+      <a href="#"><img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=400&q=80" alt="Resort exterior"></a>
+    </div>
+  </div>
+</section>
+
+<section id="experiences" style="background:var(--ivory-dim)">
+  <div class="container">
+    <div class="section-title"><span class="kicker">Experiences</span><h2>Beyond the suite</h2><div class="rule"></div></div>
+    <div class="exp-list">
+      <div class="exp-item"><div class="num">01</div><h4>Sunset Catamaran</h4><p>Private sailing with onboard chef and sparkling wine.</p></div>
+      <div class="exp-item"><div class="num">02</div><h4>Spa Rituals</h4><p>Signature treatments using regional botanicals.</p></div>
+      <div class="exp-item"><div class="num">03</div><h4>Vineyard Tour</h4><p>Guided tastings at partner estates nearby.</p></div>
+    </div>
+  </div>
+</section>
+
+<div class="container">
+  <div class="stats-strip">
+    <div><strong>5</strong><span>Properties</span></div>
+    <div><strong>340</strong><span>Suites & Villas</span></div>
+    <div><strong>96%</strong><span>Return Guests</span></div>
+    <div><strong>4.9</strong><span>Average Rating</span></div>
+  </div>
+</div>
+
+<section>
+  <div class="container testimonial-single">
+    <span class="kicker">Guest Experience</span>
+    <div class="mark">"</div>
+    <p class="quote">Every member of staff somehow knew our names by the second day. The Horizon Suite view alone is worth the trip — this is hospitality done right.</p>
+    <p class="who">Daniel & Rosa Fischer — Aurelia Santorini, 2025</p>
+    <div class="testi-dots"><span class="active"></span><span></span><span></span></div>
+  </div>
+</section>
+
+<section style="background:var(--ivory-dim)">
+  <div class="container">
+    <div class="section-title"><span class="kicker">Offers</span><h2>Seasonal packages</h2><div class="rule"></div></div>
+    <div class="offers-grid">
+      <div class="offer-card">
+        <img src="https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=600&q=80" alt="Honeymoon package">
+        <div class="overlay"><span class="badge">Honeymoon</span><h4>7 nights, private villa & spa</h4><a href="signup.html" class="btn btn-outline-light" style="width:fit-content">Explore</a></div>
+      </div>
+      <div class="offer-card">
+        <img src="https://images.unsplash.com/photo-1455587734955-081b22074882?auto=format&fit=crop&w=600&q=80" alt="Wellness retreat">
+        <div class="overlay"><span class="badge">Wellness</span><h4>5-day restorative retreat</h4><a href="signup.html" class="btn btn-outline-light" style="width:fit-content">Explore</a></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="locations">
+  <div class="container">
+    <div class="section-title"><span class="kicker">Our Locations</span><h2>Five destinations, one standard</h2><div class="rule"></div></div>
+    <div class="locations-list">
+      <div class="location-row"><div class="loc-img"><img src="https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=300&q=80" alt="Santorini"></div><div><h4>Aurelia Santorini</h4><span>Cliffside suites overlooking the caldera</span></div><a href="#" class="btn btn-outline-navy" style="padding:10px 20px">View</a></div>
+      <div class="location-row"><div class="loc-img"><img src="https://images.unsplash.com/photo-1573843981267-be1999ff37cd?auto=format&fit=crop&w=300&q=80" alt="Maldives"></div><div><h4>Aurelia Maldives</h4><span>Overwater villas in the North Atoll</span></div><a href="#" class="btn btn-outline-navy" style="padding:10px 20px">View</a></div>
+      <div class="location-row"><div class="loc-img"><img src="https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=300&q=80" alt="Aspen"></div><div><h4>Aurelia Aspen</h4><span>Alpine chalets with private ski-in access</span></div><a href="#" class="btn btn-outline-navy" style="padding:10px 20px">View</a></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container press-strip">
+    <span>CONDÉ NAST</span><span>TRAVEL+LEISURE</span><span>FORBES TRAVEL</span><span>ROBB REPORT</span>
+  </div>
+</section>
+
+<section class="newsletter-band">
+  <div class="container">
+    <span class="kicker" style="color:var(--gold-light)">Stay Connected</span>
+    <h2>Private offers, sent quarterly</h2>
+    <form><input type="email" placeholder="Your email address" required><button type="submit">Subscribe</button></form>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-title"><span class="kicker">Good To Know</span><h2>Frequently Asked</h2><div class="rule"></div></div>
+    <div class="faq-wrap">
+      <div class="faq-item open">
+        <div class="faq-q"><span>What time is check-in / check-out?</span><span class="ic">+</span></div>
+        <div class="faq-a"><p>Check-in from 3:00 PM, check-out by 12:00 PM. Early arrival and late departure can be arranged subject to availability.</p></div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q"><span>Is breakfast included in the rate?</span><span class="ic">+</span></div>
+        <div class="faq-a"><p>All suite and villa rates include daily breakfast at Sunrise Terrace. Half and full board options are available.</p></div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q"><span>What is your cancellation policy?</span><span class="ic">+</span></div>
+        <div class="faq-a"><p>Free cancellation up to 7 days before arrival. Within 7 days, one night's rate applies.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="final-cta">
+  <div class="final-cta-bg"></div>
+  <div class="container inner">
+    <span class="kicker" style="color:var(--gold-light)">Reserve Your Stay</span>
+    <h2>Begin your Aurelia story</h2>
+    <a href="signup.html" class="btn btn-gold">Book Your Suite</a>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div>
+      <div class="footer-logo">AU<em style="color:var(--gold)">RE</em>LIA</div>
+      <p style="max-width:280px;font-size:0.88rem">Five-star coastal and mountain resorts hosting discerning travelers since 2003.</p>
+    </div>
+    <div><h5>Explore</h5><ul><li><a href="#rooms">Suites</a></li><li><a href="#dining">Dining</a></li><li><a href="#experiences">Experiences</a></li><li><a href="#locations">Locations</a></li></ul></div>
+    <div><h5>Company</h5><ul><li><a href="#">About</a></li><li><a href="#">Careers</a></li><li><a href="#">Press</a></li></ul></div>
+    <div><h5>Contact</h5><ul><li>+1 (800) 555-0142</li><li>reservations@aurelia-resorts.com</li></ul></div>
+  </div>
+  <div class="container footer-bottom"><span>© 2025 Aurelia Resorts. All rights reserved.</span><span>Privacy · Terms</span></div>
+</footer>
+
+<script src="js/script.js"></script>
+</body>
+</html>

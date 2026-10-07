@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Log In — Aurelia Resorts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-media">
+    <div class="auth-media-text">
+      <a href="index.html" class="logo">AU<em>RE</em>LIA</a>
+      <div>
+        <h2>"A quiet kind of luxury — the kind you remember."</h2>
+        <p style="margin-top:14px;color:#dfe3e8">— Travel + Leisure, 2024</p>
+      </div>
+    </div>
+  </div>
+  <div class="auth-side">
+    <div class="auth-box">
+      <span class="kicker" style="text-align:left">Guest Portal</span>
+      <h1>Welcome back</h1>
+      <p class="sub">Sign in to manage your reservations.</p>
+      <form id="loginForm">
+        <div class="form-group"><label for="email">Email Address</label><input type="email" id="email" placeholder="you@example.com" required></div>
+        <div class="form-group"><label for="password">Password</label><input type="password" id="password" placeholder="••••••••" required></div>
+        <p class="form-error" id="loginError">Incorrect credentials. Please use the demo login below.</p>
+        <div class="form-meta">
+          <label class="checkbox-row"><input type="checkbox"> Keep me signed in</label>
+          <a href="#" style="color:var(--gold);font-weight:600">Forgot password?</a>
+        </div>
+        <button type="submit" class="btn btn-gold btn-block">Sign In</button>
+      </form>
+      <div class="demo-box"><strong>Demo Login</strong>Email: <code>demo@aurelia-resorts.com</code><br>Password: <code>Stay2025!</code></div>
+      <p class="auth-switch">New to Aurelia? <a href="signup.html">Create an account</a></p>
+    </div>
+  </div>
+</div>
+<script src="js/script.js"></script>
+</body>
+</html>
