@@ -1,7 +1,7 @@
 import Link from 'next/link'
-import { Zap } from 'lucide-react'
 
 import { Icon } from '@/components/icon'
+import { BrandLogo } from '@/components/brand-logo'
 import { Separator } from '@/components/ui/separator'
 import { NewsletterForm } from '@/components/landing/newsletter-form'
 import { footerColumns, footerLegalBar, socialLinks } from '@/lib/nav-data'
@@ -13,12 +13,7 @@ export function Footer() {
         <div className="grid gap-12 lg:grid-cols-[1.4fr_2.6fr]">
           {/* Brand + newsletter */}
           <div className="space-y-6">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="grid size-8 place-items-center rounded-lg bg-gradient-to-br from-indigo-500 to-fuchsia-500 shadow-md">
-                <Zap className="size-5 text-white" />
-              </div>
-              <span className="font-display text-lg font-bold">AIAppsBase</span>
-            </Link>
+            <BrandLogo />
             <p className="max-w-sm text-sm text-muted-foreground">
               The marketplace for AI-built projects and GitHub repositories. Buy and sell
               production-ready code — synced, delivered, and protected end to end.

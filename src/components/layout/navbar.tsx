@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
-  ShoppingCart, Menu, User, LogOut, LayoutDashboard, Zap, ArrowRight,
+  ShoppingCart, Menu, User, LogOut, LayoutDashboard, ArrowRight,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Icon } from '@/components/icon'
+import { BrandLogo } from '@/components/brand-logo'
 import { ThemeToggle } from '@/components/theme-toggle'
 import {
   NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuList,
@@ -33,14 +34,7 @@ import { HeaderSearch } from '@/components/layout/header-search'
 type Me = { full_name: string; email: string; role: string }
 
 function Logo() {
-  return (
-    <Link href="/" className="flex items-center gap-2">
-      <div className="grid size-8 place-items-center rounded-lg bg-gradient-to-br from-indigo-500 to-fuchsia-500 shadow-md transition-shadow hover:shadow-glow">
-        <Zap className="size-5 text-white" />
-      </div>
-      <span className="font-display text-lg font-bold tracking-tight">AIAppsBase</span>
-    </Link>
-  )
+  return <BrandLogo />
 }
 
 function MegaMenuLink({ label, href, description, icon, badge }: {

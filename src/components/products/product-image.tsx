@@ -6,8 +6,8 @@ import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import { normalizeImageSrc } from '@/lib/image-src'
 
-/** The AIAppsBase logo, shown wherever a product has no image (or its image fails to load). */
-export const PRODUCT_IMAGE_FALLBACK = '/images/aiappsbase-logo.svg'
+/** The AiAppsBase logo mark, shown wherever a product has no image (or its image fails to load). */
+export const PRODUCT_IMAGE_FALLBACK = '/images/logo-mark.png'
 
 
 /*
@@ -60,7 +60,7 @@ export function ProductImage({
     return (
       <div data-fallback="" className={cn('absolute inset-0 grid place-items-center bg-muted', className)}>
         <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-30" />
-        <Image src={PRODUCT_IMAGE_FALLBACK} alt={alt} width={64} height={64} unoptimized className={cn('relative drop-shadow-md', logoClassName)} />
+        <Image src={PRODUCT_IMAGE_FALLBACK} alt={alt} width={64} height={64} unoptimized className={cn('relative object-contain drop-shadow-md', logoClassName)} />
       </div>
     )
   }
