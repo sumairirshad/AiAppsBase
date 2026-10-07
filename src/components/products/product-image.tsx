@@ -40,17 +40,26 @@ export const mediaChipClass =
 
 /**
  * A product's image, filling its (relatively positioned, sized) parent.
- * Falls back to the AIAppsBase logo on a neutral background when `src` is
+ * Falls back to the AiAppsBase logo on a neutral background when `src` is
  * empty or broken. `logoClassName` sizes the fallback logo.
+ *
+ * Runs through Next's image optimizer (resized, re-encoded to AVIF/WebP,
+ * `sizes`-aware `srcset`) instead of serving the original upload — product
+ * screenshots are rendered far smaller than they're uploaded, so this is the
+ * difference between shipping a multi-MB screenshot and a ~20KB thumbnail.
+ * Pass `priority` for images that render above the fold (e.g. the first row
+ * of results, or a product page's hero image) to eager-load/preload them;
+ * everything else lazy-loads by default.
  */
 export function ProductImage({
-  src, alt, className, logoClassName = 'size-12', sizes = '(min-width: 1024px) 33vw, 100vw',
+  src, alt, className, logoClassName = 'size-12', sizes = '(min-width: 1024px) 33vw, 100vw', priority = false,
 }: {
   src?: string | null
   alt: string
   className?: string
   logoClassName?: string
   sizes?: string
+  priority?: boolean
 }) {
   const url = normalizeImageSrc(src)
   const [failed, setFailed] = React.useState(false)
@@ -60,7 +69,7 @@ export function ProductImage({
     return (
       <div data-fallback="" className={cn('absolute inset-0 grid place-items-center bg-muted', className)}>
         <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-30" />
-        <Image src={PRODUCT_IMAGE_FALLBACK} alt={alt} width={64} height={64} unoptimized className={cn('relative object-contain drop-shadow-md', logoClassName)} />
+        <Image src={PRODUCT_IMAGE_FALLBACK} alt={alt} width={64} height={64} className={cn('relative object-contain drop-shadow-md', logoClassName)} />
       </div>
     )
   }
@@ -70,10 +79,10 @@ export function ProductImage({
       src={url}
       alt={alt}
       fill
-      unoptimized
       sizes={sizes}
+      priority={priority}
       onError={() => setFailed(true)}
-      className={cn('object-cover', className)}
+      className={cn('bg-muted object-cover', className)}
     />
   )
 }

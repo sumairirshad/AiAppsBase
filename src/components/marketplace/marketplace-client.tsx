@@ -1,7 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import { Search, SlidersHorizontal, LayoutGrid, List, X, PackageOpen, Star, ChevronDown } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Search, SlidersHorizontal, LayoutGrid, List, X, PackageOpen, Star, ChevronDown, Cpu, DollarSign } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -13,11 +14,16 @@ import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { ProductCard, ProductRow } from '@/components/marketplace/product-card'
 import { CATEGORIES, LANGUAGES, LICENSES, TECHS, type Repo } from '@/lib/marketplace-config'
-import { buildSearchIndex, rankDiscovery, rankSearch, type Components, type RankItem } from '@/lib/ranking'
+import {
+  emptyFilters, activeFilterCount, paramsFromFilters, MAX_PRICE, type Filters,
+} from '@/lib/marketplace-filters'
 
 const SORTS = [
   { value: 'recommended', label: 'Recommended' },
@@ -28,47 +34,10 @@ const SORTS = [
   { value: 'price-low', label: 'Price: low to high' },
   { value: 'price-high', label: 'Price: high to low' },
 ]
-const PER_PAGE = 12
 
-/** Used only if a product arrives without ranking data (keeps it rankable, mid-pack). */
-const NEUTRAL_RANK: Components = { quality: 0.5, popularity: 0, seller: 0.35, freshness: 0, exploration: 0, evidence: 0 }
-
-function toRankItem(p: Repo): RankItem<Repo> {
-  return {
-    id: p.id,
-    sellerId: p.sellerId,
-    doc: {
-      title: p.title, name: p.name, description: p.description, tags: p.tags, techStack: p.techStack,
-      category: p.category, subcategory: p.subcategory, language: p.language,
-    },
-    components: p.rank ?? NEUTRAL_RANK,
-    dupKey: p.repoUrl ? p.repoUrl.replace(/^https:\/\/github\.com\//, '') : undefined,
-    payload: p,
-  }
-}
-const MAX_PRICE = 150
-
-type Filters = {
-  q: string
-  categories: string[]
-  subcategories: string[]
-  languages: string[]
-  licenses: string[]
-  techs: string[]
-  price: [number, number]
-  minStars: number
-  verified: boolean
-  featured: boolean
-  trending: boolean
-  freeOnly: boolean
-}
-
-const emptyFilters = (init?: Partial<Filters>): Filters => ({
-  q: '', categories: [], subcategories: [], languages: [], licenses: [], techs: [],
-  price: [0, MAX_PRICE], minStars: 0,
-  verified: false, featured: false, trending: false, freeOnly: false,
-  ...init,
-})
+// Above-the-fold cards (first grid row on most breakpoints) are eager-loaded;
+// everything else lazy-loads as the user scrolls.
+const PRIORITY_COUNT = 3
 
 function toggle(list: string[], value: string) {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value]
@@ -93,10 +62,10 @@ function CheckRow({ checked, onChange, label, count }: { checked: boolean; onCha
   )
 }
 
-function CategoryFilterGroup({ filters, set, products }: { filters: Filters; set: React.Dispatch<React.SetStateAction<Filters>>; products: Repo[] }) {
+type SetFilters = React.Dispatch<React.SetStateAction<Filters>>
+
+function CategoryFilterGroup({ filters, set }: { filters: Filters; set: SetFilters }) {
   const [open, setOpen] = React.useState<string[]>([])
-  const catCount = (slug: string) => products.filter((p) => p.categorySlug === slug).length
-  const subCatCount = (slug: string) => products.filter((p) => p.subcategorySlug === slug).length
 
   return (
     <FilterGroup title="Category">
@@ -108,7 +77,6 @@ function CategoryFilterGroup({ filters, set, products }: { filters: Filters; set
               <div className="flex items-center gap-1">
                 <CheckRow
                   label={c.name}
-                  count={catCount(c.slug)}
                   checked={filters.categories.includes(c.slug)}
                   onChange={() => set((f) => ({ ...f, categories: toggle(f.categories, c.slug) }))}
                 />
@@ -127,7 +95,6 @@ function CategoryFilterGroup({ filters, set, products }: { filters: Filters; set
                     <CheckRow
                       key={s.slug}
                       label={s.name}
-                      count={subCatCount(s.slug)}
                       checked={filters.subcategories.includes(s.slug)}
                       onChange={() => set((f) => ({ ...f, subcategories: toggle(f.subcategories, s.slug) }))}
                     />
@@ -142,24 +109,49 @@ function CategoryFilterGroup({ filters, set, products }: { filters: Filters; set
   )
 }
 
-function FiltersPanel({ filters, set, products }: { filters: Filters; set: React.Dispatch<React.SetStateAction<Filters>>; products: Repo[] }) {
+/** The Technologies checklist, shared by the toolbar's quick-filter dropdown and the full filters sheet. */
+function TechList({ filters, set }: { filters: Filters; set: SetFilters }) {
+  return (
+    <ScrollArea className="h-56 pr-3">
+      {TECHS.map((t) => (
+        <CheckRow
+          key={t}
+          label={t}
+          checked={filters.techs.includes(t)}
+          onChange={() => set((f) => ({ ...f, techs: toggle(f.techs, t) }))}
+        />
+      ))}
+    </ScrollArea>
+  )
+}
+
+/** The Price range slider, shared by the toolbar's quick-filter dropdown and the full filters sheet. */
+function PriceControls({ filters, set }: { filters: Filters; set: SetFilters }) {
+  return (
+    <>
+      <Slider
+        value={filters.price}
+        min={0}
+        max={MAX_PRICE}
+        step={5}
+        onValueChange={(v) => set((f) => ({ ...f, price: [v[0], v[1]] as [number, number] }))}
+      />
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span>${filters.price[0]}</span>
+        <span>${filters.price[1]}{filters.price[1] === MAX_PRICE ? '+' : ''}</span>
+      </div>
+      <CheckRow label="Free only" checked={filters.freeOnly} onChange={() => set((f) => ({ ...f, freeOnly: !f.freeOnly }))} />
+    </>
+  )
+}
+
+function FiltersPanel({ filters, set }: { filters: Filters; set: SetFilters }) {
   return (
     <div className="space-y-6">
-      <CategoryFilterGroup filters={filters} set={set} products={products} />
+      <CategoryFilterGroup filters={filters} set={set} />
       <Separator />
       <FilterGroup title="Price">
-        <Slider
-          value={filters.price}
-          min={0}
-          max={MAX_PRICE}
-          step={5}
-          onValueChange={(v) => set((f) => ({ ...f, price: [v[0], v[1]] as [number, number] }))}
-        />
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>${filters.price[0]}</span>
-          <span>${filters.price[1]}{filters.price[1] === MAX_PRICE ? '+' : ''}</span>
-        </div>
-        <CheckRow label="Free only" checked={filters.freeOnly} onChange={() => set((f) => ({ ...f, freeOnly: !f.freeOnly }))} />
+        <PriceControls filters={filters} set={set} />
       </FilterGroup>
       <Separator />
       <FilterGroup title="Language">
@@ -188,17 +180,8 @@ function FiltersPanel({ filters, set, products }: { filters: Filters; set: React
         </div>
       </FilterGroup>
       <Separator />
-      <FilterGroup title="Tech stack">
-        <ScrollArea className="h-40 pr-3">
-          {TECHS.map((t) => (
-            <CheckRow
-              key={t}
-              label={t}
-              checked={filters.techs.includes(t)}
-              onChange={() => set((f) => ({ ...f, techs: toggle(f.techs, t) }))}
-            />
-          ))}
-        </ScrollArea>
+      <FilterGroup title="Technologies">
+        <TechList filters={filters} set={set} />
       </FilterGroup>
       <Separator />
       <FilterGroup title="Minimum stars">
@@ -217,134 +200,183 @@ function FiltersPanel({ filters, set, products }: { filters: Filters; set: React
   )
 }
 
+/** Quick-access "Technologies" dropdown for the toolbar — the same state as the full filters panel, surfaced without opening it. */
+function TechQuickFilter({ filters, set }: { filters: Filters; set: SetFilters }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" className="shrink-0">
+          <Cpu className="size-4" /> Technologies
+          {filters.techs.length > 0 && <Badge variant="brand" className="ml-1 px-1.5">{filters.techs.length}</Badge>}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-64 p-3">
+        <TechList filters={filters} set={set} />
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+/** Quick-access "Price" dropdown for the toolbar — same state as the full filters panel. */
+function PriceQuickFilter({ filters, set }: { filters: Filters; set: SetFilters }) {
+  const active = filters.price[0] > 0 || filters.price[1] < MAX_PRICE || filters.freeOnly
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" className="shrink-0">
+          <DollarSign className="size-4" /> Price
+          {active && <Badge variant="brand" className="ml-1 px-1.5">•</Badge>}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-64 space-y-3 p-4">
+        <PriceControls filters={filters} set={set} />
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
 export function MarketplaceClient({
-  products, initial, initialSort = 'recommended',
-}: { products: Repo[]; initial?: Partial<Filters>; initialSort?: string }) {
-  const [filters, setFilters] = React.useState<Filters>(() => emptyFilters(initial))
+  products, total, totalPages, page, sort: initialSort, filters: initialFilters,
+}: {
+  products: Repo[]
+  total: number
+  totalPages: number
+  page: number
+  sort: string
+  filters: Filters
+}) {
+  const router = useRouter()
+  const [isPending, startTransition] = React.useTransition()
+
+  const [filters, setFilters] = React.useState<Filters>(initialFilters)
   const [sort, setSort] = React.useState(initialSort)
   const [view, setView] = React.useState<'grid' | 'list'>('grid')
-  const [page, setPage] = React.useState(1)
-  // Keep typing responsive on large catalogs: ranking uses the deferred query.
-  const query = React.useDeferredValue(filters.q)
+  const [qDraft, setQDraft] = React.useState(initialFilters.q)
 
-  // Reset page when filters/sort change
-  React.useEffect(() => setPage(1), [filters, sort])
+  const activeCount = activeFilterCount(filters)
 
-  // The ranking engine is shared with the server: products arrive with their
-  // component scores, the index is built once over the whole catalog.
-  const rankItems = React.useMemo(() => products.map(toRankItem), [products])
-  const searchIndex = React.useMemo(() => buildSearchIndex(rankItems), [rankItems])
+  /** Pushes a new URL for the given filters/sort/page; the server page re-fetches and this component remounts with fresh props. */
+  const navigate = React.useCallback((next: Filters, nextSort: string, nextPage: number) => {
+    const qs = paramsFromFilters(next, nextSort, nextPage).toString()
+    startTransition(() => router.push(qs ? `/products?${qs}` : '/products'))
+  }, [router])
 
-  const filtered = React.useMemo(() => {
-    const candidates = rankItems.filter(({ payload: p }) => {
-      if (filters.categories.length && !filters.categories.includes(p.categorySlug)) return false
-      if (filters.subcategories.length && !filters.subcategories.includes(p.subcategorySlug)) return false
-      if (filters.languages.length && !filters.languages.includes(p.language)) return false
-      if (filters.licenses.length && !filters.licenses.includes(p.license)) return false
-      if (filters.techs.length && !filters.techs.some((t) => p.techStack.includes(t))) return false
-      if (p.price < filters.price[0] || (filters.price[1] < MAX_PRICE && p.price > filters.price[1])) return false
-      if (filters.freeOnly && p.price !== 0) return false
-      if (p.stars < filters.minStars) return false
-      if (filters.verified && !p.verified) return false
-      if (filters.featured && !p.featured) return false
-      if (filters.trending && !p.trending) return false
-      return true
-    })
-
-    // Rank (and seller-diversify) the full filtered set, then paginate below.
-    const ranked = query.trim() ? rankSearch(candidates, searchIndex, query) : rankDiscovery(candidates)
-    const out = ranked.map((r) => r.item.payload)
-    if (sort === 'recommended') return out
-
-    // Explicit sorts chosen by the buyer (stable, so ties keep the ranked order).
-    return [...out].sort((a, b) => {
-      switch (sort) {
-        case 'newest': return b.createdAt.localeCompare(a.createdAt)
-        case 'top-rated': return b.rating - a.rating || b.reviewCount - a.reviewCount
-        case 'most-stars': return b.stars - a.stars
-        case 'price-low': return a.price - b.price
-        case 'price-high': return b.price - a.price
-        // Trending = recent, normalised buyer activity rather than all-time sales.
-        case 'trending': return (b.rank?.popularity ?? 0) - (a.rank?.popularity ?? 0)
-        default: return 0
+  // Any filter/sort change resets to page 1. Debounced for the search box so
+  // typing doesn't fire a request per keystroke; other controls navigate immediately.
+  React.useEffect(() => {
+    const t = setTimeout(() => {
+      if (qDraft !== filters.q) {
+        const next = { ...filters, q: qDraft }
+        setFilters(next)
+        navigate(next, sort, 1)
       }
-    })
-  }, [rankItems, searchIndex, filters, query, sort])
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, 400)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qDraft])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE))
-  const pageItems = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE)
+  // Note: `navigate` (a side effect) runs after computing `next`, never inside
+  // the setState updater itself — React may invoke updaters outside a normal
+  // event-handler context, and triggering a transition from in there corrupts
+  // the render ("Cannot call startTransition while rendering").
+  const updateFilters: SetFilters = (action) => {
+    const next = typeof action === 'function' ? (action as (f: Filters) => Filters)(filters) : action
+    setFilters(next)
+    navigate(next, sort, 1)
+  }
 
-  const activeCount =
-    filters.categories.length + filters.subcategories.length + filters.languages.length + filters.licenses.length + filters.techs.length +
-    (filters.verified ? 1 : 0) + (filters.featured ? 1 : 0) + (filters.trending ? 1 : 0) + (filters.freeOnly ? 1 : 0) +
-    (filters.minStars > 0 ? 1 : 0) + (filters.price[0] > 0 || filters.price[1] < MAX_PRICE ? 1 : 0)
+  function updateSort(nextSort: string) {
+    setSort(nextSort)
+    navigate(filters, nextSort, 1)
+  }
+
+  function goToPage(n: number) {
+    navigate(filters, sort, n)
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function clearAll() {
+    const next = emptyFilters()
+    setFilters(next)
+    setQDraft('')
+    navigate(next, sort, 1)
+  }
 
   return (
-    <div className="container py-10">
+    <div className={cn('container py-10 transition-opacity', isPending && 'opacity-60')}>
       {/* Header */}
       <div className="mb-8 space-y-3">
         <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">Marketplace</h1>
         <p className="text-muted-foreground">
-          {products.length > 0
-            ? `Browse ${products.length} production-ready projects, repos, and templates.`
+          {total > 0
+            ? `Browse ${total} production-ready projects, repos, and templates.`
             : 'Production-ready projects, repos, and templates from verified creators.'}
         </p>
       </div>
 
-      {/* Toolbar */}
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
+      {/* Toolbar: Search, then quick Technologies/Price filters, then sort / view / more filters.
+          The site-wide Technologies and Pricing nav items (and the theme toggle) live in the
+          header above — see components/layout/navbar.tsx. */}
+      <div className="mb-6 flex flex-col gap-3">
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            value={filters.q}
-            onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
+            value={qDraft}
+            onChange={(e) => setQDraft(e.target.value)}
             placeholder="Search projects, tech, or tags…"
             className="pl-9"
           />
         </div>
-        <div className="flex items-center gap-2">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" className="lg:hidden">
-                <SlidersHorizontal className="size-4" /> Filters
-                {activeCount > 0 && <Badge variant="brand" className="ml-1 px-1.5">{activeCount}</Badge>}
+
+        <div className="flex flex-wrap items-center gap-2">
+          <TechQuickFilter filters={filters} set={updateFilters} />
+          <PriceQuickFilter filters={filters} set={updateFilters} />
+
+          <div className="ml-auto flex items-center gap-2">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" className="lg:hidden">
+                  <SlidersHorizontal className="size-4" /> More filters
+                  {activeCount > 0 && <Badge variant="brand" className="ml-1 px-1.5">{activeCount}</Badge>}
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-full overflow-y-auto sm:max-w-sm">
+                <SheetHeader className="text-left"><SheetTitle>Filters</SheetTitle></SheetHeader>
+                <div className="p-6 pt-2"><FiltersPanel filters={filters} set={updateFilters} /></div>
+              </SheetContent>
+            </Sheet>
+            <Select value={sort} onValueChange={updateSort}>
+              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {SORTS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <div className="hidden items-center rounded-lg border border-border p-0.5 sm:flex">
+              <Button variant={view === 'grid' ? 'secondary' : 'ghost'} size="icon" className="size-8" onClick={() => setView('grid')} aria-label="Grid view">
+                <LayoutGrid className="size-4" />
               </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-full overflow-y-auto sm:max-w-sm">
-              <SheetHeader className="text-left"><SheetTitle>Filters</SheetTitle></SheetHeader>
-              <div className="p-6 pt-2"><FiltersPanel filters={filters} set={setFilters} products={products} /></div>
-            </SheetContent>
-          </Sheet>
-          <Select value={sort} onValueChange={setSort}>
-            <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {SORTS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <div className="hidden items-center rounded-lg border border-border p-0.5 sm:flex">
-            <Button variant={view === 'grid' ? 'secondary' : 'ghost'} size="icon" className="size-8" onClick={() => setView('grid')} aria-label="Grid view">
-              <LayoutGrid className="size-4" />
-            </Button>
-            <Button variant={view === 'list' ? 'secondary' : 'ghost'} size="icon" className="size-8" onClick={() => setView('list')} aria-label="List view">
-              <List className="size-4" />
-            </Button>
+              <Button variant={view === 'list' ? 'secondary' : 'ghost'} size="icon" className="size-8" onClick={() => setView('list')} aria-label="List view">
+                <List className="size-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="flex gap-8">
-        {/* Sidebar */}
+        {/* Sidebar (desktop) — the full filter set, including Technologies and Price */}
         <aside className="hidden w-64 shrink-0 lg:block">
           <div className="sticky top-24">
             <div className="mb-4 flex items-center justify-between">
               <span className="text-sm font-semibold">Filters</span>
               {activeCount > 0 && (
-                <button onClick={() => setFilters(emptyFilters())} className="text-xs text-primary hover:underline">
+                <button onClick={clearAll} className="text-xs text-primary hover:underline">
                   Clear all
                 </button>
               )}
             </div>
-            <FiltersPanel filters={filters} set={setFilters} products={products} />
+            <FiltersPanel filters={filters} set={updateFilters} />
           </div>
         </aside>
 
@@ -352,21 +384,21 @@ export function MarketplaceClient({
         <div className="min-w-0 flex-1">
           <div className="mb-4 flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">{filtered.length}</span> results
+              <span className="font-medium text-foreground">{total}</span> results
             </p>
             {activeCount > 0 && (
-              <button onClick={() => setFilters(emptyFilters())} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground lg:hidden">
+              <button onClick={clearAll} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground lg:hidden">
                 <X className="size-3" /> Clear
               </button>
             )}
           </div>
 
-          {pageItems.length === 0 ? (
+          {products.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-24 text-center">
               <div className="mb-4 grid size-14 place-items-center rounded-2xl bg-muted text-muted-foreground">
                 <PackageOpen className="size-7" />
               </div>
-              {products.length === 0 ? (
+              {total === 0 && activeCount === 0 && !filters.q ? (
                 <>
                   <h3 className="text-lg font-semibold">No listings yet</h3>
                   <p className="mt-1 max-w-sm text-sm text-muted-foreground">
@@ -380,24 +412,24 @@ export function MarketplaceClient({
                 <>
                   <h3 className="text-lg font-semibold">No projects match your filters</h3>
                   <p className="mt-1 max-w-sm text-sm text-muted-foreground">Try removing a filter or broadening your search to see more results.</p>
-                  <Button variant="outline" className="mt-5" onClick={() => setFilters(emptyFilters())}>Reset filters</Button>
+                  <Button variant="outline" className="mt-5" onClick={clearAll}>Reset filters</Button>
                 </>
               )}
             </div>
           ) : view === 'grid' ? (
             <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-              {pageItems.map((p) => <ProductCard key={p.id} repo={p} />)}
+              {products.map((p, i) => <ProductCard key={p.id} repo={p} priority={i < PRIORITY_COUNT} />)}
             </div>
           ) : (
             <div className="space-y-4">
-              {pageItems.map((p) => <ProductRow key={p.id} repo={p} />)}
+              {products.map((p, i) => <ProductRow key={p.id} repo={p} priority={i < PRIORITY_COUNT} />)}
             </div>
           )}
 
-          {/* Pagination */}
+          {/* Pagination — server-driven: page/totalPages come from the API response, not a client-side slice */}
           {totalPages > 1 && (
             <div className="mt-10 flex items-center justify-center gap-1.5">
-              <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+              <Button variant="outline" size="sm" disabled={page === 1} onClick={() => goToPage(page - 1)}>
                 Previous
               </Button>
               {Array.from({ length: totalPages }).map((_, i) => {
@@ -407,12 +439,12 @@ export function MarketplaceClient({
                   return null
                 }
                 return (
-                  <Button key={n} variant={n === page ? 'default' : 'outline'} size="icon" className="size-9" onClick={() => setPage(n)}>
+                  <Button key={n} variant={n === page ? 'default' : 'outline'} size="icon" className="size-9" onClick={() => goToPage(n)}>
                     {n}
                   </Button>
                 )
               })}
-              <Button variant="outline" size="sm" disabled={page === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>
+              <Button variant="outline" size="sm" disabled={page === totalPages} onClick={() => goToPage(page + 1)}>
                 Next
               </Button>
             </div>

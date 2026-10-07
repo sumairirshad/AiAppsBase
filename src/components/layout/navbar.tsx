@@ -28,7 +28,7 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { megaMenus, simpleNavLinks } from '@/lib/nav-data'
+import { megaMenus, simpleNavLinks, type MegaMenu, type NavLink } from '@/lib/nav-data'
 import { HeaderSearch } from '@/components/layout/header-search'
 
 type Me = { full_name: string; email: string; role: string }
@@ -59,11 +59,11 @@ function MegaMenuLink({ label, href, description, icon, badge }: {
   )
 }
 
-function DesktopNav() {
+function DesktopNav({ menus, links = [] }: { menus: MegaMenu[]; links?: NavLink[] }) {
   return (
     <NavigationMenu className="hidden lg:flex">
       <NavigationMenuList>
-        {megaMenus.map((menu) => (
+        {menus.map((menu) => (
           <NavigationMenuItem key={menu.label}>
             <NavigationMenuTrigger>{menu.label}</NavigationMenuTrigger>
             <NavigationMenuContent>
@@ -113,7 +113,7 @@ function DesktopNav() {
             </NavigationMenuContent>
           </NavigationMenuItem>
         ))}
-        {simpleNavLinks.map((link) => (
+        {links.map((link) => (
           <NavigationMenuItem key={link.href}>
             <Link href={link.href} className={navigationMenuTriggerStyle()}>
               {link.label}
@@ -246,10 +246,11 @@ export function Navbar() {
       <div className="container flex h-16 items-center gap-4">
         <Logo />
 
-        <DesktopNav />
-
-        {/* Search (desktop) — fills the space between the nav and the actions */}
+        {/* Search (desktop) — fills the space between the logo and the nav/actions */}
         <HeaderSearch className="hidden min-w-0 flex-1 md:block" />
+
+        {/* Marketplace, Technologies, Pricing: after the search bar, before the theme toggle */}
+        <DesktopNav menus={megaMenus} links={simpleNavLinks} />
 
         <div className="ml-auto flex items-center gap-1.5">
           <ThemeToggle />
