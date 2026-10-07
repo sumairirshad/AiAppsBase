@@ -3,7 +3,7 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Zap, Lock, Eye, EyeOff, Check } from 'lucide-react'
+import { Lock, Eye, EyeOff, Check } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { cn } from '@/lib/utils'
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
+import { BrandLogo } from '@/components/brand-logo'
 
 function strength(pw: string) {
   let score = 0
@@ -70,12 +71,7 @@ export default function ResetPasswordPage() {
       </div>
 
       <Card className="w-full max-w-md p-8 shadow-xl">
-        <Link href="/" className="mb-6 flex items-center gap-2">
-          <div className="grid size-8 place-items-center rounded-lg bg-gradient-to-br from-indigo-500 to-fuchsia-500 shadow-md">
-            <Zap className="size-5 text-white" />
-          </div>
-          <span className="font-display text-lg font-bold">AIAppsBase</span>
-        </Link>
+        <BrandLogo className="mb-6" />
 
         {token === null ? (
           <div className="space-y-4 text-center">

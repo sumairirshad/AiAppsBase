@@ -1,5 +1,6 @@
-import Link from 'next/link'
-import { Zap, Check, Star, ShieldCheck } from 'lucide-react'
+import { Check, Star, ShieldCheck } from 'lucide-react'
+
+import { BrandLogo } from '@/components/brand-logo'
 
 const bullets = [
   'Buy & sell production-ready GitHub projects',
@@ -25,12 +26,7 @@ export function AuthShell({
           <div className="absolute -right-10 bottom-0 h-80 w-80 rounded-full bg-black/10 blur-3xl" />
         </div>
 
-        <Link href="/" className="relative flex items-center gap-2 text-white">
-          <div className="grid size-9 place-items-center rounded-xl bg-white/15 backdrop-blur">
-            <Zap className="size-5" />
-          </div>
-          <span className="font-display text-lg font-bold">AIAppsBase</span>
-        </Link>
+        <BrandLogo size="lg" className="relative text-white" textClassName="text-white" />
 
         <div className="relative space-y-8 text-white">
           <h2 className="max-w-md font-display text-3xl font-bold leading-tight">
@@ -68,12 +64,7 @@ export function AuthShell({
           <div className="absolute left-1/2 top-1/4 h-72 w-[500px] -translate-x-1/2 rounded-full bg-primary/15 blur-[100px]" />
         </div>
         <div className="w-full max-w-md">
-          <Link href="/" className="mb-8 flex items-center justify-center gap-2 lg:hidden">
-            <div className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-indigo-500 to-fuchsia-500">
-              <Zap className="size-5 text-white" />
-            </div>
-            <span className="font-display text-lg font-bold">AIAppsBase</span>
-          </Link>
+          <BrandLogo size="lg" className="mb-8 justify-center lg:hidden" />
 
           <div className="mb-8 text-center lg:text-left">
             <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">{title}</h1>

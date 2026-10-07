@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Register — PULSE Summit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-media">
+    <div class="auth-media-text"><a href="index.html" class="logo"><span class="dot"></span>PULSE</a></div>
+    <div class="auth-media-text"><h2>Early bird pricing ends soon. Lock your seat in.</h2></div>
+  </div>
+  <div class="auth-side">
+    <div class="auth-box">
+      <h1>Create your attendee account</h1>
+      <p class="sub">Register to unlock your personalized agenda.</p>
+      <form id="signupForm">
+        <div class="form-row-2">
+          <div class="form-group"><label for="fname">First Name</label><input type="text" id="fname" placeholder="Noor" required></div>
+          <div class="form-group"><label for="lname">Last Name</label><input type="text" id="lname" placeholder="Ali" required></div>
+        </div>
+        <div class="form-group"><label for="semail">Email</label><input type="email" id="semail" placeholder="you@example.com" required></div>
+        <div class="form-group"><label for="company">Company / Organization</label><input type="text" id="company" placeholder="Lattice Robotics"></div>
+        <div class="form-row-2">
+          <div class="form-group"><label for="spass">Password</label><input type="password" id="spass" placeholder="••••••••" required></div>
+          <div class="form-group"><label for="spass2">Confirm Password</label><input type="password" id="spass2" placeholder="••••••••" required></div>
+        </div>
+        <div class="form-meta"><label class="checkbox-row"><input type="checkbox" required> I agree to the Terms & Code of Conduct</label></div>
+        <button type="submit" class="btn btn-coral btn-block">Create Account</button>
+      </form>
+      <p class="auth-switch">Already registered? <a href="login.html">Log in</a></p>
+    </div>
+  </div>
+</div>
+<script src="js/script.js"></script>
+</body>
+</html>

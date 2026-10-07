@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Create Account — Horizon Travel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-media">
+    <div class="auth-media-text">
+      <a href="index.html" class="logo">Horizon<span>.</span></a>
+      <div>
+        <h2>Join 42,000 travelers planning their next journey.</h2>
+        <p style="margin-top:14px;color:#e4ebe7">Create a free account to save trips, track bookings and unlock member pricing.</p>
+      </div>
+    </div>
+  </div>
+  <div class="auth-form-side">
+    <div class="auth-box">
+      <h1>Create your account</h1>
+      <p class="sub">It takes less than a minute.</p>
+      <form id="signupForm">
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="fname">First name</label>
+            <input type="text" id="fname" placeholder="Ayesha" required>
+          </div>
+          <div class="form-group">
+            <label for="lname">Last name</label>
+            <input type="text" id="lname" placeholder="Khan" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="semail">Email address</label>
+          <input type="email" id="semail" placeholder="you@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="sphone">Phone number</label>
+          <input type="tel" id="sphone" placeholder="+1 (555) 123-4567">
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="spass">Password</label>
+            <input type="password" id="spass" placeholder="••••••••" required>
+          </div>
+          <div class="form-group">
+            <label for="spass2">Confirm password</label>
+            <input type="password" id="spass2" placeholder="••••••••" required>
+          </div>
+        </div>
+        <div class="form-meta">
+          <label class="checkbox-row"><input type="checkbox" required> I agree to the Terms & Privacy Policy</label>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+      </form>
+      <p class="auth-switch">Already have an account? <a href="login.html">Log in</a></p>
+    </div>
+  </div>
+</div>
+<script src="js/script.js"></script>
+</body>
+</html>

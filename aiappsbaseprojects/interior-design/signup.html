@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Create Account — Atelier Form</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-media">
+    <div class="auth-media-text"><a href="index.html" class="logo" style="color:var(--cream)">Atelier <span>Form</span></a></div>
+    <div class="auth-media-text"><h2>Start your project with a free discovery consultation.</h2></div>
+  </div>
+  <div class="auth-side">
+    <div class="auth-box">
+      <span class="index-tag">Client Portal</span>
+      <h1>Create your account</h1>
+      <p class="sub">We'll use this to share your project updates.</p>
+      <form id="signupForm">
+        <div class="form-row-2">
+          <div class="form-group"><label for="fname">First Name</label><input type="text" id="fname" placeholder="Priya" required></div>
+          <div class="form-group"><label for="lname">Last Name</label><input type="text" id="lname" placeholder="Menon" required></div>
+        </div>
+        <div class="form-group"><label for="semail">Email</label><input type="email" id="semail" placeholder="you@example.com" required></div>
+        <div class="form-group"><label for="sphone">Phone</label><input type="tel" id="sphone" placeholder="+1 (555) 123-4567"></div>
+        <div class="form-row-2">
+          <div class="form-group"><label for="spass">Password</label><input type="password" id="spass" placeholder="••••••••" required></div>
+          <div class="form-group"><label for="spass2">Confirm Password</label><input type="password" id="spass2" placeholder="••••••••" required></div>
+        </div>
+        <div class="form-meta"><label class="checkbox-row"><input type="checkbox" required> I agree to the Terms & Privacy Policy</label></div>
+        <button type="submit" class="btn btn-fill btn-block">Create Account</button>
+      </form>
+      <p class="auth-switch">Already have an account? <a href="login.html">Log in</a></p>
+    </div>
+  </div>
+</div>
+<script src="js/script.js"></script>
+</body>
+</html>

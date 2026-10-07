@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sign Up — SkillNest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-media">
+    <div><a href="index.html" class="logo" style="color:var(--white)">Skill<span style="color:#ffe9ad">Nest</span></a></div>
+    <div class="auth-media-text"><h2>Join 180,000+ learners building new skills every day.</h2></div>
+  </div>
+  <div class="auth-side">
+    <div class="auth-box">
+      <h1>Create your account</h1>
+      <p class="sub">Start learning for free in under a minute.</p>
+      <form id="signupForm">
+        <div class="form-row-2">
+          <div class="form-group"><label for="fname">First Name</label><input type="text" id="fname" placeholder="Fatima" required></div>
+          <div class="form-group"><label for="lname">Last Name</label><input type="text" id="lname" placeholder="Rashid" required></div>
+        </div>
+        <div class="form-group"><label for="semail">Email</label><input type="email" id="semail" placeholder="you@example.com" required></div>
+        <div class="form-row-2">
+          <div class="form-group"><label for="spass">Password</label><input type="password" id="spass" placeholder="••••••••" required></div>
+          <div class="form-group"><label for="spass2">Confirm Password</label><input type="password" id="spass2" placeholder="••••••••" required></div>
+        </div>
+        <div class="form-meta"><label class="checkbox-row"><input type="checkbox" required> I agree to the Terms & Privacy Policy</label></div>
+        <button type="submit" class="btn btn-blue btn-block">Create Account</button>
+      </form>
+      <p class="auth-switch">Already learning with us? <a href="login.html">Log in</a></p>
+    </div>
+  </div>
+</div>
+<script src="js/script.js"></script>
+</body>
+</html>

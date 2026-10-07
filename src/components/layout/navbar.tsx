@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
-  ShoppingCart, Menu, User, LogOut, LayoutDashboard, Zap, ArrowRight,
+  ShoppingCart, Menu, User, LogOut, LayoutDashboard, ArrowRight,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Icon } from '@/components/icon'
+import { BrandLogo } from '@/components/brand-logo'
 import { ThemeToggle } from '@/components/theme-toggle'
 import {
   NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuList,
@@ -27,20 +28,21 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { megaMenus, simpleNavLinks } from '@/lib/nav-data'
+import { megaMenus, simpleNavLinks, type MegaMenu, type NavLink } from '@/lib/nav-data'
 import { HeaderSearch } from '@/components/layout/header-search'
+
+// "Marketplace" is left exactly where it already was — immediately after the
+// logo, before the search bar — and is never reordered, renamed or touched.
+// Only "Technologies" and "Pricing" move, rendering after the search bar
+// (see Navbar below): Logo -> Marketplace -> Search -> Technologies ->
+// Pricing -> Theme toggle.
+const primaryMenus = megaMenus.filter((m) => m.label === 'Marketplace')
+const secondaryMenus = megaMenus.filter((m) => m.label !== 'Marketplace')
 
 type Me = { full_name: string; email: string; role: string }
 
 function Logo() {
-  return (
-    <Link href="/" className="flex items-center gap-2">
-      <div className="grid size-8 place-items-center rounded-lg bg-gradient-to-br from-indigo-500 to-fuchsia-500 shadow-md transition-shadow hover:shadow-glow">
-        <Zap className="size-5 text-white" />
-      </div>
-      <span className="font-display text-lg font-bold tracking-tight">AIAppsBase</span>
-    </Link>
-  )
+  return <BrandLogo />
 }
 
 function MegaMenuLink({ label, href, description, icon, badge }: {
@@ -65,11 +67,11 @@ function MegaMenuLink({ label, href, description, icon, badge }: {
   )
 }
 
-function DesktopNav() {
+function DesktopNav({ menus, links = [] }: { menus: MegaMenu[]; links?: NavLink[] }) {
   return (
     <NavigationMenu className="hidden lg:flex">
       <NavigationMenuList>
-        {megaMenus.map((menu) => (
+        {menus.map((menu) => (
           <NavigationMenuItem key={menu.label}>
             <NavigationMenuTrigger>{menu.label}</NavigationMenuTrigger>
             <NavigationMenuContent>
@@ -119,7 +121,7 @@ function DesktopNav() {
             </NavigationMenuContent>
           </NavigationMenuItem>
         ))}
-        {simpleNavLinks.map((link) => (
+        {links.map((link) => (
           <NavigationMenuItem key={link.href}>
             <Link href={link.href} className={navigationMenuTriggerStyle()}>
               {link.label}
@@ -252,10 +254,14 @@ export function Navbar() {
       <div className="container flex h-16 items-center gap-4">
         <Logo />
 
-        <DesktopNav />
+        {/* "Marketplace" — unchanged, same position as always */}
+        <DesktopNav menus={primaryMenus} />
 
         {/* Search (desktop) — fills the space between the nav and the actions */}
         <HeaderSearch className="hidden min-w-0 flex-1 md:block" />
+
+        {/* Technologies + Pricing: after the search bar, before the theme toggle */}
+        <DesktopNav menus={secondaryMenus} links={simpleNavLinks} />
 
         <div className="ml-auto flex items-center gap-1.5">
           <ThemeToggle />

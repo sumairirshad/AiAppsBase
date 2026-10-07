@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, BarChart3, Package, PlusCircle, Github, ShoppingBag, Users,
-  Star, Wallet, Settings, Heart, Download, Receipt, LogOut, Zap, ArrowLeft, Menu, Store,
+  Star, Wallet, Settings, Heart, Download, Receipt, LogOut, ArrowLeft, Menu, Store,
   ShieldCheck, Bell, FileText, ClipboardList, MessageSquare, DollarSign, Landmark,
 } from 'lucide-react'
 
@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { BrandLogo } from '@/components/brand-logo'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 
 type Item = { label: string; href: string; icon: any; badge?: string }
@@ -97,12 +98,7 @@ function SidebarInner({ role, onNavigate }: { role: PortalRole; onNavigate?: () 
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-16 items-center border-b border-border px-5">
-        <Link href="/" className="flex items-center gap-2" onClick={onNavigate}>
-          <div className="grid size-8 place-items-center rounded-lg bg-gradient-to-br from-indigo-500 to-fuchsia-500 shadow-md">
-            <Zap className="size-5 text-white" />
-          </div>
-          <span className="font-display text-lg font-bold">AIAppsBase</span>
-        </Link>
+        <BrandLogo onClick={onNavigate} />
       </div>
 
       <div className="px-4 pt-4">

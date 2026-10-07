@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RUSH Car Rental — Drive Your Way</title>
+<meta name="description" content="RUSH Car Rental offers economy, SUV, luxury and electric vehicle rentals across 40+ city locations.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container nav-row">
+    <a href="index.html" class="logo">RUSH<span>.</span></a>
+    <nav class="main-nav">
+      <a href="#fleet">Fleet</a>
+      <a href="#plans">Pricing</a>
+      <a href="#locations">Locations</a>
+      <a href="#protection">Protection</a>
+    </nav>
+    <div class="nav-actions">
+      <a href="login.html" class="ghost">Log In</a>
+      <a href="signup.html" class="btn btn-yellow" style="padding:11px 24px"><span>Reserve Now</span></a>
+      <button class="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="container hero-content">
+    <span class="tag" style="color:var(--yellow)">40+ Locations Nationwide</span>
+    <h1>Drive your way, <span>every mile</span></h1>
+    <p class="lead">From economy runabouts to electric performance — RUSH gets you behind the wheel in under 10 minutes, no paperwork headaches.</p>
+    <div class="hero-actions">
+      <a href="#fleet" class="btn btn-red"><span>Browse Fleet</span></a>
+      <a href="#plans" class="btn btn-outline-white"><span>View Pricing</span></a>
+    </div>
+  </div>
+</section>
+
+<div class="container reserve-bar">
+  <form class="reserve-card">
+    <div class="reserve-field"><label>Pickup Location</label><input type="text" placeholder="City or Airport"></div>
+    <div class="reserve-field"><label>Pickup Date</label><input type="date"></div>
+    <div class="reserve-field"><label>Return Date</label><input type="date"></div>
+    <div class="reserve-field"><label>Vehicle Type</label><select><option>Economy</option><option>SUV</option><option>Luxury</option><option>Electric</option></select></div>
+    <button type="submit" class="btn btn-red"><span>Find Cars</span></button>
+  </form>
+</div>
+
+<div class="brand-strip">
+  <div class="container">
+    <span>TOYOTA</span><span>BMW</span><span>TESLA</span><span>MERCEDES</span><span>JEEP</span><span>FORD</span>
+  </div>
+</div>
+
+<section>
+  <div class="container">
+    <div class="section-head center"><span class="tag">Why RUSH</span><h2>Renting, without the runaround</h2></div>
+  </div>
+  <div class="why-grid">
+    <div class="why-card"><div class="ic">⚡</div><h4>Instant Booking</h4><p>Reserve in under 2 minutes, no hold deposits for members.</p></div>
+    <div class="why-card"><div class="ic">🔑</div><h4>Contactless Pickup</h4><p>Skip the counter — unlock your car with the RUSH app.</p></div>
+    <div class="why-card"><div class="ic">🛣</div><h4>Unlimited Mileage</h4><p>Every rental includes unlimited miles, no surprise fees.</p></div>
+    <div class="why-card"><div class="ic">🛠</div><h4>24/7 Roadside Help</h4><p>Round-the-clock support anywhere in the country.</p></div>
+  </div>
+</section>
+
+<section id="fleet" style="background:var(--grey-bg)">
+  <div class="container">
+    <div class="section-head center"><span class="tag">Our Fleet</span><h2>Choose your ride</h2></div>
+    <div class="fleet-tabs">
+      <button class="fleet-tab active" data-fleet="economy"><span>Economy</span></button>
+      <button class="fleet-tab" data-fleet="suv"><span>SUV</span></button>
+      <button class="fleet-tab" data-fleet="luxury"><span>Luxury</span></button>
+      <button class="fleet-tab" data-fleet="electric"><span>Electric</span></button>
+    </div>
+    <div class="fleet-panels">
+      <div class="fleet-panel active" data-fleet="economy">
+        <div class="car-card"><div class="img-wrap"><img src="https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&w=400&q=80" alt="Toyota Corolla"></div><div class="body"><h4>Toyota Corolla</h4><div class="car-specs"><span>5 Seats</span><span>Auto</span><span>35 MPG</span></div><div class="car-footer"><div class="price">$39<span>/day</span></div><a href="signup.html" class="btn btn-outline-dark" style="padding:9px 18px"><span>Rent</span></a></div></div></div>
+        <div class="car-card"><div class="img-wrap"><img src="https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=400&q=80" alt="Honda Civic"></div><div class="body"><h4>Honda Civic</h4><div class="car-specs"><span>5 Seats</span><span>Auto</span><span>36 MPG</span></div><div class="car-footer"><div class="price">$42<span>/day</span></div><a href="signup.html" class="btn btn-outline-dark" style="padding:9px 18px"><span>Rent</span></a></div></div></div>
+        <div class="car-card"><div class="img-wrap"><img src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=400&q=80" alt="Hyundai Elantra"></div><div class="body"><h4>Hyundai Elantra</h4><div class="car-specs"><span>5 Seats</span><span>Auto</span><span>38 MPG</span></div><div class="car-footer"><div class="price">$37<span>/day</span></div><a href="signup.html" class="btn btn-outline-dark" style="padding:9px 18px"><span>Rent</span></a></div></div></div>
+      </div>
+      <div class="fleet-panel" data-fleet="suv">
+        <div class="car-card"><div class="img-wrap"><img src="https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?auto=format&fit=crop&w=400&q=80" alt="Jeep Grand Cherokee"></div><div class="body"><h4>Jeep Grand Cherokee</h4><div class="car-specs"><span>7 Seats</span><span>4x4</span><span>24 MPG</span></div><div class="car-footer"><div class="price">$74<span>/day</span></div><a href="signup.html" class="btn btn-outline-dark" style="padding:9px 18px"><span>Rent</span></a></div></div></div>
+        <div class="car-card"><div class="img-wrap"><img src="https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=400&q=80" alt="Ford Explorer"></div><div class="body"><h4>Ford Explorer</h4><div class="car-specs"><span>7 Seats</span><span>Auto</span><span>27 MPG</span></div><div class="car-footer"><div class="price">$69<span>/day</span></div><a href="signup.html" class="btn btn-outline-dark" style="padding:9px 18px"><span>Rent</span></a></div></div></div>
+        <div class="car-card"><div class="img-wrap"><img src="https://images.unsplash.com/photo-1519245659620-e859806a8d3b?auto=format&fit=crop&w=400&q=80" alt="Toyota RAV4"></div><div class="body"><h4>Toyota RAV4</h4><div class="car-specs"><span>5 Seats</span><span>AWD</span><span>30 MPG</span></div><div class="car-footer"><div class="price">$58<span>/day</span></div><a href="signup.html" class="btn btn-outline-dark" style="padding:9px 18px"><span>Rent</span></a></div></div></div>
+      </div>
+      <div class="fleet-panel" data-fleet="luxury">
+        <div class="car-card"><div class="img-wrap"><img src="https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=400&q=80" alt="BMW 5 Series"></div><div class="body"><h4>BMW 5 Series</h4><div class="car-specs"><span>5 Seats</span><span>Auto</span><span>Leather</span></div><div class="car-footer"><div class="price">$129<span>/day</span></div><a href="signup.html" class="btn btn-outline-dark" style="padding:9px 18px"><span>Rent</span></a></div></div></div>
+        <div class="car-card"><div class="img-wrap"><img src="https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=400&q=80" alt="Mercedes E-Class"></div><div class="body"><h4>Mercedes E-Class</h4><div class="car-specs"><span>5 Seats</span><span>Auto</span><span>Premium Audio</span></div><div class="car-footer"><div class="price">$139<span>/day</span></div><a href="signup.html" class="btn btn-outline-dark" style="padding:9px 18px"><span>Rent</span></a></div></div></div>
+        <div class="car-card"><div class="img-wrap"><img src="https://images.unsplash.com/photo-1605515298946-d062f2f4a26d?auto=format&fit=crop&w=400&q=80" alt="Audi A6"></div><div class="body"><h4>Audi A6</h4><div class="car-specs"><span>5 Seats</span><span>AWD</span><span>Leather</span></div><div class="car-footer"><div class="price">$134<span>/day</span></div><a href="signup.html" class="btn btn-outline-dark" style="padding:9px 18px"><span>Rent</span></a></div></div></div>
+      </div>
+      <div class="fleet-panel" data-fleet="electric">
+        <div class="car-card"><div class="img-wrap"><img src="https://images.unsplash.com/photo-1536700503339-1e4b06520771?auto=format&fit=crop&w=400&q=80" alt="Tesla Model 3"></div><div class="body"><h4>Tesla Model 3</h4><div class="car-specs"><span>5 Seats</span><span>Auto</span><span>272mi Range</span></div><div class="car-footer"><div class="price">$89<span>/day</span></div><a href="signup.html" class="btn btn-outline-dark" style="padding:9px 18px"><span>Rent</span></a></div></div></div>
+        <div class="car-card"><div class="img-wrap"><img src="https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=400&q=80" alt="Tesla Model Y"></div><div class="body"><h4>Tesla Model Y</h4><div class="car-specs"><span>5 Seats</span><span>AWD</span><span>310mi Range</span></div><div class="car-footer"><div class="price">$99<span>/day</span></div><a href="signup.html" class="btn btn-outline-dark" style="padding:9px 18px"><span>Rent</span></a></div></div></div>
+        <div class="car-card"><div class="img-wrap"><img src="https://images.unsplash.com/photo-1593941707874-ef25b8b4a92b?auto=format&fit=crop&w=400&q=80" alt="Chevrolet Bolt"></div><div class="body"><h4>Chevrolet Bolt</h4><div class="car-specs"><span>5 Seats</span><span>Auto</span><span>259mi Range</span></div><div class="car-footer"><div class="price">$72<span>/day</span></div><a href="signup.html" class="btn btn-outline-dark" style="padding:9px 18px"><span>Rent</span></a></div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-head center"><span class="tag">How It Works</span><h2>Three steps to the road</h2></div>
+    <div class="steps-row">
+      <div class="step-item"><div class="num">01</div><h4>Pick Your Car</h4><p>Browse the fleet by category, price or location.</p></div>
+      <div class="step-item"><div class="num">02</div><h4>Book Online</h4><p>Reserve in minutes, no deposit for RUSH members.</p></div>
+      <div class="step-item"><div class="num">03</div><h4>Unlock & Go</h4><p>Skip the counter — unlock contactless with the app.</p></div>
+      <div class="step-item"><div class="num">04</div><h4>Drop Off Anywhere</h4><p>Return to any RUSH location in your city network.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="plans" style="background:var(--grey-bg)">
+  <div class="container">
+    <div class="section-head center"><span class="tag">Pricing</span><h2>Plans for every trip</h2></div>
+    <div class="plans-grid">
+      <div class="plan-card"><h4>Daily</h4><div class="price">$39<span>/day</span></div><ul><li>Unlimited mileage</li><li>Free cancellation</li><li>24/7 support</li></ul><a href="signup.html" class="btn btn-outline-dark btn-block"><span>Choose Daily</span></a></div>
+      <div class="plan-card featured"><h4>Weekly</h4><div class="price">$219<span>/week</span></div><ul><li>Save 20% vs daily rate</li><li>Unlimited mileage</li><li>Free vehicle swap once</li></ul><a href="signup.html" class="btn btn-yellow btn-block"><span>Choose Weekly</span></a></div>
+      <div class="plan-card"><h4>Monthly</h4><div class="price">$699<span>/month</span></div><ul><li>Save 35% vs daily rate</li><li>Unlimited mileage</li><li>Dedicated account manager</li></ul><a href="signup.html" class="btn btn-outline-dark btn-block"><span>Choose Monthly</span></a></div>
+    </div>
+  </div>
+</section>
+
+<section id="locations">
+  <div class="container">
+    <div class="section-head center"><span class="tag">Locations</span><h2>Pick up nationwide</h2></div>
+    <div class="locations-grid">
+      <div class="location-card"><img src="https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=300&q=80" alt="New York"><div class="overlay"><h4>New York</h4></div></div>
+      <div class="location-card"><img src="https://images.unsplash.com/photo-1444723121867-7a241cacace9?auto=format&fit=crop&w=300&q=80" alt="Los Angeles"><div class="overlay"><h4>Los Angeles</h4></div></div>
+      <div class="location-card"><img src="https://images.unsplash.com/photo-1545194445-379c6b8fdb15?auto=format&fit=crop&w=300&q=80" alt="Miami"><div class="overlay"><h4>Miami</h4></div></div>
+      <div class="location-card"><img src="https://images.unsplash.com/photo-1494522855154-9297ac14b55f?auto=format&fit=crop&w=300&q=80" alt="Chicago"><div class="overlay"><h4>Chicago</h4></div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container app-split">
+    <img src="https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?auto=format&fit=crop&w=600&q=80" alt="RUSH mobile app">
+    <div>
+      <span class="tag" style="color:var(--yellow)">RUSH App</span>
+      <h2>Unlock your car from your phone</h2>
+      <p>Skip the counter entirely. Book, unlock and extend your rental — all from the RUSH app.</p>
+      <div class="app-badges"><span>App Store</span><span>Google Play</span></div>
+    </div>
+  </div>
+</section>
+
+<section style="background:var(--grey-bg)">
+  <div class="container">
+    <div class="section-head center"><span class="tag">Customer Stories</span><h2>What drivers say</h2></div>
+    <div class="testi-grid">
+      <div class="testi-card"><p>"Picked up a Model 3 at the airport in under 5 minutes. Didn't even talk to a human."</p><div class="testi-who"><strong>Jordan Mills</strong><span>Weekly Renter</span></div></div>
+      <div class="testi-card"><p>"Needed an SUV last minute for a move — booked on my phone and had it in an hour."</p><div class="testi-who"><strong>Keisha Brown</strong><span>Daily Renter</span></div></div>
+      <div class="testi-card"><p>"Monthly plan saved us thousands versus owning a second car for the summer."</p><div class="testi-who"><strong>The Delgado Family</strong><span>Monthly Plan</span></div></div>
+    </div>
+  </div>
+</section>
+
+<div class="stats-band">
+  <div class="container stats-grid">
+    <div><strong>40+</strong><span>Locations</span></div>
+    <div><strong>12,000+</strong><span>Vehicles</span></div>
+    <div><strong>850K+</strong><span>Rentals Completed</span></div>
+    <div><strong>4.8★</strong><span>Average Rating</span></div>
+  </div>
+</div>
+
+<section id="protection">
+  <div class="container">
+    <div class="section-head center"><span class="tag">Protection Plans</span><h2>Drive covered</h2></div>
+    <div class="protection-grid">
+      <div class="protection-card"><h4>Basic Coverage</h4><p>Included free with every rental — covers third-party liability.</p></div>
+      <div class="protection-card"><h4>Standard Protection</h4><p>$12/day — reduces your deductible to $500 on collision damage.</p></div>
+      <div class="protection-card"><h4>Premium Protection</h4><p>$22/day — zero deductible, plus roadside assistance and tire coverage.</p></div>
+    </div>
+  </div>
+</section>
+
+<section style="background:var(--grey-bg)">
+  <div class="container">
+    <div class="section-head center"><span class="tag">FAQ</span><h2>Questions, answered</h2></div>
+    <div class="faq-list">
+      <div class="faq-item open"><div class="faq-q"><span>What do I need to rent a car?</span><span class="ic">+</span></div><div class="faq-a"><p>A valid driver's license, a major credit card, and you must be 21+ (25+ for luxury vehicles).</p></div></div>
+      <div class="faq-item"><div class="faq-q"><span>Can I return the car to a different city?</span><span class="ic">+</span></div><div class="faq-a"><p>Yes, one-way rentals are available between most RUSH locations for a small transfer fee.</p></div></div>
+      <div class="faq-item"><div class="faq-q"><span>Is there a mileage limit?</span><span class="ic">+</span></div><div class="faq-a"><p>No — every RUSH rental includes unlimited mileage, no exceptions.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container newsletter-band">
+    <div><h3>Get exclusive rental deals</h3><p style="font-family:var(--font-body)">Flash discounts and new fleet announcements, monthly.</p></div>
+    <form><input type="email" placeholder="you@example.com" required><button type="submit" class="btn btn-red" style="transform:none"><span>Subscribe</span></button></form>
+  </div>
+</section>
+
+<section class="final-cta">
+  <div class="container">
+    <h2>Your next ride is one tap away</h2>
+    <p>Join 850,000+ drivers who skip the rental counter entirely.</p>
+    <a href="signup.html" class="btn btn-yellow"><span>Reserve Your Car</span></a>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div><div class="footer-logo">RUSH<span style="color:var(--red)">.</span></div><p>Car rental network with 40+ city locations, 12,000+ vehicles and contactless pickup.</p></div>
+    <div><h5>Rentals</h5><ul><li><a href="#fleet">Fleet</a></li><li><a href="#plans">Pricing</a></li><li><a href="#protection">Protection</a></li></ul></div>
+    <div><h5>Company</h5><ul><li><a href="#">About</a></li><li><a href="#">Careers</a></li><li><a href="#">Press</a></li></ul></div>
+    <div><h5>Support</h5><ul><li>help@rushrentals.com</li><li>1-800-555-0177</li></ul></div>
+  </div>
+  <div class="container footer-bottom"><span>© 2025 RUSH Car Rental. All rights reserved.</span><span>Privacy · Terms</span></div>
+</footer>
+
+<script src="js/script.js"></script>
+</body>
+</html>

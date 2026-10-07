@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Log In — Lumière Beauty & Spa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Parisienne&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-media">
+    <div class="auth-media-text"><a href="index.html" class="logo" style="color:var(--white)">Lumière <span>&</span> Spa</a></div>
+    <div class="auth-media-text"><h2>Manage bookings and member perks in your account.</h2></div>
+  </div>
+  <div class="auth-side">
+    <div class="auth-box">
+      <span class="script-tag">Welcome back</span>
+      <h1>Member Sign In</h1>
+      <p class="sub">Log in to manage your appointments.</p>
+      <form id="loginForm">
+        <div class="form-group"><label for="email">Email</label><input type="email" id="email" placeholder="you@example.com" required></div>
+        <div class="form-group"><label for="password">Password</label><input type="password" id="password" placeholder="••••••••" required></div>
+        <p class="form-error" id="loginError">Incorrect credentials — try the demo login below.</p>
+        <div class="form-meta"><label class="checkbox-row"><input type="checkbox"> Remember me</label><a href="#" style="color:var(--mauve);font-weight:600">Forgot password?</a></div>
+        <button type="submit" class="btn btn-mauve btn-block">Log In</button>
+      </form>
+      <div class="demo-box"><strong>Demo Login</strong>Email: <code>demo@lumierespa.com</code><br>Password: <code>Glow2025</code></div>
+      <p class="auth-switch">New to Lumière? <a href="signup.html">Create an account</a></p>
+    </div>
+  </div>
+</div>
+<script src="js/script.js"></script>
+</body>
+</html>

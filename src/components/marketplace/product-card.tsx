@@ -42,11 +42,11 @@ function Bookmarkable({ repo, className }: { repo: Repo; className?: string }) {
   )
 }
 
-export function ProductCard({ repo }: { repo: Repo }) {
+export function ProductCard({ repo, priority = false }: { repo: Repo; priority?: boolean }) {
   return (
     <Card interactive className="group flex flex-col overflow-hidden">
       <Link href={productPath(repo)} className="group/media relative block h-36 overflow-hidden">
-        <ProductImage src={repo.image} alt={repo.title} logoClassName="size-12 -translate-y-3" className="transition-transform duration-500 group-hover:scale-105" />
+        <ProductImage src={repo.image} alt={repo.title} logoClassName="size-12 -translate-y-3" className="transition-transform duration-500 group-hover:scale-105" priority={priority} />
         <div className={cn('absolute inset-0', mediaScrimClass)} />
         <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
           {repo.trending && <Badge className={cn('border-0', mediaChipClass)}><Flame className="size-3" /> Trending</Badge>}
@@ -92,11 +92,11 @@ export function ProductCard({ repo }: { repo: Repo }) {
   )
 }
 
-export function ProductRow({ repo }: { repo: Repo }) {
+export function ProductRow({ repo, priority = false }: { repo: Repo; priority?: boolean }) {
   return (
     <Card interactive className="group flex flex-col gap-4 overflow-hidden p-4 sm:flex-row">
       <Link href={productPath(repo)} className="group/media relative block h-28 shrink-0 overflow-hidden rounded-lg sm:w-56">
-        <ProductImage src={repo.image} alt={repo.title} logoClassName="size-10 -translate-y-3" sizes="224px" />
+        <ProductImage src={repo.image} alt={repo.title} logoClassName="size-10 -translate-y-3" sizes="224px" priority={priority} />
         <div className={cn('absolute inset-0', mediaScrimClass)} />
         <span className={cn('absolute bottom-2 left-3 right-3 truncate font-display text-lg font-bold', mediaTextClass)}>{repo.title}</span>
         <Bookmarkable repo={repo} className="absolute right-2 top-2" />
