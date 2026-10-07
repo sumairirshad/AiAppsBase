@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import {
   Star, GitFork, Eye, GitCommitHorizontal, CircleDot, Users, BadgeCheck,
   Check, Share2, Heart, ShieldCheck, Download, ExternalLink, Github, ChevronRight,
-  Sparkles, Flame, Clock, ThumbsUp,
+  Sparkles, Flame, Clock, ThumbsUp, Maximize2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -21,6 +21,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { ProductCard } from '@/components/marketplace/product-card'
+import { ImageLightbox } from '@/components/marketplace/image-lightbox'
 import { ProductImage, mediaChipClass, mediaScrimClass, mediaTextClass } from '@/components/products/product-image'
 import { claimFreeProduct } from '@/lib/client/claim-free-product'
 import { sellerPath } from '@/lib/seo'
@@ -37,13 +38,27 @@ function StatTile({ icon: Icon, label, value }: { icon: any; label: string; valu
 }
 
 function Gallery({ repo }: { repo: Repo }) {
-  // Real screenshots; with none, a single panel shows the AIAppsBase logo.
-  const panels: (string | null)[] = repo.images.length ? repo.images : [null]
+  // Real screenshots; with none, a single panel shows the AiAppsBase logo (not openable — there's nothing to view).
+  const hasImages = repo.images.length > 0
+  const panels: (string | null)[] = hasImages ? repo.images : [null]
   const [active, setActive] = React.useState(0)
+  const [lightboxOpen, setLightboxOpen] = React.useState(false)
+
+  const openLightbox = (i: number) => {
+    if (!hasImages) return
+    setActive(i)
+    setLightboxOpen(true)
+  }
+
   return (
     <div className="space-y-3">
-      <div className="group/media relative aspect-[16/9] overflow-hidden rounded-2xl bg-muted has-[[data-fallback]]:ring-1 has-[[data-fallback]]:ring-inset has-[[data-fallback]]:ring-border dark:has-[[data-fallback]]:ring-0">
-        <ProductImage src={panels[active]} alt={repo.title} logoClassName="size-24 -translate-y-6" sizes="(min-width: 1024px) 60vw, 100vw" />
+      <button
+        type="button"
+        onClick={() => openLightbox(active)}
+        aria-label={hasImages ? `View ${repo.title} screenshots` : repo.title}
+        className={cn('group/media relative block aspect-[16/9] w-full overflow-hidden rounded-2xl bg-muted text-left has-[[data-fallback]]:ring-1 has-[[data-fallback]]:ring-inset has-[[data-fallback]]:ring-border dark:has-[[data-fallback]]:ring-0', hasImages ? 'cursor-zoom-in' : 'cursor-default')}
+      >
+        <ProductImage src={panels[active]} alt={repo.title} logoClassName="size-24 -translate-y-6" sizes="(min-width: 1024px) 60vw, 100vw" priority />
         <div className={cn('absolute inset-0', mediaScrimClass)} />
         <div className={cn('absolute bottom-6 left-6', mediaTextClass)}>
           <div className="font-display text-3xl font-bold">{repo.title}</div>
@@ -52,20 +67,36 @@ function Gallery({ repo }: { repo: Repo }) {
         {panels.length > 1 && (
           <Badge className={cn('absolute right-4 top-4 border-0', mediaChipClass)}>Preview {active + 1}/{panels.length}</Badge>
         )}
-      </div>
+        {hasImages && (
+          <span className={cn('absolute right-4 bottom-4 grid size-9 place-items-center rounded-full opacity-0 transition-opacity group-hover/media:opacity-100', mediaChipClass)}>
+            <Maximize2 className="size-4" />
+          </span>
+        )}
+      </button>
       {panels.length > 1 && (
         <div className="grid grid-cols-4 gap-3">
           {panels.map((src, i) => (
             <button
               key={i}
-              onClick={() => setActive(i)}
-              aria-label={`Show preview ${i + 1}`}
+              onClick={() => openLightbox(i)}
+              aria-label={`View preview ${i + 1}`}
               className={cn('relative aspect-[16/9] overflow-hidden rounded-lg bg-muted transition-all', active === i ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : 'opacity-70 hover:opacity-100')}
             >
               <ProductImage src={src} alt="" logoClassName="size-8" sizes="160px" />
             </button>
           ))}
         </div>
+      )}
+
+      {hasImages && (
+        <ImageLightbox
+          images={repo.images}
+          alt={repo.title}
+          open={lightboxOpen}
+          onOpenChange={setLightboxOpen}
+          index={active}
+          onIndexChange={setActive}
+        />
       )}
     </div>
   )
