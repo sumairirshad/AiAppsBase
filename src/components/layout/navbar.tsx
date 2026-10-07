@@ -31,6 +31,14 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { megaMenus, simpleNavLinks, type MegaMenu, type NavLink } from '@/lib/nav-data'
 import { HeaderSearch } from '@/components/layout/header-search'
 
+// "Marketplace" is left exactly where it already was — immediately after the
+// logo, before the search bar — and is never reordered, renamed or touched.
+// Only "Technologies" and "Pricing" move, rendering after the search bar
+// (see Navbar below): Logo -> Marketplace -> Search -> Technologies ->
+// Pricing -> Theme toggle.
+const primaryMenus = megaMenus.filter((m) => m.label === 'Marketplace')
+const secondaryMenus = megaMenus.filter((m) => m.label !== 'Marketplace')
+
 type Me = { full_name: string; email: string; role: string }
 
 function Logo() {
@@ -246,11 +254,14 @@ export function Navbar() {
       <div className="container flex h-16 items-center gap-4">
         <Logo />
 
-        {/* Search (desktop) — fills the space between the logo and the nav/actions */}
+        {/* "Marketplace" — unchanged, same position as always */}
+        <DesktopNav menus={primaryMenus} />
+
+        {/* Search (desktop) — fills the space between the nav and the actions */}
         <HeaderSearch className="hidden min-w-0 flex-1 md:block" />
 
-        {/* Marketplace, Technologies, Pricing: after the search bar, before the theme toggle */}
-        <DesktopNav menus={megaMenus} links={simpleNavLinks} />
+        {/* Technologies + Pricing: after the search bar, before the theme toggle */}
+        <DesktopNav menus={secondaryMenus} links={simpleNavLinks} />
 
         <div className="ml-auto flex items-center gap-1.5">
           <ThemeToggle />
