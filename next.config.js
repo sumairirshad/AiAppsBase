@@ -6,6 +6,12 @@ const nextConfig = {
       { protocol: 'http', hostname: 'localhost' },
     ],
     formats: ['image/avif', 'image/webp'],
+    // Optimized product images are keyed by an immutable, never-overwritten
+    // filename (see lib/product-images.ts), so there's nothing to invalidate.
+    // The Next.js default (60s) would force a full re-optimize of every image
+    // size/format combination roughly once a minute; a long TTL here lets the
+    // same optimized output actually stay cached and be served instantly.
+    minimumCacheTTL: 31536000,
   },
   // Seller uploads are written to public/Uploads at runtime, but the production
   // server only serves public/ files that existed at build time. Any

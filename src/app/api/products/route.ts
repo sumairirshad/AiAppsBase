@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
     // product's image folder is removed so nothing is left behind.
     const storeImagesAndInsert = async (insert: (screenshots: string[]) => Promise<string>) => {
       try {
-        const screenshots = validatedImages.map((img) => writeProductImage(img.buf, img.name, userId, productId))
+        const screenshots = await Promise.all(validatedImages.map((img) => writeProductImage(img.buf, img.name, userId, productId)))
         return await insert(screenshots)
       } catch (err) {
         deleteProductImageDir(userId, productId)

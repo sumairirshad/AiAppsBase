@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import sharp from 'sharp'
 
 import { query } from '@/lib/db'
 import { isAllowedImageUpload, safeFileName } from '@/lib/upload-safety'
@@ -18,6 +19,17 @@ import { isAllowedImageUpload, safeFileName } from '@/lib/upload-safety'
  */
 export const MAX_PRODUCT_IMAGES = 8
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+
+/**
+ * No on-screen use of a product image (card thumbnail, detail hero, fullscreen
+ * lightbox) ever needs more than this many pixels on its longest side — so
+ * screenshots far above it (phone/retina screenshots routinely come in at
+ * 3000-5000px+) are downsized once at upload time rather than stored at full
+ * size and re-transcoded from scratch on every first `/_next/image` request.
+ * Smaller originals are left untouched. This is a size/speed optimization,
+ * not a quality one: 2400px is well above every rendered size in the app.
+ */
+const MAX_STORED_DIMENSION = 2400
 
 export const ASSETS_ROOT = process.env.ASSETS_DIR ? path.resolve(process.env.ASSETS_DIR) : path.join(process.cwd(), 'assets')
 export const PRODUCT_ASSETS_DIR = path.join(ASSETS_ROOT, 'products')
@@ -104,15 +116,39 @@ export async function readValidatedImage(file: File): Promise<Buffer> {
 }
 
 /**
+ * Downscales an image to `MAX_STORED_DIMENSION` on its longest side,
+ * keeping aspect ratio and original format. Images already at or under that
+ * size are returned untouched (no re-encode, no risk of ever enlarging or
+ * degrading a normally-sized upload). Falls back to the original bytes if
+ * sharp can't process the file for any reason — a failed optimization should
+ * never block an upload.
+ */
+async function downscaleForStorage(buf: Buffer): Promise<Buffer> {
+  try {
+    const meta = await sharp(buf).metadata()
+    if (!meta.width || !meta.height || (meta.width <= MAX_STORED_DIMENSION && meta.height <= MAX_STORED_DIMENSION)) {
+      return buf
+    }
+    return await sharp(buf)
+      .resize({ width: MAX_STORED_DIMENSION, height: MAX_STORED_DIMENSION, fit: 'inside', withoutEnlargement: true })
+      .toBuffer()
+  } catch (err) {
+    console.error('[product-images] downscale failed, storing original:', (err as Error).message)
+    return buf
+  }
+}
+
+/**
  * Stores an already-validated image in the product's folder and returns its
  * public URL. Names are timestamped + random and written with the "wx" flag,
  * so an existing file is never overwritten.
  */
-export function writeProductImage(buf: Buffer, originalName: string, userId: string, productId: string): string {
+export async function writeProductImage(buf: Buffer, originalName: string, userId: string, productId: string): Promise<string> {
   const dir = productImageDir(userId, productId)
   fs.mkdirSync(dir, { recursive: true })
   const name = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeFileName(originalName)}`.toLowerCase()
-  fs.writeFileSync(path.join(dir, name), buf, { flag: 'wx' })
+  const stored = await downscaleForStorage(buf)
+  fs.writeFileSync(path.join(dir, name), stored, { flag: 'wx' })
   return `${PRODUCT_IMAGE_URL_PREFIX}${userId.toLowerCase()}/${productId.toLowerCase()}/${name}`
 }
 
