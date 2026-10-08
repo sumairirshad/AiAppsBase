@@ -240,7 +240,7 @@ function PurchasePanel({ repo }: { repo: Repo }) {
           {loading ? (repo.price === 0 ? 'Getting it...' : 'Adding...') : repo.price === 0 ? 'Get it free' : 'Add to cart'}
         </Button>
         <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" onClick={() => { setSaved((s) => !s); toast.success(saved ? 'Removed' : 'Saved to wishlist') }}>
+          <Button variant="outline" onClick={toggleWishlist} disabled={wishlistLoading}>
             <Heart className={cn('size-4', saved && 'fill-current text-rose-500')} /> {saved ? 'Saved' : 'Wishlist'}
           </Button>
           <Button variant="outline" onClick={() => setShareOpen(true)}>
