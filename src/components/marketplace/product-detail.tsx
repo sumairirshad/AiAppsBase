@@ -22,10 +22,12 @@ import {
 } from '@/components/ui/select'
 import { ProductCard } from '@/components/marketplace/product-card'
 import { ImageLightbox } from '@/components/marketplace/image-lightbox'
+import { ShareModal } from '@/components/marketplace/share-modal'
 import { ProductImage, mediaChipClass, mediaScrimClass, mediaTextClass } from '@/components/products/product-image'
 import { claimFreeProduct } from '@/lib/client/claim-free-product'
 import { addToWishlist, removeFromWishlist } from '@/lib/client/wishlist'
 import { sellerPath } from '@/lib/seo'
+import { isHttpUrl } from '@/lib/utils'
 import type { Repo, Seller } from '@/lib/marketplace-config'
 
 function StatTile({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
@@ -123,6 +125,7 @@ function PurchasePanel({ repo }: { repo: Repo }) {
   const licenseMultiplier: Record<string, number> = { personal: 1, commercial: 1, extended: 2.5 }
   const displayPrice = repo.price === 0 ? 0 : Math.round(repo.price * (licenseMultiplier[license] ?? 1))
   const [loading, setLoading] = React.useState(false)
+  const [shareOpen, setShareOpen] = React.useState(false)
 
   async function addToCart() {
     try {
@@ -240,14 +243,13 @@ function PurchasePanel({ repo }: { repo: Repo }) {
           <Button variant="outline" onClick={() => { setSaved((s) => !s); toast.success(saved ? 'Removed' : 'Saved to wishlist') }}>
             <Heart className={cn('size-4', saved && 'fill-current text-rose-500')} /> {saved ? 'Saved' : 'Wishlist'}
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied') }}
-          >
+          <Button variant="outline" onClick={() => setShareOpen(true)}>
             <Share2 className="size-4" /> Share
           </Button>
         </div>
       </div>
+
+      <ShareModal open={shareOpen} onOpenChange={setShareOpen} title={repo.title} />
 
       <Separator className="my-5" />
 
@@ -351,10 +353,16 @@ export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: 
                   <Badge variant="brand"><Sparkles className="size-3" /> Built with {repo.aiTool}</Badge>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-3">
-                <Button variant="outline" asChild><a href={repo.demoUrl} target="_blank" rel="noreferrer"><ExternalLink className="size-4" /> Live demo</a></Button>
-                <Button variant="outline" asChild><a href={repo.repoUrl} target="_blank" rel="noreferrer"><Github className="size-4" /> Repository</a></Button>
-              </div>
+              {(isHttpUrl(repo.demoUrl) || isHttpUrl(repo.repoUrl)) && (
+                <div className="flex flex-wrap gap-3">
+                  {isHttpUrl(repo.demoUrl) && (
+                    <Button variant="outline" asChild><a href={repo.demoUrl} target="_blank" rel="noreferrer"><ExternalLink className="size-4" /> Live demo</a></Button>
+                  )}
+                  {isHttpUrl(repo.repoUrl) && (
+                    <Button variant="outline" asChild><a href={repo.repoUrl} target="_blank" rel="noreferrer"><Github className="size-4" /> Repository</a></Button>
+                  )}
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="features">

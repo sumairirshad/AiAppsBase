@@ -35,6 +35,17 @@ export function timeAgo(dateString: string): string {
   return 'just now'
 }
 
+/** True only for a well-formed, absolute http(s) URL — guards external links against missing/malformed data. */
+export function isHttpUrl(value?: string | null): value is string {
+  if (!value) return false
+  try {
+    const parsed = new URL(value)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
 export function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B'
   const units = ['B', 'KB', 'MB', 'GB', 'TB']
