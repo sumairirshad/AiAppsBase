@@ -30,10 +30,10 @@ export const metadata: Metadata = {
 export const revalidate = 300
 
 const subcategories = [
-  { label: 'Landing Pages', href: '/products?category=Landing+Page', icon: Globe },
-  { label: 'Portfolios', href: '/products?category=Portfolio', icon: Layers },
-  { label: 'Blogs', href: '/products?category=Blog', icon: Code },
-  { label: 'All Templates', href: '/products?category=Website+Template', icon: LayoutTemplate },
+  { label: 'Landing Pages', href: '/products?subcategory=landing-pages', icon: Globe },
+  { label: 'Portfolios', href: '/products?subcategory=portfolio-templates', icon: Layers },
+  { label: 'Blogs', href: '/products?subcategory=blog-sites', icon: Code },
+  { label: 'All Templates', href: '/products?category=websites', icon: LayoutTemplate },
 ]
 
 export default async function TemplatesPage() {
@@ -53,7 +53,7 @@ export default async function TemplatesPage() {
          FROM orders WHERE status = 'completed' GROUP BY product_id
        ) ord ON ord.product_id = p.id
        WHERE p.status = 'approved'
-         AND p.category IN ('Website Template','Landing Page','Portfolio','Blog')
+         AND p.category = 'Websites'
        ORDER BY p.created_at DESC`
     )
     products = result.rows || []
@@ -109,7 +109,7 @@ export default async function TemplatesPage() {
             <span className="text-white font-semibold">{products.length}</span> templates available
           </p>
           <Link
-            href="/products?category=Website+Template"
+            href="/products?category=websites"
             className="btn-secondary text-sm flex items-center gap-2 py-2 px-4"
           >
             Advanced Filters <ArrowRight className="w-4 h-4" />

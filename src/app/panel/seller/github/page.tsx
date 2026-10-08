@@ -5,11 +5,12 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   Github, Star, GitFork, ExternalLink, RefreshCw,
-  Loader2, Package, AlertCircle, Unlink, Clock,
+  Package, AlertCircle, Unlink, Clock,
   Check, DollarSign, PlusCircle,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { timeAgo } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const LANG_COLORS: Record<string, string> = {
   JavaScript: '#f1e05a', TypeScript: '#3178c6', Python: '#3572A5',
@@ -121,9 +122,15 @@ function GithubReposContent() {
 
       <div className="glass rounded-xl p-6 mb-8">
         {loading ? (
-          <div className="flex items-center gap-3 text-surface-400">
-            <Loader2 className="w-5 h-5 animate-spin" />
-            <span className="text-sm">Loading GitHub status...</span>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-12 w-12 rounded-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-3 w-28" />
+              </div>
+            </div>
+            <Skeleton className="h-9 w-32 rounded-lg" />
           </div>
         ) : connected ? (
           <div className="flex items-center justify-between flex-wrap gap-4">

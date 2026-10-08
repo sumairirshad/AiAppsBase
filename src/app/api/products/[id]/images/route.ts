@@ -33,7 +33,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     // Validate all files first so one bad file doesn't leave the others half-stored.
     const validated: { buf: Buffer; name: string }[] = []
     for (const file of files) validated.push({ buf: await readValidatedImage(file), name: file.name })
-    const paths = validated.map((img) => writeProductImage(img.buf, img.name, sellerId, productId))
+    const paths = await Promise.all(validated.map((img) => writeProductImage(img.buf, img.name, sellerId, productId)))
     return NextResponse.json({ paths })
   } catch (err) {
     if (err instanceof ImageUploadError) return NextResponse.json({ error: err.message }, { status: 400 })

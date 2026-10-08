@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Star, ShoppingCart, Eye, Loader2 } from 'lucide-react'
 import { formatPrice, formatNumber } from '@/lib/utils'
@@ -19,6 +20,7 @@ const aiToolColors: Record<string, string> = {
 }
 
 export function ProductCard({ product }: { product: any }) {
+  const router = useRouter()
   const [addingToCart, setAddingToCart] = useState(false)
 
   const handlePreview = (e: React.MouseEvent) => {
@@ -41,7 +43,14 @@ export function ProductCard({ product }: { product: any }) {
         body: JSON.stringify({ productId: product.id }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to add to cart')
+      if (!res.ok) {
+        if (res.status === 401) {
+          toast.error('Please log in to add items to your cart.')
+          router.push('/auth/login')
+          return
+        }
+        throw new Error(data.error || 'Failed to add to cart')
+      }
       toast.success(`${product.title} added to cart`)
     } catch (err) {
       toast.error((err as Error).message)

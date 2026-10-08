@@ -224,9 +224,18 @@ function mapSeller(u: any): Seller {
   }
 }
 
-/** True when a user's storefront may be shown publicly. */
+/**
+ * True when a user's storefront may be shown publicly. Deliberately NOT
+ * gated on `role === 'seller'` or `seller_status === 'approved'`: admins can
+ * list products too (see POST /api/products), and approving a product
+ * (admin/products) never touches the seller's own `seller_status` — an
+ * otherwise-live seller with real approved listings would stay invisible
+ * forever if we required that flag as well. What actually matters to a
+ * buyer is simpler: the account isn't banned/suspended, and it has at
+ * least one approved product to show.
+ */
 function isPublicSeller(u: any): boolean {
-  return u.role === 'seller' && u.account_status === 'active' && u.seller_status === 'approved'
+  return u.account_status === 'active' && Number(u.product_count) > 0
 }
 
 export async function getSellerById(id: string): Promise<Seller | null> {
@@ -319,9 +328,11 @@ export async function getStorefront(id: string): Promise<Storefront | null> {
 /** Public sellers for the top-sellers directory, ranked by completed sales. */
 export async function listPublicSellers(limit = 48): Promise<Seller[]> {
   try {
+    // Same visibility rule as isPublicSeller(): an active account with at
+    // least one approved product, regardless of role or seller_status.
     const res = await query(
       `SELECT * FROM (${SELLER_SELECT}
-         WHERE u.role = 'seller' AND u.account_status = 'active' AND u.seller_status = 'approved') s
+         WHERE u.account_status = 'active') s
        WHERE s.product_count > 0
        ORDER BY s.sales DESC, s.rating DESC NULLS LAST, s.product_count DESC
        LIMIT $1`,

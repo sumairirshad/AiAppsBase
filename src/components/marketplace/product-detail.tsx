@@ -22,9 +22,12 @@ import {
 } from '@/components/ui/select'
 import { ProductCard } from '@/components/marketplace/product-card'
 import { ImageLightbox } from '@/components/marketplace/image-lightbox'
+import { ShareModal } from '@/components/marketplace/share-modal'
 import { ProductImage, mediaChipClass, mediaScrimClass, mediaTextClass } from '@/components/products/product-image'
 import { claimFreeProduct } from '@/lib/client/claim-free-product'
+import { addToWishlist, removeFromWishlist } from '@/lib/client/wishlist'
 import { sellerPath } from '@/lib/seo'
+import { isHttpUrl } from '@/lib/utils'
 import type { Repo, Seller } from '@/lib/marketplace-config'
 
 function StatTile({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
@@ -117,10 +120,12 @@ function RatingBar({ stars, pct }: { stars: number; pct: number }) {
 function PurchasePanel({ repo }: { repo: Repo }) {
   const router = useRouter()
   const [saved, setSaved] = React.useState(false)
+  const [wishlistLoading, setWishlistLoading] = React.useState(false)
   const [license, setLicense] = React.useState('commercial')
   const licenseMultiplier: Record<string, number> = { personal: 1, commercial: 1, extended: 2.5 }
   const displayPrice = repo.price === 0 ? 0 : Math.round(repo.price * (licenseMultiplier[license] ?? 1))
   const [loading, setLoading] = React.useState(false)
+  const [shareOpen, setShareOpen] = React.useState(false)
 
   async function addToCart() {
     try {
@@ -140,6 +145,11 @@ function PurchasePanel({ repo }: { repo: Repo }) {
       const data = await res.json()
 
       if (!res.ok) {
+        if (res.status === 401) {
+          toast.error('Please log in to add items to your cart.')
+          router.push('/auth/login')
+          return
+        }
         throw new Error(data.error || 'Failed to add to cart')
       }
 
@@ -149,6 +159,25 @@ function PurchasePanel({ repo }: { repo: Repo }) {
     } finally {
       setLoading(false)
     }
+  }
+
+  async function toggleWishlist() {
+    if (wishlistLoading) return
+    setWishlistLoading(true)
+    const result = saved ? await removeFromWishlist(repo.id) : await addToWishlist(repo.id)
+    setWishlistLoading(false)
+
+    if (result.ok) {
+      setSaved((s) => !s)
+      toast.success(saved ? 'Removed from wishlist' : 'Saved to wishlist')
+      return
+    }
+    if (result.reason === 'unauthorized') {
+      toast.error('Please log in to save items to your wishlist.')
+      router.push('/auth/login')
+      return
+    }
+    toast.error(result.message)
   }
 
   async function getItFree() {
@@ -211,17 +240,16 @@ function PurchasePanel({ repo }: { repo: Repo }) {
           {loading ? (repo.price === 0 ? 'Getting it...' : 'Adding...') : repo.price === 0 ? 'Get it free' : 'Add to cart'}
         </Button>
         <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" onClick={() => { setSaved((s) => !s); toast.success(saved ? 'Removed' : 'Saved to wishlist') }}>
+          <Button variant="outline" onClick={toggleWishlist} disabled={wishlistLoading}>
             <Heart className={cn('size-4', saved && 'fill-current text-rose-500')} /> {saved ? 'Saved' : 'Wishlist'}
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => { navigator.clipboard?.writeText(window.location.href); toast.success('Link copied') }}
-          >
+          <Button variant="outline" onClick={() => setShareOpen(true)}>
             <Share2 className="size-4" /> Share
           </Button>
         </div>
       </div>
+
+      <ShareModal open={shareOpen} onOpenChange={setShareOpen} title={repo.title} />
 
       <Separator className="my-5" />
 
@@ -325,10 +353,16 @@ export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: 
                   <Badge variant="brand"><Sparkles className="size-3" /> Built with {repo.aiTool}</Badge>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-3">
-                <Button variant="outline" asChild><a href={repo.demoUrl} target="_blank" rel="noreferrer"><ExternalLink className="size-4" /> Live demo</a></Button>
-                <Button variant="outline" asChild><a href={repo.repoUrl} target="_blank" rel="noreferrer"><Github className="size-4" /> Repository</a></Button>
-              </div>
+              {(isHttpUrl(repo.demoUrl) || isHttpUrl(repo.repoUrl)) && (
+                <div className="flex flex-wrap gap-3">
+                  {isHttpUrl(repo.demoUrl) && (
+                    <Button variant="outline" asChild><a href={repo.demoUrl} target="_blank" rel="noreferrer"><ExternalLink className="size-4" /> Live demo</a></Button>
+                  )}
+                  {isHttpUrl(repo.repoUrl) && (
+                    <Button variant="outline" asChild><a href={repo.repoUrl} target="_blank" rel="noreferrer"><Github className="size-4" /> Repository</a></Button>
+                  )}
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="features">
