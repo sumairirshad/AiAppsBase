@@ -24,6 +24,7 @@ import { ProductCard } from '@/components/marketplace/product-card'
 import { ImageLightbox } from '@/components/marketplace/image-lightbox'
 import { ProductImage, mediaChipClass, mediaScrimClass, mediaTextClass } from '@/components/products/product-image'
 import { claimFreeProduct } from '@/lib/client/claim-free-product'
+import { addToWishlist, removeFromWishlist } from '@/lib/client/wishlist'
 import { sellerPath } from '@/lib/seo'
 import type { Repo, Seller } from '@/lib/marketplace-config'
 
@@ -117,6 +118,7 @@ function RatingBar({ stars, pct }: { stars: number; pct: number }) {
 function PurchasePanel({ repo }: { repo: Repo }) {
   const router = useRouter()
   const [saved, setSaved] = React.useState(false)
+  const [wishlistLoading, setWishlistLoading] = React.useState(false)
   const [license, setLicense] = React.useState('commercial')
   const licenseMultiplier: Record<string, number> = { personal: 1, commercial: 1, extended: 2.5 }
   const displayPrice = repo.price === 0 ? 0 : Math.round(repo.price * (licenseMultiplier[license] ?? 1))
@@ -140,6 +142,11 @@ function PurchasePanel({ repo }: { repo: Repo }) {
       const data = await res.json()
 
       if (!res.ok) {
+        if (res.status === 401) {
+          toast.error('Please log in to add items to your cart.')
+          router.push('/auth/login')
+          return
+        }
         throw new Error(data.error || 'Failed to add to cart')
       }
 
@@ -149,6 +156,25 @@ function PurchasePanel({ repo }: { repo: Repo }) {
     } finally {
       setLoading(false)
     }
+  }
+
+  async function toggleWishlist() {
+    if (wishlistLoading) return
+    setWishlistLoading(true)
+    const result = saved ? await removeFromWishlist(repo.id) : await addToWishlist(repo.id)
+    setWishlistLoading(false)
+
+    if (result.ok) {
+      setSaved((s) => !s)
+      toast.success(saved ? 'Removed from wishlist' : 'Saved to wishlist')
+      return
+    }
+    if (result.reason === 'unauthorized') {
+      toast.error('Please log in to save items to your wishlist.')
+      router.push('/auth/login')
+      return
+    }
+    toast.error(result.message)
   }
 
   async function getItFree() {

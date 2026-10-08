@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Star, GitFork, Bookmark, ArrowUpRight, Sparkles, BadgeCheck, Flame } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -11,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { productPath } from '@/lib/seo'
 import { ProductImage, mediaChipClass, mediaScrimClass, mediaTextClass } from '@/components/products/product-image'
+import { addToWishlist, removeFromWishlist } from '@/lib/client/wishlist'
 import type { Repo } from '@/lib/marketplace-config'
 
 function Price({ repo, className }: { repo: Repo; className?: string }) {
@@ -25,16 +27,36 @@ function Price({ repo, className }: { repo: Repo; className?: string }) {
 }
 
 function Bookmarkable({ repo, className }: { repo: Repo; className?: string }) {
+  const router = useRouter()
   const [saved, setSaved] = React.useState(false)
+  const [loading, setLoading] = React.useState(false)
+
+  async function toggle(e: React.MouseEvent) {
+    e.preventDefault()
+    if (loading) return
+    setLoading(true)
+    const result = saved ? await removeFromWishlist(repo.id) : await addToWishlist(repo.id)
+    setLoading(false)
+
+    if (result.ok) {
+      setSaved((s) => !s)
+      toast.success(saved ? 'Removed from wishlist' : `Saved ${repo.title} to wishlist`)
+      return
+    }
+    if (result.reason === 'unauthorized') {
+      toast.error('Please log in to save items to your wishlist.')
+      router.push('/auth/login')
+      return
+    }
+    toast.error(result.message)
+  }
+
   return (
     <button
       type="button"
       aria-label="Save to wishlist"
-      onClick={(e) => {
-        e.preventDefault()
-        setSaved((s) => !s)
-        toast.success(saved ? 'Removed from wishlist' : `Saved ${repo.title} to wishlist`)
-      }}
+      onClick={toggle}
+      disabled={loading}
       className={cn('grid size-8 place-items-center rounded-full transition-transform hover:scale-110', mediaChipClass, className)}
     >
       <Bookmark className={cn('size-4', saved && 'fill-current')} />
