@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { ArrowRight, Zap, ShoppingBag, BarChart2, Smartphone, Layers } from 'lucide-react'
 import { ProductCard } from '@/components/products/product-card'
 import { UploadCtaButton } from '@/components/products/upload-cta-button'
+import { Breadcrumbs } from '@/components/seo/breadcrumbs'
 import { query } from '@/lib/db'
 
 export const metadata: Metadata = {
@@ -29,12 +30,14 @@ export const metadata: Metadata = {
 
 export const revalidate = 300
 
+const APPS_CATEGORIES = ['Web Apps & SaaS', 'E-commerce', 'Mobile Apps']
+
 const subcategories = [
-  { label: 'Full-Stack Apps', href: '/products?category=Full-Stack+App', icon: Zap },
-  { label: 'SaaS', href: '/products?category=SaaS', icon: Layers },
-  { label: 'Dashboards', href: '/products?category=Dashboard', icon: BarChart2 },
-  { label: 'E-Commerce', href: '/products?category=E-commerce', icon: ShoppingBag },
-  { label: 'Mobile Apps', href: '/products?category=Mobile+App', icon: Smartphone },
+  { label: 'Full-Stack Apps', href: '/products?category=web-apps', icon: Zap },
+  { label: 'SaaS', href: '/products?subcategory=saas-boilerplates', icon: Layers },
+  { label: 'Dashboards', href: '/products?subcategory=dashboards', icon: BarChart2 },
+  { label: 'E-Commerce', href: '/products?category=ecommerce', icon: ShoppingBag },
+  { label: 'Mobile Apps', href: '/products?category=mobile-apps', icon: Smartphone },
 ]
 
 export default async function AppsPage() {
@@ -54,8 +57,9 @@ export default async function AppsPage() {
          FROM orders WHERE status = 'completed' GROUP BY product_id
        ) ord ON ord.product_id = p.id
        WHERE p.status = 'approved'
-         AND p.category IN ('Full-Stack App','SaaS','Dashboard','E-commerce','Mobile App')
-       ORDER BY p.created_at DESC`
+         AND p.category = ANY($1)
+       ORDER BY p.created_at DESC`,
+      [APPS_CATEGORIES]
     )
     products = result.rows || []
   } catch (err) {
@@ -70,6 +74,10 @@ export default async function AppsPage() {
         <div className="absolute top-0 right-1/4 w-[700px] h-[400px] bg-emerald-500/8 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20">
+          <Breadcrumbs
+            items={[{ label: 'Home', href: '/' }, { label: 'Marketplace', href: '/products' }, { label: 'Apps', href: '/apps' }]}
+            className="mb-5 flex flex-wrap items-center gap-1.5 text-sm text-surface-400"
+          />
           <div className="flex items-center gap-3 mb-5">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
               <Zap className="w-5 h-5 text-emerald-400" />
@@ -109,7 +117,7 @@ export default async function AppsPage() {
             <span className="text-white font-semibold">{products.length}</span> apps available
           </p>
           <Link
-            href="/products?category=Full-Stack+App"
+            href="/products?category=web-apps,ecommerce,mobile-apps"
             className="btn-secondary text-sm flex items-center gap-2 py-2 px-4"
           >
             Advanced Filters <ArrowRight className="w-4 h-4" />

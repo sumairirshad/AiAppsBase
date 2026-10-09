@@ -124,12 +124,13 @@ export async function getProductById(id: string): Promise<{ repo: Repo; seller: 
   }
 }
 
+/** Same category first, then products sharing at least one of this product's tags, then most recent. */
 export async function getRelatedProducts(product: Repo, n = 3): Promise<Repo[]> {
   try {
     const res = await query(
       `${LIST_SELECT} WHERE p.status = 'approved' AND p.id <> $1
-       ORDER BY (p.category = $2) DESC, p.created_at DESC LIMIT $3`,
-      [product.id, product.category, n]
+       ORDER BY (p.category = $2) DESC, (p.tags && $3::text[]) DESC, p.created_at DESC LIMIT $4`,
+      [product.id, product.category, product.tags, n]
     )
     return res.rows.map(mapRow)
   } catch (err) {

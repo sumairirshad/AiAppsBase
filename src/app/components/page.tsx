@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { ArrowRight, Box, Puzzle, Palette, Layers } from 'lucide-react'
 import { ProductCard } from '@/components/products/product-card'
 import { UploadCtaButton } from '@/components/products/upload-cta-button'
+import { Breadcrumbs } from '@/components/seo/breadcrumbs'
 import { query } from '@/lib/db'
 
 export const metadata: Metadata = {
@@ -29,10 +30,10 @@ export const metadata: Metadata = {
 export const revalidate = 300
 
 const subcategories = [
-  { label: 'Component Libraries', href: '/products?category=Component+Library', icon: Layers },
-  { label: 'UI Kits', href: '/products?category=Component+Library&tag=ui-kit', icon: Palette },
-  { label: 'Design Systems', href: '/products?category=Component+Library&tag=design-system', icon: Puzzle },
-  { label: 'All Components', href: '/products?category=Component+Library', icon: Box },
+  { label: 'Component Libraries', href: '/products?subcategory=component-libraries', icon: Layers },
+  { label: 'UI Kits', href: '/products?category=components-ui&q=UI+kit', icon: Palette },
+  { label: 'Design Systems', href: '/products?subcategory=design-systems', icon: Puzzle },
+  { label: 'All Components', href: '/products?category=components-ui', icon: Box },
 ]
 
 export default async function ComponentsPage() {
@@ -52,7 +53,7 @@ export default async function ComponentsPage() {
          FROM orders WHERE status = 'completed' GROUP BY product_id
        ) ord ON ord.product_id = p.id
        WHERE p.status = 'approved'
-         AND p.category = 'Component Library'
+         AND p.category = 'Components & UI Kits'
        ORDER BY p.created_at DESC`
     )
     products = result.rows || []
@@ -68,6 +69,10 @@ export default async function ComponentsPage() {
         <div className="absolute top-0 left-1/4 w-[700px] h-[400px] bg-purple-500/8 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20">
+          <Breadcrumbs
+            items={[{ label: 'Home', href: '/' }, { label: 'Marketplace', href: '/products' }, { label: 'Components', href: '/components' }]}
+            className="mb-5 flex flex-wrap items-center gap-1.5 text-sm text-surface-400"
+          />
           <div className="flex items-center gap-3 mb-5">
             <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
               <Box className="w-5 h-5 text-purple-400" />
@@ -107,7 +112,7 @@ export default async function ComponentsPage() {
             <span className="text-white font-semibold">{products.length}</span> component libraries available
           </p>
           <Link
-            href="/products?category=Component+Library"
+            href="/products?category=components-ui"
             className="btn-secondary text-sm flex items-center gap-2 py-2 px-4"
           >
             Advanced Filters <ArrowRight className="w-4 h-4" />

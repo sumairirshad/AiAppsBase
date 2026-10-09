@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import {
   ArrowRight, Star, Github, ShieldCheck, Wallet, LineChart, BadgeCheck, Globe,
@@ -23,6 +24,28 @@ import { faqSchema, sellerPath } from '@/lib/seo'
 import type { Repo, Seller } from '@/lib/marketplace-config'
 
 export const revalidate = 300
+
+const HOMEPAGE_DESCRIPTION =
+  'AIAppsBase is an AI apps marketplace to discover and get the best AI apps — artificial intelligence applications, websites, web apps, and mobile apps built with AI tools.'
+
+export const metadata: Metadata = {
+  title: {
+    absolute: 'AIAppsBase — Discover the Best AI Apps & Artificial Intelligence Applications',
+  },
+  description: HOMEPAGE_DESCRIPTION,
+  alternates: { canonical: '/' },
+  openGraph: {
+    title: 'AIAppsBase — Discover the Best AI Apps',
+    description: HOMEPAGE_DESCRIPTION,
+    type: 'website',
+    url: '/',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'AIAppsBase — Discover the Best AI Apps',
+    description: HOMEPAGE_DESCRIPTION,
+  },
+}
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Github, ShieldCheck, Wallet, LineChart, BadgeCheck, Globe,
@@ -64,11 +87,11 @@ function Hero({ stats, sellers }: { stats: PlatformStats; sellers: Seller[] }) {
 
         <h1 className="max-w-4xl font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-6xl md:text-7xl">
           The marketplace for<br />
-          <span className="text-gradient-brand">AI-built projects</span> &amp; repos
+          <span className="text-gradient-brand">the best AI apps</span> &amp; projects
         </h1>
 
         <p className="max-w-2xl text-lg text-muted-foreground sm:text-xl">
-          Buy and sell production-ready websites, SaaS boilerplates, UI kits, and mobile apps —
+          Discover and sell AI apps — production-ready websites, SaaS boilerplates, UI kits, and mobile apps —
           synced straight from GitHub, delivered instantly, protected end to end.
         </p>
 
@@ -140,7 +163,7 @@ function Categories() {
     <section className="container py-16">
       <div className="mb-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
         <SectionHeading center={false} eyebrow="Browse by category" title="Find exactly what you need"
-          description="From full SaaS platforms to a single Chrome extension — curated categories." />
+          description="From full SaaS platforms to a single Chrome extension — browse AI apps by category." />
         <Button variant="ghost" asChild className="shrink-0"><Link href="/products">View all <ArrowRight className="size-4" /></Link></Button>
       </div>
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -276,8 +299,8 @@ function FeaturedRepos({ products }: { products: Repo[] }) {
   return (
     <section className="container py-20">
       <div className="mb-10 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
-        <SectionHeading center={false} eyebrow="Fresh listings" title="Featured projects"
-          description="Hand-picked, high-quality repositories from our creators." />
+        <SectionHeading center={false} eyebrow="Fresh listings" title="Top AI Apps"
+          description="Hand-picked, high-quality AI apps and repositories from our creators." />
         <Button variant="ghost" asChild className="shrink-0"><Link href="/products">Browse all <ArrowRight className="size-4" /></Link></Button>
       </div>
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

@@ -21,7 +21,7 @@ export function generateStaticParams() {
 
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
   const post = getPost(params.slug)
-  if (!post) return { title: 'Article not found' }
+  if (!post) return { title: 'Article not found', robots: { index: false, follow: true } }
   const title = post.seoTitle ?? post.title
   return {
     title,

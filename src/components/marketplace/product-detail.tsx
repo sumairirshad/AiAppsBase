@@ -12,7 +12,7 @@ import { toast } from 'sonner'
 
 import { cn, formatNumber } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { Badge, badgeVariants } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
@@ -275,9 +275,11 @@ function PurchasePanel({ repo }: { repo: Repo }) {
 }
 
 export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: Seller; related: Repo[] }) {
-  const ratingDist = [
-    { stars: 5, pct: 72 }, { stars: 4, pct: 18 }, { stars: 3, pct: 6 }, { stars: 2, pct: 3 }, { stars: 1, pct: 1 },
-  ]
+  // Computed from the product's real reviews — never fabricated.
+  const ratingDist = [5, 4, 3, 2, 1].map((stars) => {
+    const n = repo.reviews.filter((r) => Math.round(r.rating) === stars).length
+    return { stars, pct: repo.reviews.length ? Math.round((n / repo.reviews.length) * 100) : 0 }
+  })
 
   return (
     <div className="container py-8">
@@ -346,13 +348,29 @@ export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: 
             <TabsContent value="overview" className="space-y-6">
               <p className="leading-relaxed text-muted-foreground">{repo.longDescription}</p>
               <div>
-                <h3 className="mb-3 font-semibold">Tech stack</h3>
+                <h2 className="mb-3 font-semibold">Tech stack</h2>
                 <div className="flex flex-wrap gap-2">
                   <Badge variant="secondary"><span className="mr-1 size-2 rounded-full" style={{ backgroundColor: repo.languageColor }} />{repo.language}</Badge>
                   {repo.techStack.map((t) => <Badge key={t} variant="secondary">{t}</Badge>)}
                   <Badge variant="brand"><Sparkles className="size-3" /> Built with {repo.aiTool}</Badge>
                 </div>
               </div>
+              {repo.tags.length > 0 && (
+                <div>
+                  <h2 className="mb-3 font-semibold">Tags</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {repo.tags.map((tag) => (
+                      <Link
+                        key={tag}
+                        href={`/products?q=${encodeURIComponent(tag)}`}
+                        className={cn(badgeVariants({ variant: 'muted' }), 'transition-colors hover:bg-accent hover:text-foreground')}
+                      >
+                        #{tag}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
               {(isHttpUrl(repo.demoUrl) || isHttpUrl(repo.repoUrl)) && (
                 <div className="flex flex-wrap gap-3">
                   {isHttpUrl(repo.demoUrl) && (
@@ -442,7 +460,7 @@ export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: 
 
           {seller && (
             <Card className="p-5">
-              <h3 className="mb-4 text-sm font-semibold">About the seller</h3>
+              <h2 className="mb-4 text-sm font-semibold">About the seller</h2>
               <div className="flex items-center gap-3">
                 <Avatar className="size-12 ring-2 ring-primary/20">
                   {seller.avatar && <AvatarImage src={seller.avatar} alt={seller.name} />}
@@ -475,7 +493,7 @@ export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: 
       {/* Related */}
       {related.length > 0 && (
         <div className="mt-16">
-          <h2 className="mb-6 font-display text-2xl font-bold tracking-tight">Related projects</h2>
+          <h2 className="mb-6 font-display text-2xl font-bold tracking-tight">Related AI Apps</h2>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {related.map((r) => <ProductCard key={r.id} repo={r} />)}
           </div>

@@ -2,6 +2,24 @@ import type { MetadataRoute } from 'next'
 import { query } from '@/lib/db'
 import { posts } from '@/lib/blog-data'
 import { APP_URL, productPath, sellerHandle, sellerPath } from '@/lib/seo'
+import { CATEGORIES } from '@/lib/marketplace-config'
+
+// Without this, Next treats sitemap.ts as fully static — computed once at
+// build time and never again — so a product approved after the last deploy
+// would never appear until the next build. Revalidating hourly (matching
+// the 'hourly' changeFrequency claimed below for /products) keeps new
+// listings showing up on their own.
+export const revalidate = 3600
+
+// Each category has its own indexable /products?category=<slug> landing
+// view (see generateMetadata in app/products/page.tsx) — list those here
+// too so crawlers discover them without depending solely on internal links.
+const categoryRoutes: MetadataRoute.Sitemap = CATEGORIES.map((c) => ({
+  url: `${APP_URL}/products?category=${c.slug}`,
+  lastModified: new Date(),
+  changeFrequency: 'daily',
+  priority: 0.7,
+}))
 
 const staticRoutes: MetadataRoute.Sitemap = [
   {
@@ -256,10 +274,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     }))
 
+    // Same visibility rule as isPublicSeller() in lib/products.ts: an active
+    // account with at least one approved product — not role/seller_status,
+    // which approving a product never touches (see the comment there).
     const sellers = await query(
       `SELECT u.id, u.full_name, u.github_username, MAX(p.updated_at) AS updated_at
        FROM users u JOIN products p ON p.seller_id = u.id AND p.status = 'approved'
-       WHERE u.role = 'seller' AND u.account_status = 'active' AND u.seller_status = 'approved'
+       WHERE u.account_status = 'active'
        GROUP BY u.id`
     )
     sellerRoutes = (sellers.rows || []).map((u) => ({
@@ -268,9 +289,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly' as const,
       priority: 0.6,
     }))
-  } catch {
-    // DB unavailable during static build — return static routes only
+  } catch (err) {
+    // DB unreachable (e.g. a build with no database access) — fall back to
+    // the static routes only, but log it: a silently empty sitemap of
+    // product/seller URLs is the kind of thing that's easy to miss.
+    console.error('sitemap: product/seller route generation failed, falling back to static routes only:', (err as Error).message)
   }
 
-  return [...staticRoutes, ...blogRoutes, ...productRoutes, ...sellerRoutes]
+  return [...staticRoutes, ...categoryRoutes, ...blogRoutes, ...productRoutes, ...sellerRoutes]
 }
