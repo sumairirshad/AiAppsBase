@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
-import { Mail, Lock, Eye, EyeOff, Github } from 'lucide-react'
+import { AlertCircle, Mail, Lock, Eye, EyeOff, Github } from 'lucide-react'
 
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -18,6 +19,7 @@ export default function LoginPage() {
   const [showPw, setShowPw] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -28,6 +30,11 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setFormError(null)
+    if (!email.trim() || !password) {
+      setFormError('Enter your email and password to sign in.')
+      return
+    }
     setIsLoading(true)
     try {
       const res = await fetch('/api/auth/login', {
@@ -52,7 +59,9 @@ export default function LoginPage() {
       else if (role === 'seller') window.location.href = '/panel'
       else window.location.href = '/buyer'
     } catch (error) {
-      toast.error((error as Error).message || 'Login failed')
+      const message = (error as Error).message || 'Login failed'
+      setFormError(message)
+      toast.error(message)
     } finally {
       setIsLoading(false)
     }
@@ -74,30 +83,46 @@ export default function LoginPage() {
         <Separator className="flex-1" />
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} noValidate className="space-y-4">
+        {formError && (
+          <div role="alert" className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+            <AlertCircle className="mt-0.5 size-4 shrink-0" /> {formError}
+          </div>
+        )}
+
         <div className="space-y-2">
           <Label htmlFor="email">Email address</Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="pl-9" required />
+            <Input
+              id="email" type="email" value={email}
+              onChange={(e) => { setEmail(e.target.value); setFormError(null) }}
+              placeholder="you@example.com" className={cn('pl-9', formError && 'border-destructive')}
+              aria-invalid={Boolean(formError)}
+            />
           </div>
         </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Password</Label>
-            <Link href="/auth/forgot-password" className="text-xs text-primary hover:underline">Forgot password?</Link>
+            <Link href="/auth/forgot-password" className="-my-3.5 -mr-1 inline-flex min-h-11 items-center px-1 text-xs text-primary hover:underline">Forgot password?</Link>
           </div>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input id="password" type={showPw ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" className="px-9" required />
-            <button type="button" onClick={() => setShowPw((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label="Toggle password">
+            <Input
+              id="password" type={showPw ? 'text' : 'password'} value={password}
+              onChange={(e) => { setPassword(e.target.value); setFormError(null) }}
+              placeholder="Enter your password" className={cn('px-9', formError && 'border-destructive')}
+              aria-invalid={Boolean(formError)}
+            />
+            <button type="button" onClick={() => setShowPw((s) => !s)} className="absolute right-0 top-0 flex h-full w-11 items-center justify-center text-muted-foreground hover:text-foreground" aria-label="Toggle password">
               {showPw ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
             </button>
           </div>
         </div>
 
-        <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+        <label className="-my-2.5 flex cursor-pointer items-center gap-2 py-2.5 text-sm text-muted-foreground">
           <Checkbox checked={rememberMe} onCheckedChange={(v) => setRememberMe(Boolean(v))} /> Remember me for 30 days
         </label>
 

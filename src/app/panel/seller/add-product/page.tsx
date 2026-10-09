@@ -182,6 +182,10 @@ function AddProductContent() {
       toast.error('Please upload a .zip or .rar file with your product')
       return
     }
+    if (selectedFiles.length === 0) {
+      toast.error('Please upload at least one screenshot — listings without one show a generic placeholder instead of a preview')
+      return
+    }
 
     const formData = new FormData()
     formData.append('title', title)
@@ -422,7 +426,7 @@ function AddProductContent() {
                   <Input id="preview" type="url" value={previewUrl} onChange={(e) => setPreviewUrl(e.target.value)} placeholder="https://example.com/preview" />
                 </div>
                 <div className="space-y-3">
-                  <Label>Upload screenshots</Label>
+                  <Label>Upload screenshots <span className="text-destructive">*</span></Label>
                   <div className="relative rounded-xl border-2 border-dashed border-border p-8 text-center transition-colors hover:border-primary/40">
                     <input type="file" multiple accept="image/*" onChange={(e) => e.target.files && setSelectedFiles(Array.from(e.target.files))} className="absolute inset-0 size-full cursor-pointer opacity-0" />
                     <Upload className="mx-auto mb-3 size-8 text-muted-foreground" />

@@ -187,7 +187,7 @@ export default function StyleGuidePage() {
                   <ShieldCheck className="size-5" />
                 </div>
                 <CardTitle className="pt-3">Verified & secure</CardTitle>
-                <CardDescription>Every listing is scanned and reviewed before it goes live.</CardDescription>
+                <CardDescription>Every listing is reviewed before it goes live.</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-3">

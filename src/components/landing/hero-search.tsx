@@ -27,7 +27,7 @@ export function HeroSearch() {
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search 12,000+ projects, repos, and templates…"
+          placeholder="Search projects, tech, or tags…"
           className="h-11 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground sm:text-base"
           aria-label="Search the marketplace"
         />
@@ -45,7 +45,7 @@ export function HeroSearch() {
             key={s}
             type="button"
             onClick={() => router.push(`/products?q=${encodeURIComponent(s)}`)}
-            className="rounded-full border border-border bg-card/50 px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+            className="inline-flex min-h-11 items-center rounded-full border border-border bg-card/50 px-3.5 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
           >
             {s}
           </button>

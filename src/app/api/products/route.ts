@@ -126,6 +126,16 @@ export async function POST(req: NextRequest) {
         )
       }
 
+      // A listing with no screenshot falls back to the site logo on every
+      // card and product page — require at least one so new listings never
+      // ship looking broken.
+      if (validatedImages.length === 0) {
+        return NextResponse.json(
+          { error: 'Please upload at least one screenshot' },
+          { status: 400 }
+        )
+      }
+
       const buffer = Buffer.from(await deliverableFile.arrayBuffer())
 
       try {
@@ -190,7 +200,10 @@ export async function POST(req: NextRequest) {
         aiTools,
         techStack,
         humanModLevel,
-        screenshots,
+        // GitHub-sourced listings have no screenshot step; GitHub generates a
+        // social-preview image for every public repo at this stable URL, so
+        // use it instead of falling back to the site logo on every card.
+        screenshots.length > 0 ? screenshots : [`https://opengraph.githubassets.com/1/${githubRepoName}`],
         previewUrl || null,
         licenseType,
         tags,

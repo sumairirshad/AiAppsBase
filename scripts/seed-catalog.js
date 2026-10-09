@@ -773,7 +773,7 @@ async function insertCatalog(client, sellerId) {
           version, features, featured
         ) VALUES (
           $1, $2, $3, 0.00, $4, $5,
-          $6, $7, 'Heavily Modified', '{}',
+          $6, $7, 'Heavily Modified', $22,
           $8, $9, 'approved', $10,
           $11, $12,
           $13, $14, $15, $16, $17, $18,
@@ -801,6 +801,10 @@ async function insertCatalog(client, sellerId) {
           repo.version,
           repo.features,
           Boolean(repo.featured),
+          // GitHub auto-generates a social-preview image for every public
+          // repo at this stable URL — use it instead of leaving screenshots
+          // empty, which falls back to the site logo on every card.
+          [`https://opengraph.githubassets.com/1/${repo.githubRepoName}`],
         ]
       )
       inserted++

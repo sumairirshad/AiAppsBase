@@ -9,7 +9,9 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
     return (
       <textarea
         className={cn(
-          'flex min-h-[80px] w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-sm shadow-sm transition-colors',
+          // text-base (16px) below sm: so iOS Safari doesn't auto-zoom the
+          // viewport on focus; text-sm (14px) from sm: up where that isn't a concern.
+          'flex min-h-[80px] w-full rounded-lg border border-input bg-background px-3.5 py-2.5 text-base shadow-sm transition-colors sm:text-sm',
           'placeholder:text-muted-foreground',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background focus-visible:border-transparent',
           'disabled:cursor-not-allowed disabled:opacity-50',

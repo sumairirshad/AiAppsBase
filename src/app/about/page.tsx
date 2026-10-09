@@ -5,9 +5,11 @@ import { ArrowRight, Code, Shield, ShoppingBag, TrendingUp, Users, Zap } from 'l
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { getPlatformStats, isPlatformEstablished } from '@/lib/products'
+import { cn, formatNumber } from '@/lib/utils'
 
 export const metadata: Metadata = {
-  title: 'About AIAppsBase — The AI-Built App Marketplace',
+  title: 'About',
   description:
     'AIAppsBase is the leading marketplace for buying and selling websites, apps, and UI components created with AI tools. Learn about our mission and how it works.',
   openGraph: {
@@ -17,12 +19,6 @@ export const metadata: Metadata = {
   },
 }
 
-const stats = [
-  { label: 'Products Listed', value: '1,200+' },
-  { label: 'Active Sellers', value: '340+' },
-  { label: 'Happy Buyers', value: '5,000+' },
-  { label: 'AI Tools Supported', value: '9+' },
-]
 
 const steps = [
   {
@@ -66,7 +62,20 @@ const values = [
   },
 ]
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const platformStats = await getPlatformStats()
+  // Sellers/sales/payouts only read as credible once they're meaningfully
+  // large — see isPlatformEstablished(). The listing count alone is fine
+  // to show regardless of how new the marketplace is.
+  const stats = isPlatformEstablished(platformStats)
+    ? [
+        { label: 'Products listed', value: platformStats.products.toLocaleString() },
+        { label: 'Active sellers', value: platformStats.sellers.toLocaleString() },
+        { label: 'Completed sales', value: platformStats.sales.toLocaleString() },
+        { label: 'Paid to creators', value: `$${formatNumber(platformStats.paidOut)}` },
+      ]
+    : [{ label: 'Products listed', value: platformStats.products.toLocaleString() }]
+
   return (
     <div className="relative overflow-hidden">
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
@@ -89,7 +98,7 @@ export default function AboutPage() {
 
       {/* Stats */}
       <section className="container py-16">
-        <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+        <div className={cn('grid gap-6', stats.length > 1 ? 'grid-cols-2 md:grid-cols-4' : 'mx-auto max-w-xs')}>
           {stats.map(({ label, value }) => (
             <Card key={label} className="p-6 text-center">
               <p className="mb-1 font-display text-3xl font-bold text-gradient-brand">{value}</p>

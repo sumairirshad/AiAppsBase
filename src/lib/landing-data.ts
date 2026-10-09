@@ -5,9 +5,10 @@
  * on the landing page are loaded live from the database.
  */
 
-export const trustedBy = [
-  'Vercel', 'Linear', 'Supabase', 'Stripe', 'Raycast', 'Framer',
-  'PostHog', 'Resend', 'Clerk', 'Neon', 'Cal.com', 'Turso',
+/** AI tools listings on the marketplace are commonly built with — shown on the
+ * homepage marquee. Not a claim that any tool vendor endorses AIAppsBase. */
+export const builtWithTools = [
+  'ChatGPT', 'Claude', 'v0', 'Cursor', 'Bolt', 'Replit', 'Windsurf', 'Lovable', 'GitHub Copilot',
 ]
 
 export type Feature = { title: string; description: string; icon: string }
@@ -38,9 +39,9 @@ export const features: Feature[] = [
     icon: 'LineChart',
   },
   {
-    title: 'Verified & scanned',
+    title: 'Human-reviewed',
     description:
-      'Every listing passes automated malware and secret scanning plus human review before it ever reaches a buyer.',
+      'Every listing is reviewed by our team for a working demo and an accurate description before it ever reaches a buyer.',
     icon: 'BadgeCheck',
   },
   {
@@ -93,6 +94,6 @@ export const faqs: Faq[] = [
   { q: 'What fees does AIAppsBase charge?', a: 'The Starter plan is free with a 10% fee per sale. Pro is $19/month and drops the fee to 5%. There are no listing fees, and you keep the rest. Payments are processed securely through Stripe.' },
   { q: 'How and when do I get paid?', a: 'Sales are held for a 14-day buyer-protection window, then become available in your wallet. You can withdraw to a bank account, PayPal, or supported payout method at any time. Pro sellers get priority payouts.' },
   { q: 'Is buyer protection included?', a: 'Yes. Every purchase is covered by our protection policy. If a project is materially misrepresented or broken, buyers can request a refund within the protection window, and our team mediates disputes fairly.' },
-  { q: 'How do you keep the marketplace high quality?', a: 'Every listing passes automated malware and secret scanning plus a human review before going live. Listings are ranked by code quality, documentation, freshness, and verified buyer reviews.' },
+  { q: 'How do you keep the marketplace high quality?', a: 'Every listing is reviewed by our team for a working demo and an accurate description before going live. Listings are ranked by code quality, documentation, freshness, and verified buyer reviews.' },
   { q: 'Can I sell open-source projects?', a: 'You can sell commercial licenses, premium tiers, or support around projects you own the rights to. We provide license templates for personal, commercial, and extended-commercial use.' },
 ]

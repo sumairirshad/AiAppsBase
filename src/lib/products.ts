@@ -161,6 +161,13 @@ export async function getTopSellers(limit = 4): Promise<Seller[]> {
 
 export type PlatformStats = { products: number; sellers: number; sales: number; paidOut: number }
 
+/** Marketing-facing counters (active sellers, completed sales, "join N creators")
+ * read as more credible than helpful once the numbers are this small — show
+ * them only once the platform has real traction. */
+export function isPlatformEstablished(stats: PlatformStats): boolean {
+  return stats.sellers >= 10 && stats.sales >= 10
+}
+
 /** Real platform-wide counts for the landing stats band. */
 export async function getPlatformStats(): Promise<PlatformStats> {
   try {

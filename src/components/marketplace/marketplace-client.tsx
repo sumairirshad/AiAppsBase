@@ -12,7 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Slider } from '@/components/ui/slider'
 import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter, SheetClose } from '@/components/ui/sheet'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
@@ -341,9 +341,19 @@ export function MarketplaceClient({
                   {activeCount > 0 && <Badge variant="brand" className="ml-1 px-1.5">{activeCount}</Badge>}
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-full overflow-y-auto sm:max-w-sm">
-                <SheetHeader className="text-left"><SheetTitle>Filters</SheetTitle></SheetHeader>
-                <div className="p-6 pt-2"><FiltersPanel filters={filters} set={updateFilters} /></div>
+              <SheetContent side="left" className="flex h-full w-full flex-col p-0 sm:max-w-sm">
+                <SheetHeader className="border-b border-border p-6 text-left"><SheetTitle>Filters</SheetTitle></SheetHeader>
+                <div className="flex-1 overflow-y-auto p-6"><FiltersPanel filters={filters} set={updateFilters} /></div>
+                <SheetFooter className="border-t border-border p-4">
+                  <Button variant="outline" onClick={clearAll} disabled={activeCount === 0} className="sm:flex-1">
+                    Clear all
+                  </Button>
+                  <SheetClose asChild>
+                    <Button variant="gradient" className="sm:flex-1">
+                      Show {total} result{total === 1 ? '' : 's'}
+                    </Button>
+                  </SheetClose>
+                </SheetFooter>
               </SheetContent>
             </Sheet>
             <Select value={sort} onValueChange={updateSort}>

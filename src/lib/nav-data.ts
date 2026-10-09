@@ -158,11 +158,3 @@ export const footerLegalBar: NavLink[] = [
   { label: 'GDPR', href: '/gdpr' },
   { label: 'Accessibility', href: '/accessibility' },
 ]
-
-export const socialLinks: NavLink[] = [
-  { label: 'GitHub', href: 'https://github.com', icon: 'Github' },
-  { label: 'X', href: 'https://x.com', icon: 'Twitter' },
-  { label: 'Discord', href: 'https://discord.com', icon: 'MessageCircle' },
-  { label: 'LinkedIn', href: 'https://linkedin.com', icon: 'Linkedin' },
-  { label: 'YouTube', href: 'https://youtube.com', icon: 'Youtube' },
-]

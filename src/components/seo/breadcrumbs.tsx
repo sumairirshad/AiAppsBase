@@ -17,7 +17,7 @@ export function Breadcrumbs({ items, className }: { items: BreadcrumbEntry[]; cl
               {isLast ? (
                 <span aria-current="page" className="truncate text-foreground">{item.label}</span>
               ) : (
-                <Link href={item.href} className="hover:text-foreground">{item.label}</Link>
+                <Link href={item.href} className="-my-2.5 inline-block py-2.5 hover:text-foreground">{item.label}</Link>
               )}
               {!isLast && <ChevronRight className="size-3.5" />}
             </span>

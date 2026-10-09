@@ -9,6 +9,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { cn } from '@/lib/utils'
 import { JsonLd } from '@/components/seo/json-ld'
 import { APP_URL, organizationSchema, websiteSchema } from '@/lib/seo'
+import { getCurrentUser } from '@/lib/dashboard'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -83,7 +84,11 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Resolved server-side so the header never flashes a loading placeholder
+  // before showing "Sign in" or the account menu.
+  const user = await getCurrentUser()
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body
@@ -102,7 +107,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           disableTransitionOnChange
         >
           <TooltipProvider delayDuration={200}>
-            <SiteNavbar />
+            <SiteNavbar initialUser={user ? { full_name: user.full_name, email: user.email, role: user.role } : null} />
             <main className="min-h-screen">{children}</main>
             <SiteFooter />
           </TooltipProvider>
