@@ -9,8 +9,15 @@ import {
   Check, DollarSign, PlusCircle,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+
 import { timeAgo } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { PageHead } from '@/components/dashboard/page-head'
+import { EmptyState } from '@/components/dashboard/empty-state'
 
 const LANG_COLORS: Record<string, string> = {
   JavaScript: '#f1e05a', TypeScript: '#3178c6', Python: '#3572A5',
@@ -91,40 +98,38 @@ function GithubReposContent() {
   )
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-1 flex items-center gap-3">
-            <Github className="w-8 h-8" />
-            GitHub Repos
-          </h1>
-          <p className="text-surface-400 text-sm">
-            Connect GitHub to browse your public repositories. Sell any repo directly from the{' '}
-            <Link href="/panel/seller/add-product?mode=github" className="text-brand-400 hover:text-brand-300">
-              Add Product
-            </Link>{' '}
-            page.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
+    <div className="mx-auto max-w-6xl">
+      <div className="mb-8 flex items-center justify-between gap-4">
+        <PageHead
+          title="GitHub repos"
+          description={
+            <>
+              Connect GitHub to browse your public repositories. Sell any repo directly from the{' '}
+              <Link href="/panel/seller/add-product?mode=github" className="text-primary hover:underline">
+                Add Product
+              </Link>{' '}
+              page.
+            </>
+          }
+        />
+        <div className="flex shrink-0 items-center gap-3">
           {connected && (
-            <button onClick={fetchRepos} disabled={loading} className="btn-secondary flex items-center gap-2 text-sm">
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <Button variant="outline" onClick={fetchRepos} disabled={loading}>
+              <RefreshCw className={loading ? 'size-4 animate-spin' : 'size-4'} />
               Refresh
-            </button>
+            </Button>
           )}
-          <Link href="/panel/seller/add-product?mode=github" className="btn-primary flex items-center gap-2 text-sm">
-            <PlusCircle className="w-4 h-4" />
-            Sell a Repo
-          </Link>
+          <Button variant="gradient" asChild>
+            <Link href="/panel/seller/add-product?mode=github"><PlusCircle className="size-4" /> Sell a Repo</Link>
+          </Button>
         </div>
       </div>
 
-      <div className="glass rounded-xl p-6 mb-8">
+      <Card className="mb-8 p-6">
         {loading ? (
-          <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <Skeleton className="h-12 w-12 rounded-full" />
+              <Skeleton className="size-12 rounded-full" />
               <div className="space-y-2">
                 <Skeleton className="h-4 w-40" />
                 <Skeleton className="h-3 w-28" />
@@ -133,65 +138,61 @@ function GithubReposContent() {
             <Skeleton className="h-9 w-32 rounded-lg" />
           </div>
         ) : connected ? (
-          <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-surface-700 overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+              <div className="size-12 overflow-hidden rounded-full bg-muted">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={`https://github.com/${githubUsername}.png?size=48`}
                   alt={githubUsername ?? ''}
-                  className="w-full h-full object-cover"
+                  className="size-full object-cover"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                 />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-400" />
-                  <span className="text-white font-semibold">{githubUsername}</span>
-                  <span className="text-surface-500 text-sm">GitHub connected</span>
+                  <span className="size-2 rounded-full bg-success" />
+                  <span className="font-semibold">{githubUsername}</span>
+                  <span className="text-sm text-muted-foreground">GitHub connected</span>
                 </div>
-                <p className="text-surface-400 text-sm mt-0.5">{repos.length} public repos</p>
+                <p className="mt-0.5 text-sm text-muted-foreground">{repos.length} public repos</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <a href="/api/auth/github" className="btn-secondary text-sm flex items-center gap-2">
-                <Github className="w-4 h-4" />
-                Reconnect
-              </a>
-              <button
+              <Button variant="outline" asChild>
+                <a href="/api/auth/github"><Github className="size-4" /> Reconnect</a>
+              </Button>
+              <Button
+                variant="outline"
                 onClick={handleDisconnect}
                 disabled={disconnecting}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                className="text-destructive hover:bg-destructive/10"
               >
-                <Unlink className="w-4 h-4" />
+                <Unlink className="size-4" />
                 {disconnecting ? 'Disconnecting...' : 'Disconnect'}
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
           <div className="flex flex-col items-center py-6 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-surface-800 flex items-center justify-center mb-4">
-              <Github className="w-8 h-8 text-surface-400" />
+            <div className="mb-4 grid size-16 place-items-center rounded-2xl bg-muted">
+              <Github className="size-8 text-muted-foreground" />
             </div>
-            <h3 className="text-white font-semibold text-lg mb-2">Connect your GitHub account</h3>
-            <p className="text-surface-400 text-sm mb-6 max-w-md">
+            <h3 className="mb-2 text-lg font-semibold">Connect your GitHub account</h3>
+            <p className="mb-6 max-w-md text-sm text-muted-foreground">
               Link your GitHub to browse and sell your public repositories on the marketplace.
             </p>
-            <a
-              href="/api/auth/github"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[#24292f] hover:bg-[#32383f] text-white font-medium rounded-xl transition-colors border border-white/10"
-            >
-              <Github className="w-5 h-5" />
-              Connect GitHub
-            </a>
+            <Button variant="default" className="bg-[#24292f] text-white hover:bg-[#32383f]" asChild>
+              <a href="/api/auth/github"><Github className="size-4" /> Connect GitHub</a>
+            </Button>
           </div>
         )}
-      </div>
+      </Card>
 
       {connected && (
-        <div className="flex items-start gap-3 p-4 rounded-xl bg-brand-500/5 border border-brand-500/20 mb-6">
-          <AlertCircle className="w-4 h-4 text-brand-400 shrink-0 mt-0.5" />
-          <p className="text-brand-300 text-sm">
+        <div className="mb-6 flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
+          <AlertCircle className="mt-0.5 size-4 shrink-0 text-primary" />
+          <p className="text-sm text-primary">
             To sell a repo, click <strong>Sell This Repo</strong> below — it will take you to the product listing form where you can set price, category, and license.
           </p>
         </div>
@@ -199,60 +200,51 @@ function GithubReposContent() {
 
       {connected && !loading && (
         <>
-          <div className="flex items-center gap-4 mb-5">
-            <div className="relative flex-1 max-w-sm">
-              <input
-                type="text"
-                placeholder="Search repositories..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="input-field pl-4 pr-4 w-full"
-              />
-            </div>
-            <p className="text-surface-500 text-sm ml-auto">
-              <span className="text-white font-medium">{filtered.length}</span> repos
+          <div className="mb-5 flex items-center gap-4">
+            <Input
+              type="text"
+              placeholder="Search repositories..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="max-w-sm"
+            />
+            <p className="ml-auto text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">{filtered.length}</span> repos
             </p>
           </div>
 
           {filtered.length === 0 ? (
-            <div className="glass rounded-xl p-12 text-center">
-              <Package className="w-12 h-12 text-surface-600 mx-auto mb-4" />
-              <p className="text-surface-400">No repositories found.</p>
-            </div>
+            <EmptyState icon="Package" title="No repositories found" description="Try a different search term." />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {filtered.map((repo) => {
                 const isListed = listedRepoNames.has(repo.fullName)
                 const langColor = repo.language ? (LANG_COLORS[repo.language] ?? '#8b949e') : null
 
                 return (
-                  <div
-                    key={repo.id}
-                    className="glass rounded-xl p-5 flex flex-col gap-3 border border-white/5 hover:border-white/10 transition-colors"
-                  >
+                  <Card key={repo.id} interactive className="flex flex-col gap-3 p-5">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <a
                           href={repo.htmlUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-white font-semibold text-sm hover:text-brand-400 transition-colors flex items-center gap-1.5 group"
+                          className="group flex items-center gap-1.5 text-sm font-semibold transition-colors hover:text-primary"
                         >
                           {repo.name}
-                          <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                          <ExternalLink className="size-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" />
                         </a>
-                        <p className="text-xs text-surface-500 mt-0.5">{repo.fullName}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{repo.fullName}</p>
                       </div>
                       {isListed && (
-                        <span className="flex items-center gap-1 text-[10px] font-medium text-green-400 bg-green-500/10 border border-green-500/20 px-2 py-1 rounded-full shrink-0">
-                          <Check className="w-3 h-3" />
-                          Listed
-                        </span>
+                        <Badge variant="success" className="shrink-0">
+                          <Check className="size-3" /> Listed
+                        </Badge>
                       )}
                     </div>
 
                     {repo.description && (
-                      <p className="text-surface-400 text-xs leading-relaxed line-clamp-2">
+                      <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
                         {repo.description}
                       </p>
                     )}
@@ -260,46 +252,35 @@ function GithubReposContent() {
                     {repo.topics.length > 0 && (
                       <div className="flex flex-wrap gap-1">
                         {repo.topics.slice(0, 4).map((topic) => (
-                          <span key={topic} className="text-[10px] px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20">
-                            {topic}
-                          </span>
+                          <Badge key={topic} variant="brand">{topic}</Badge>
                         ))}
                       </div>
                     )}
 
-                    <div className="flex items-center gap-4 text-surface-500 text-xs mt-auto">
+                    <div className="mt-auto flex items-center gap-4 text-xs text-muted-foreground">
                       {langColor && (
                         <span className="flex items-center gap-1.5">
-                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: langColor }} />
+                          <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: langColor }} />
                           {repo.language}
                         </span>
                       )}
-                      <span className="flex items-center gap-1">
-                        <Star className="w-3 h-3" /> {repo.stars}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <GitFork className="w-3 h-3" /> {repo.forks}
-                      </span>
-                      <span className="flex items-center gap-1 ml-auto">
-                        <Clock className="w-3 h-3" /> {timeAgo(repo.updatedAt)}
-                      </span>
+                      <span className="flex items-center gap-1"><Star className="size-3" /> {repo.stars}</span>
+                      <span className="flex items-center gap-1"><GitFork className="size-3" /> {repo.forks}</span>
+                      <span className="ml-auto flex items-center gap-1"><Clock className="size-3" /> {timeAgo(repo.updatedAt)}</span>
                     </div>
 
                     {isListed ? (
-                      <button disabled className="w-full py-2 rounded-lg text-sm font-medium bg-surface-800/50 text-surface-600 cursor-not-allowed flex items-center justify-center gap-2">
-                        <Check className="w-4 h-4" />
-                        Already Listed
-                      </button>
+                      <Button disabled variant="outline" className="w-full">
+                        <Check className="size-4" /> Already Listed
+                      </Button>
                     ) : (
-                      <Link
-                        href={`/panel/seller/add-product?mode=github&repo=${encodeURIComponent(repo.fullName)}`}
-                        className="w-full py-2 rounded-lg text-sm font-medium btn-primary flex items-center justify-center gap-2"
-                      >
-                        <DollarSign className="w-4 h-4" />
-                        Sell This Repo
-                      </Link>
+                      <Button variant="gradient" className="w-full" asChild>
+                        <Link href={`/panel/seller/add-product?mode=github&repo=${encodeURIComponent(repo.fullName)}`}>
+                          <DollarSign className="size-4" /> Sell This Repo
+                        </Link>
+                      </Button>
                     )}
-                  </div>
+                  </Card>
                 )
               })}
             </div>

@@ -6,6 +6,7 @@ import { InfoPage } from '@/components/layout/info-page'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Breadcrumbs } from '@/components/seo/breadcrumbs'
 import { formatNumber } from '@/lib/utils'
 import { listPublicSellers } from '@/lib/products'
 import { sellerPath } from '@/lib/seo'
@@ -35,6 +36,7 @@ export default async function Page() {
 
   return (
     <div className="container py-16">
+      <Breadcrumbs items={[{ label: 'Home', href: '/' }, { label: 'Top sellers', href: '/top-sellers' }]} />
       <div className="mx-auto max-w-2xl text-center">
         <Badge variant="brand" className="px-3 py-1"><Trophy className="size-3" /> Creators</Badge>
         <h1 className="mt-5 font-display text-4xl font-bold tracking-tight sm:text-5xl">Top sellers on AIAppsBase</h1>

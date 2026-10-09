@@ -4,7 +4,7 @@ import { notFound, permanentRedirect } from 'next/navigation'
 import { StorefrontView } from '@/components/marketplace/storefront'
 import { JsonLd } from '@/components/seo/json-ld'
 import { getStorefront } from '@/lib/products'
-import { breadcrumbSchema, extractProductId, sellerPath, sellerProfileSchema } from '@/lib/seo'
+import { extractProductId, sellerPath, sellerProfileSchema } from '@/lib/seo'
 
 export const revalidate = 300
 
@@ -15,7 +15,7 @@ function describe(name: string, bio: string, productCount: number) {
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const data = await getStorefront(extractProductId(params.id))
-  if (!data) return { title: 'Seller not found' }
+  if (!data) return { title: 'Seller not found', robots: { index: false, follow: true } }
   const { seller } = data
   const path = sellerPath(seller)
   const description = describe(seller.name, seller.bio, seller.productCount)
@@ -41,20 +41,14 @@ export default async function SellerStorefrontPage({ params }: { params: { id: s
 
   return (
     <>
+      {/* Breadcrumb JSON-LD is emitted by the visible <Breadcrumbs> inside StorefrontView, so the two never drift. */}
       <JsonLd
-        data={[
-          breadcrumbSchema([
-            { label: 'Home', href: '/' },
-            { label: 'Top sellers', href: '/top-sellers' },
-            { label: seller.name, href: canonicalPath },
-          ]),
-          sellerProfileSchema({
-            name: seller.name,
-            description: describe(seller.name, seller.bio, seller.productCount),
-            url: canonicalPath,
-            sameAs: seller.website ? [seller.website] : undefined,
-          }),
-        ]}
+        data={sellerProfileSchema({
+          name: seller.name,
+          description: describe(seller.name, seller.bio, seller.productCount),
+          url: canonicalPath,
+          sameAs: seller.website ? [seller.website] : undefined,
+        })}
       />
       <StorefrontView data={data} />
     </>

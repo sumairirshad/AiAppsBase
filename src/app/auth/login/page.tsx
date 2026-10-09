@@ -35,7 +35,8 @@ export default function LoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => null)
+      if (!data) throw new Error('The server did not respond. Please try again.')
       if (data?.needsVerification) {
         // Unverified account: continue on the verification screen (a code was just emailed).
         if (data.otpSent) toast.success(`We sent a verification code to ${data.email}`)

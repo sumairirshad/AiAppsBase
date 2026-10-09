@@ -28,6 +28,15 @@ function getPool(): Pool {
       idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: 10_000,
     })
+    // pg's Pool emits 'error' on the pool itself when a background idle
+    // client's connection dies (network blip, a managed DB's idle-connection
+    // reaper, etc) — unrelated to any in-flight query. An EventEmitter
+    // throws when 'error' has no listener, which crashes the whole Node
+    // process; this is far more likely under real network conditions in
+    // production than over a local, unproxied loopback connection.
+    pool.on('error', (err) => {
+      console.error('Unexpected error on idle database client', err)
+    })
   }
   return pool
 }

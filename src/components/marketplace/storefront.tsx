@@ -18,7 +18,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { ProductCard, ProductRow } from '@/components/marketplace/product-card'
-import { productPath } from '@/lib/seo'
+import { Breadcrumbs } from '@/components/seo/breadcrumbs'
+import { productPath, sellerPath } from '@/lib/seo'
 import type { Storefront } from '@/lib/products'
 
 type Sort = 'popular' | 'newest' | 'rating' | 'price-asc' | 'price-desc'
@@ -79,6 +80,14 @@ export function StorefrontView({ data }: { data: Storefront }) {
       </div>
 
       <div className="container">
+        <Breadcrumbs
+          className="pt-4 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground"
+          items={[
+            { label: 'Home', href: '/' },
+            { label: 'Top sellers', href: '/top-sellers' },
+            { label: seller.name, href: sellerPath(seller) },
+          ]}
+        />
         {/* Header */}
         <div className="relative -mt-14 flex flex-col gap-5 sm:-mt-16 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end">

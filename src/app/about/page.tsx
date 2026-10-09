@@ -1,6 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Zap, Users, ShoppingBag, TrendingUp, ArrowRight, Shield, Code } from 'lucide-react'
+import { ArrowRight, Code, Shield, ShoppingBag, TrendingUp, Users, Zap } from 'lucide-react'
+
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 
 export const metadata: Metadata = {
   title: 'About AIAppsBase — The AI-Built App Marketplace',
@@ -64,92 +68,87 @@ const values = [
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-surface-950">
-      {/* Hero */}
-      <section className="relative overflow-hidden border-b border-white/10">
-        <div className="absolute inset-0 bg-gradient-to-br from-brand-950/50 via-surface-950 to-surface-950" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-brand-500/8 rounded-full blur-3xl pointer-events-none" />
+    <div className="relative overflow-hidden">
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute left-1/2 top-[-10%] h-96 w-[800px] -translate-x-1/2 rounded-full bg-primary/15 blur-[120px]" />
+        <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-30 mask-fade-b" />
+      </div>
 
-        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-          <div className="inline-flex items-center gap-2 glass rounded-full px-4 py-2 text-sm text-brand-400 border border-brand-500/20 mb-6">
-            <Zap className="w-3.5 h-3.5" />
-            Our Mission
-          </div>
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
-            The marketplace for<br />
-            <span className="gradient-text">AI-built products</span>
-          </h1>
-          <p className="text-surface-400 text-lg md:text-xl max-w-2xl mx-auto">
-            AIAppsBase connects talented creators who build with AI tools with buyers who need
-            production-ready websites, apps, and UI components — without starting from scratch.
-          </p>
-        </div>
+      {/* Hero */}
+      <section className="container max-w-4xl py-20 text-center sm:py-28">
+        <Badge variant="brand" className="px-3 py-1"><Zap className="size-3" /> Our Mission</Badge>
+        <h1 className="mt-5 font-display text-4xl font-bold tracking-tight sm:text-6xl">
+          The marketplace for<br />
+          <span className="text-gradient-brand">AI-built products</span>
+        </h1>
+        <p className="mx-auto mt-5 max-w-2xl text-lg text-muted-foreground sm:text-xl">
+          AIAppsBase connects talented creators who build with AI tools with buyers who need
+          production-ready websites, apps, and UI components — without starting from scratch.
+        </p>
       </section>
 
       {/* Stats */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+      <section className="container py-16">
+        <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
           {stats.map(({ label, value }) => (
-            <div key={label} className="glass rounded-2xl p-6 text-center border border-white/5">
-              <p className="text-3xl font-bold gradient-text mb-1">{value}</p>
-              <p className="text-surface-400 text-sm">{label}</p>
-            </div>
+            <Card key={label} className="p-6 text-center">
+              <p className="mb-1 font-display text-3xl font-bold text-gradient-brand">{value}</p>
+              <p className="text-sm text-muted-foreground">{label}</p>
+            </Card>
           ))}
         </div>
       </section>
 
       {/* How it works */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <h2 className="text-3xl font-bold text-white text-center mb-12">How AIAppsBase works</h2>
-        <div className="grid md:grid-cols-3 gap-8">
+      <section className="container py-16">
+        <h2 className="mb-12 text-center font-display text-3xl font-bold tracking-tight">How AIAppsBase works</h2>
+        <div className="grid gap-8 md:grid-cols-3">
           {steps.map(({ step, title, description, icon: Icon }) => (
-            <div key={step} className="glass rounded-2xl p-8 border border-white/5 relative">
-              <span className="absolute top-6 right-6 text-5xl font-black text-white/5">{step}</span>
-              <div className="w-12 h-12 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center mb-5">
-                <Icon className="w-6 h-6 text-brand-400" />
+            <Card key={step} className="relative p-8">
+              <span className="absolute right-6 top-6 text-5xl font-black text-muted-foreground/10">{step}</span>
+              <div className="mb-5 grid size-12 place-items-center rounded-xl border border-primary/20 bg-primary/10">
+                <Icon className="size-6 text-primary" />
               </div>
-              <h3 className="text-lg font-semibold text-white mb-3">{title}</h3>
-              <p className="text-surface-400 text-sm leading-relaxed">{description}</p>
-            </div>
+              <h3 className="mb-3 text-lg font-semibold">{title}</h3>
+              <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
+            </Card>
           ))}
         </div>
       </section>
 
       {/* Values */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <h2 className="text-3xl font-bold text-white text-center mb-12">What we stand for</h2>
-        <div className="grid md:grid-cols-3 gap-6">
+      <section className="container py-16">
+        <h2 className="mb-12 text-center font-display text-3xl font-bold tracking-tight">What we stand for</h2>
+        <div className="grid gap-6 md:grid-cols-3">
           {values.map(({ icon: Icon, title, description }) => (
-            <div key={title} className="glass rounded-2xl p-8 border border-white/5">
-              <div className="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center mb-4">
-                <Icon className="w-5 h-5 text-brand-400" />
+            <Card key={title} className="p-8">
+              <div className="mb-4 grid size-10 place-items-center rounded-xl border border-primary/20 bg-primary/10">
+                <Icon className="size-5 text-primary" />
               </div>
-              <h3 className="text-base font-semibold text-white mb-2">{title}</h3>
-              <p className="text-surface-400 text-sm leading-relaxed">{description}</p>
-            </div>
+              <h3 className="mb-2 text-base font-semibold">{title}</h3>
+              <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
+            </Card>
           ))}
         </div>
       </section>
 
       {/* CTA */}
-      <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="glass rounded-2xl p-12 text-center border border-white/5 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-brand-600/10 to-purple-600/10" />
-          <div className="relative">
-            <h2 className="text-2xl font-bold text-white mb-4">Ready to join AIAppsBase?</h2>
-            <p className="text-surface-400 mb-8 max-w-md mx-auto">
-              Browse thousands of AI-built products or start selling your own creations today.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link href="/products" className="btn-primary flex items-center gap-2">
-                Browse Marketplace <ArrowRight className="w-4 h-4" />
-              </Link>
-              <Link href="/auth/register" className="btn-secondary">
-                Start Selling
-              </Link>
-            </div>
+      <section className="container max-w-4xl py-16">
+        <Card className="relative overflow-hidden p-12 text-center">
+          <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-r from-primary/10 to-fuchsia-500/10" />
+          <h2 className="mb-4 font-display text-2xl font-bold tracking-tight">Ready to join AIAppsBase?</h2>
+          <p className="mx-auto mb-8 max-w-md text-muted-foreground">
+            Browse thousands of AI-built products or start selling your own creations today.
+          </p>
+          <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <Button size="lg" variant="gradient" asChild>
+              <Link href="/products">Browse Marketplace <ArrowRight className="size-4" /></Link>
+            </Button>
+            <Button size="lg" variant="outline" asChild>
+              <Link href="/auth/register">Start Selling</Link>
+            </Button>
           </div>
-        </div>
+        </Card>
       </section>
     </div>
   )

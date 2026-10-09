@@ -8,7 +8,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { Toaster } from '@/components/ui/sonner'
 import { cn } from '@/lib/utils'
 import { JsonLd } from '@/components/seo/json-ld'
-import { APP_URL, SITE_NAME } from '@/lib/seo'
+import { APP_URL, organizationSchema, websiteSchema } from '@/lib/seo'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -44,11 +44,11 @@ export const metadata: Metadata = {
     template: '%s | AIAppsBase',
   },
   description:
-    'Discover and purchase websites, web apps, UI components, and mobile apps built with AI tools like ChatGPT, Claude, v0, Bolt, Cursor, and Lovable.',
+    'AIAppsBase is an AI apps marketplace to discover the best AI apps — artificial intelligence applications, websites, web apps, and mobile apps — built with tools like ChatGPT, Claude, v0, Bolt, Cursor, and Lovable.',
   keywords: [
-    'AI apps', 'AI templates', 'AI marketplace', 'AI-built websites',
-    'ChatGPT apps', 'Claude apps', 'v0 templates', 'Bolt apps', 'Cursor',
-    'buy website template', 'sell AI app', 'no-code marketplace',
+    'AI apps', 'artificial intelligence app', 'best AI apps', 'top AI apps', 'apps AI',
+    'AI apps marketplace', 'AI-built websites', 'AI templates',
+    'ChatGPT apps', 'Claude apps', 'buy AI app', 'sell AI app',
   ],
   authors: [{ name: 'AIAppsBase' }],
   creator: 'AIAppsBase',
@@ -60,13 +60,13 @@ export const metadata: Metadata = {
     url: APP_URL,
     title: 'AIAppsBase — Marketplace for AI-Built Apps & Templates',
     description:
-      'Browse thousands of websites, apps, and UI components built with AI tools. Find your next project starting point.',
+      'Discover the best AI apps — artificial intelligence applications, websites, and UI components built with AI tools. Find your next project starting point.',
   },
   twitter: {
     card: 'summary_large_image',
     site: '@aiappsbase',
     title: 'AIAppsBase — Marketplace for AI-Built Apps & Templates',
-    description: 'Browse thousands of AI-built websites, apps, and UI components.',
+    description: 'Discover the best AI apps and artificial intelligence applications, built with AI tools.',
   },
   robots: {
     index: true,
@@ -83,33 +83,6 @@ export const metadata: Metadata = {
   },
 }
 
-const organizationSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'Organization',
-  name: SITE_NAME,
-  url: APP_URL,
-  description:
-    'Marketplace for buying and selling websites, web apps, mobile apps, and UI components built with AI tools.',
-  sameAs: [
-    'https://github.com',
-    'https://x.com',
-    'https://discord.com',
-    'https://linkedin.com',
-  ],
-}
-
-const websiteSchema = {
-  '@context': 'https://schema.org',
-  '@type': 'WebSite',
-  name: SITE_NAME,
-  url: APP_URL,
-  potentialAction: {
-    '@type': 'SearchAction',
-    target: `${APP_URL}/products?q={search_term_string}`,
-    'query-input': 'required name=search_term_string',
-  },
-}
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -121,7 +94,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           'min-h-screen bg-background font-sans text-foreground antialiased'
         )}
       >
-        <JsonLd data={[organizationSchema, websiteSchema]} />
+        <JsonLd data={[organizationSchema(), websiteSchema()]} />
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

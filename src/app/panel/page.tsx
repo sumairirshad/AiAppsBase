@@ -119,7 +119,7 @@ export default async function SellerDashboard() {
                 <tbody>
                   {topProducts.map((p) => (
                     <tr key={p.id} className="border-b border-border/60 last:border-0 hover:bg-muted/40">
-                      <td className="px-6 py-3"><div className="flex items-center gap-3"><span className="relative size-9 shrink-0 overflow-hidden rounded-lg"><ProductImage src={p.image} alt="" logoClassName="size-5" sizes="64px" /></span><span className="font-medium">{p.title}</span></div></td>
+                      <td className="px-6 py-3"><div className="flex items-center gap-3"><span className="relative size-9 shrink-0 overflow-hidden rounded-lg"><ProductImage src={p.image} alt={p.title} logoClassName="size-5" sizes="64px" /></span><span className="font-medium">{p.title}</span></div></td>
                       <td className="px-6 py-3 text-muted-foreground">{p.price === 0 ? 'Free' : `$${p.price}`}</td>
                       <td className="px-6 py-3 text-muted-foreground">{formatNumber(p.sales)}</td>
                       <td className="px-6 py-3 font-medium">${formatNumber(p.revenue)}</td>

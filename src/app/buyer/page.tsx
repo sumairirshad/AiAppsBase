@@ -69,7 +69,7 @@ export default async function BuyerDashboard() {
               <EmptyState icon="ShoppingBag" title="No purchases yet" description="Browse the marketplace to find your next project." actionLabel="Browse marketplace" actionHref="/products" className="border-0" />
             ) : purchases.map((o) => (
               <div key={o.id} className="flex items-center gap-4 rounded-xl border border-border p-3">
-                <span className="relative size-11 shrink-0 overflow-hidden rounded-lg"><ProductImage src={o.image} alt="" logoClassName="size-6" sizes="64px" /></span>
+                <span className="relative size-11 shrink-0 overflow-hidden rounded-lg"><ProductImage src={o.image} alt={o.product} logoClassName="size-6" sizes="64px" /></span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <Link href={`/product/${o.productId}`} className="truncate text-sm font-medium hover:text-primary">{o.product}</Link>

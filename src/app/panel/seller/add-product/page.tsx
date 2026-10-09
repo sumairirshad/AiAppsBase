@@ -560,7 +560,7 @@ function AddProductContent() {
                 <div className="flex items-center gap-3">
                   <div className="size-9 overflow-hidden rounded-full bg-muted">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={`https://github.com/${ghUsername}.png?size=36`} alt="" className="size-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                    <img src={`https://github.com/${ghUsername}.png?size=36`} alt={`${ghUsername} GitHub avatar`} className="size-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">

@@ -1,9 +1,17 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ArrowRight, Box, Puzzle, Palette, Layers } from 'lucide-react'
-import { ProductCard } from '@/components/products/product-card'
+import { ArrowRight, Box, Check, Layers, Puzzle } from 'lucide-react'
+
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { ProductCard } from '@/components/marketplace/product-card'
 import { UploadCtaButton } from '@/components/products/upload-cta-button'
-import { query } from '@/lib/db'
+import { Breadcrumbs } from '@/components/seo/breadcrumbs'
+import { Faq } from '@/components/seo/faq'
+import { JsonLd } from '@/components/seo/json-ld'
+import { collectionPageSchema } from '@/lib/seo'
+import { listApprovedProducts } from '@/lib/products'
 
 export const metadata: Metadata = {
   title: 'AI-Built UI Components & Libraries — React, Tailwind & More',
@@ -13,122 +21,158 @@ export const metadata: Metadata = {
     'AI UI components', 'React component library', 'Tailwind components',
     'AI design system', 'UI kit', 'Next.js components', 'component library',
   ],
+  alternates: { canonical: '/components' },
   openGraph: {
     title: 'AI-Built UI Components & Libraries | AIAppsBase',
     description: 'UI component libraries and design systems for React, Vue, and Tailwind CSS — built with AI.',
     type: 'website',
+    url: '/components',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'AI-Built UI Components & Libraries | AIAppsBase',
     description: 'UI component libraries and design systems built with AI.',
   },
-  alternates: { canonical: '/components' },
 }
 
 export const revalidate = 300
 
-const subcategories = [
-  { label: 'Component Libraries', href: '/products?category=Component+Library', icon: Layers },
-  { label: 'UI Kits', href: '/products?category=Component+Library&tag=ui-kit', icon: Palette },
-  { label: 'Design Systems', href: '/products?category=Component+Library&tag=design-system', icon: Puzzle },
-  { label: 'All Components', href: '/products?category=Component+Library', icon: Box },
+const faqItems = [
+  {
+    q: 'Which frameworks are these components built for?',
+    a: 'Mostly React and Tailwind CSS, with some Vue listings. Each product page lists the exact framework, styling approach, and any dependencies before you buy.',
+  },
+  {
+    q: 'Can I use these components in a commercial project?',
+    a: 'Depends on the license tier you purchase — Personal, Commercial, or Extended Commercial. Commercial and above cover use in client or business projects; check the listing for exact terms.',
+  },
+  {
+    q: 'Do component libraries come with documentation?',
+    a: 'Most listings include a README or Storybook-style preview showing each component\'s props and variants. The product page links to a live demo so you can browse the components before buying.',
+  },
+  {
+    q: 'What\'s the difference between a component library and a full design system?',
+    a: 'A component library is a set of individual, reusable UI pieces (buttons, cards, modals). A design system additionally defines tokens, spacing, and usage guidelines so an entire product looks consistent when built on top of it.',
+  },
 ]
 
 export default async function ComponentsPage() {
-  let products: any[] = []
-  try {
-    const result = await query(
-      `SELECT p.*, u.full_name AS seller_name,
-              agg.avg_rating AS rating, agg.review_count, ord.sales
-       FROM products p
-       JOIN users u ON p.seller_id = u.id
-       LEFT JOIN (
-         SELECT product_id, AVG(rating)::float AS avg_rating, COUNT(*)::int AS review_count
-         FROM reviews GROUP BY product_id
-       ) agg ON agg.product_id = p.id
-       LEFT JOIN (
-         SELECT product_id, COUNT(*)::int AS sales
-         FROM orders WHERE status = 'completed' GROUP BY product_id
-       ) ord ON ord.product_id = p.id
-       WHERE p.status = 'approved'
-         AND p.category = 'Component Library'
-       ORDER BY p.created_at DESC`
-    )
-    products = result.rows || []
-  } catch (err) {
-    console.error('ComponentsPage query failed:', (err as Error).message)
-  }
+  const products = (await listApprovedProducts()).filter((p) => p.categorySlug === 'components-ui').slice(0, 8)
 
   return (
-    <div className="min-h-screen bg-surface-950">
-      {/* Hero */}
-      <section className="relative overflow-hidden border-b border-white/10">
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-950/40 via-surface-950 to-surface-950" />
-        <div className="absolute top-0 left-1/4 w-[700px] h-[400px] bg-purple-500/8 rounded-full blur-3xl pointer-events-none" />
+    <div className="relative overflow-hidden">
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute left-1/2 top-[-10%] h-96 w-[700px] -translate-x-1/2 rounded-full bg-primary/15 blur-[120px]" />
+        <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-30 mask-fade-b" />
+      </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20">
-          <div className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
-              <Box className="w-5 h-5 text-purple-400" />
-            </div>
-            <span className="text-purple-400 text-sm font-medium tracking-wide">UI Components</span>
-          </div>
-
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">
-            AI-Built <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">UI Components</span>
-          </h1>
-          <p className="text-surface-400 text-lg max-w-2xl mb-8">
-            Production-ready component libraries and design systems crafted with AI.
-            Drop into your React, Vue, or Tailwind project and ship faster.
-          </p>
-
-          <div className="flex flex-wrap items-center gap-3">
-            {subcategories.map(({ label, href, icon: Icon }) => (
-              <Link
-                key={label}
-                href={href}
-                className="glass glass-hover rounded-full px-4 py-2 text-sm text-surface-300 hover:text-white flex items-center gap-2 transition-colors"
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {label}
-              </Link>
-            ))}
-            <div className="w-px h-5 bg-white/10 hidden sm:block" />
-            <UploadCtaButton label="Upload Components" className="btn-primary text-sm py-2 px-4" />
-          </div>
+      <section className="container max-w-3xl py-16 text-center sm:py-20">
+        <Breadcrumbs
+          className="mb-6 flex flex-wrap items-center justify-center gap-1.5 text-sm text-muted-foreground"
+          items={[{ label: 'Home', href: '/' }, { label: 'Marketplace', href: '/products' }, { label: 'Components & UI Kits', href: '/components' }]}
+        />
+        <Badge variant="brand" className="px-3 py-1"><Box className="size-3" /> Components &amp; UI Kits</Badge>
+        <h1 className="mt-5 font-display text-4xl font-bold tracking-tight sm:text-5xl">
+          Component libraries &amp; design systems, drop-in ready
+        </h1>
+        <p className="mx-auto mt-5 max-w-2xl text-lg text-muted-foreground">
+          Production-ready UI components crafted with AI. Drop them into your React, Vue, or
+          Tailwind project and skip weeks of building and testing primitives from scratch.
+        </p>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <Button size="lg" variant="gradient" asChild>
+            <Link href="/products?category=components-ui">Browse all components <ArrowRight className="size-4" /></Link>
+          </Button>
+          <UploadCtaButton label="Upload components" size="lg" variant="outline" />
         </div>
       </section>
 
-      {/* Products Grid */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex items-center justify-between mb-8">
-          <p className="text-surface-400 text-sm">
-            <span className="text-white font-semibold">{products.length}</span> component libraries available
-          </p>
-          <Link
-            href="/products?category=Component+Library"
-            className="btn-secondary text-sm flex items-center gap-2 py-2 px-4"
-          >
-            Advanced Filters <ArrowRight className="w-4 h-4" />
-          </Link>
+      <section className="container pb-4">
+        <div className="grid gap-6 sm:grid-cols-2">
+          <Card className="p-6">
+            <Layers className="size-6 text-primary" />
+            <h2 className="mt-3 font-display text-lg font-semibold">Component libraries</h2>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              Buttons, cards, modals, forms, and the rest of the primitives a product needs —
+              tested, accessible, and ready to import.
+            </p>
+            <Link href="/products?subcategory=component-libraries" className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+              Browse component libraries <ArrowRight className="size-3.5" />
+            </Link>
+          </Card>
+          <Card className="p-6">
+            <Puzzle className="size-6 text-primary" />
+            <h2 className="mt-3 font-display text-lg font-semibold">Design systems &amp; blocks</h2>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              Tokens, spacing scales, and prebuilt page sections that keep an entire product
+              visually consistent as it grows.
+            </p>
+            <Link href="/products?subcategory=design-systems" className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+              Browse design systems <ArrowRight className="size-3.5" />
+            </Link>
+          </Card>
         </div>
+      </section>
 
-        {products.length === 0 ? (
-          <div className="glass rounded-2xl p-16 text-center border border-white/5">
-            <Box className="w-12 h-12 text-surface-600 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-white mb-2">No components yet</h3>
-            <p className="text-surface-400 mb-6">Be the first to upload a component library!</p>
-            <UploadCtaButton label="Upload Components" />
+      <section className="container py-16">
+        <h2 className="mb-2 font-display text-2xl font-bold tracking-tight">Why buy components instead of building your own</h2>
+        <p className="mb-6 max-w-2xl text-muted-foreground">
+          Accessible, well-tested UI primitives are deceptively time-consuming — keyboard
+          navigation, focus states, and cross-browser quirks eat far more time than the happy path.
+        </p>
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {[
+            'Full source code you own and can restyle freely',
+            'Accessible by default — keyboard nav and focus states included',
+            'A live, browsable demo of every component before you buy',
+            'Reviewed for quality before it\'s listed',
+          ].map((f) => (
+            <li key={f} className="flex items-start gap-2 text-sm">
+              <Check className="mt-0.5 size-4 shrink-0 text-success" />
+              <span className="text-muted-foreground">{f}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {products.length > 0 && (
+        <section className="container pb-16">
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="font-display text-2xl font-bold tracking-tight">Recently listed components</h2>
+            <Link href="/products?category=components-ui" className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+              View all <ArrowRight className="size-3.5" />
+            </Link>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {products.map((p) => (
-              <ProductCard key={p.id} product={p} />
-            ))}
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {products.map((p) => <ProductCard key={p.id} repo={p} />)}
           </div>
-        )}
-      </div>
+        </section>
+      )}
+
+      <section className="border-t border-border bg-muted/20 py-16">
+        <div className="container max-w-3xl">
+          <h2 className="mb-2 text-center font-display text-2xl font-bold tracking-tight">Frequently asked questions</h2>
+          <p className="mb-8 text-center text-muted-foreground">Everything buyers ask before purchasing components.</p>
+          <JsonLd
+            data={collectionPageSchema({
+              name: 'Components & UI Kits',
+              description: 'UI component libraries and design systems for React, Vue, and Tailwind CSS — built with AI.',
+              url: '/components',
+            })}
+          />
+          <Faq items={faqItems} />
+        </div>
+      </section>
+
+      <section className="container py-16">
+        <h2 className="mb-4 font-display text-2xl font-bold tracking-tight">Related reading</h2>
+        <ul className="grid gap-2 sm:grid-cols-2">
+          <li><Link href="/blog/design-systems-that-sell" className="text-sm font-medium text-primary hover:underline">Design systems that sell &rarr;</Link></li>
+          <li><Link href="/blog/ui-design-trends-shaped-by-ai-tools" className="text-sm font-medium text-primary hover:underline">UI design trends shaped by AI tools &rarr;</Link></li>
+          <li><Link href="/templates" className="text-sm font-medium text-primary hover:underline">Browse website templates &rarr;</Link></li>
+          <li><Link href="/apps" className="text-sm font-medium text-primary hover:underline">Browse web apps &amp; SaaS &rarr;</Link></li>
+        </ul>
+      </section>
     </div>
   )
 }
