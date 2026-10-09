@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { InfoPage } from '@/components/layout/info-page'
 
 export const metadata: Metadata = {
   title: 'Privacy Policy | AIAppsBase',
@@ -55,22 +56,20 @@ const sections = [
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-surface-950">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="mb-10">
-          <h1 className="text-4xl font-bold text-white mb-3">Privacy Policy</h1>
-          <p className="text-surface-500 text-sm">Last updated: June 1, 2025</p>
-        </div>
-
-        <div className="space-y-8">
-          {sections.map(({ title, content }) => (
-            <section key={title}>
-              <h2 className="text-base font-semibold text-white mb-3">{title}</h2>
-              <p className="text-surface-400 text-sm leading-relaxed">{content}</p>
-            </section>
-          ))}
-        </div>
+    <InfoPage
+      eyebrow="Legal"
+      title="Privacy Policy"
+      description="Last updated: June 1, 2025"
+      icon="ShieldCheck"
+    >
+      <div className="space-y-8">
+        {sections.map(({ title, content }) => (
+          <section key={title}>
+            <h2 className="mb-3 text-base font-semibold">{title}</h2>
+            <p className="text-sm leading-relaxed text-muted-foreground">{content}</p>
+          </section>
+        ))}
       </div>
-    </div>
+    </InfoPage>
   )
 }

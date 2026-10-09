@@ -1,4 +1,4 @@
-export function PageHead({ title, description }: { title: string; description: string }) {
+export function PageHead({ title, description }: { title: string; description: React.ReactNode }) {
   return (
     <div className="mb-6">
       <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">{title}</h1>
