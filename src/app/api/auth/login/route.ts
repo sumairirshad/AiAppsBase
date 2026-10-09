@@ -15,6 +15,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
   }
 
+  try {
+    return await handleLogin(email, password)
+  } catch (err) {
+    console.error('[auth/login] unexpected failure:', err)
+    return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
+  }
+}
+
+async function handleLogin(email: string, password: string) {
   const userRes = await query(
     'SELECT id, password_hash, is_verified, role, account_status, login_failed_attempts, login_locked_until, otp_locked_until FROM users WHERE email = $1',
     [email.trim().toLowerCase()]
