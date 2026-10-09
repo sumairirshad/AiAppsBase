@@ -10,15 +10,17 @@ export async function GET() {
   }
 
   const userRes = await query(
-    'SELECT github_access_token, github_username FROM users WHERE id = $1',
+    'SELECT role, github_access_token, github_username FROM users WHERE id = $1',
     [userId]
   )
 
   if ((userRes.rowCount ?? 0) === 0) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }
-
-  const { github_access_token, github_username } = userRes.rows[0]
+  const { role, github_access_token, github_username } = userRes.rows[0]
+  if (role !== 'seller' && role !== 'admin') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   const accessToken = decryptToken(github_access_token)
 

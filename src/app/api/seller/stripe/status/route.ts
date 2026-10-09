@@ -9,8 +9,12 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const userRes = await query('SELECT stripe_account_id FROM users WHERE id = $1', [userId])
-  const accountId = userRes.rows[0]?.stripe_account_id as string | null
+  const userRes = await query('SELECT role, stripe_account_id FROM users WHERE id = $1', [userId])
+  const user = userRes.rows[0]
+  if (!user || (user.role !== 'seller' && user.role !== 'admin')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+  const accountId = user.stripe_account_id as string | null
 
   if (!accountId) {
     return NextResponse.json({ connected: false, onboardingStatus: 'not_started', chargesEnabled: false, payoutsEnabled: false })

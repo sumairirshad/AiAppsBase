@@ -10,13 +10,16 @@ export async function POST(req: NextRequest) {
   }
 
   const userRes = await query(
-    'SELECT stripe_account_id, stripe_payouts_enabled FROM users WHERE id = $1',
+    'SELECT role, stripe_account_id, stripe_payouts_enabled FROM users WHERE id = $1',
     [userId]
   )
   if ((userRes.rowCount ?? 0) === 0) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }
   const user = userRes.rows[0]
+  if (user.role !== 'seller' && user.role !== 'admin') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
   if (!user.stripe_account_id || !user.stripe_payouts_enabled) {
     return NextResponse.json(
       { error: 'Connect your Stripe account before withdrawing' },
