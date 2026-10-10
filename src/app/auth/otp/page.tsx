@@ -76,7 +76,8 @@ export default function OtpPage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, code }),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => null)
+      if (!data) throw new Error('The server did not respond. Please try again.')
       if (!res.ok) throw new Error(data?.error ?? 'Verification failed')
       toast.success('Email verified successfully!')
       // Verification signs the user in; coming from sign-in, finish like a normal login.
@@ -101,7 +102,8 @@ export default function OtpPage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => null)
+      if (!data) throw new Error('The server did not respond. Please try again.')
       if (!res.ok) throw new Error(data?.error ?? 'Could not resend code')
       toast.success('A new code was sent to your email')
     } catch (error) {

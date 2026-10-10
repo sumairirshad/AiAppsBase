@@ -1,17 +1,12 @@
 import { createCipheriv, createDecipheriv, randomBytes, createHash } from 'crypto'
+import { requireProductionSecret } from '@/lib/env'
 
 const DEV_FALLBACK_KEY = 'dev-only-insecure-token-encryption-key-do-not-use-in-production'
 
 function getKey(): Buffer {
-  const secret = process.env.TOKEN_ENCRYPTION_KEY
-  if (!secret) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('TOKEN_ENCRYPTION_KEY environment variable is required to store third-party access tokens securely.')
-    }
-    console.warn('TOKEN_ENCRYPTION_KEY is not set — using an insecure development fallback. Set it before deploying.')
-  }
+  const secret = requireProductionSecret('TOKEN_ENCRYPTION_KEY', DEV_FALLBACK_KEY)
   // SHA-256 the provided secret so any length input yields a valid 32-byte AES-256 key.
-  return createHash('sha256').update(secret || DEV_FALLBACK_KEY).digest()
+  return createHash('sha256').update(secret).digest()
 }
 
 /** Encrypts a third-party secret (e.g. a GitHub access token) for storage at rest. */

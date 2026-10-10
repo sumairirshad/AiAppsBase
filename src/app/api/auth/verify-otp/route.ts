@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { setSession } from '@/lib/session'
 import { OTP_MAX_ATTEMPTS, OTP_LOCKOUT_MINUTES } from '@/lib/auth'
+import { ConfigError } from '@/lib/env'
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
@@ -14,6 +15,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Email and code are required' }, { status: 400 })
   }
 
+  try {
+    return await handleVerifyOtp(email, code)
+  } catch (err) {
+    if (err instanceof ConfigError) {
+      console.error('[auth/verify-otp] CONFIGURATION ERROR — this deployment is missing a required environment variable:', err.message)
+    } else {
+      console.error('[auth/verify-otp] unexpected failure:', err)
+    }
+    return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
+  }
+}
+
+async function handleVerifyOtp(email: string, code: string) {
   const userRes = await query(
     'SELECT id, role, is_verified, otp_failed_attempts, otp_locked_until FROM users WHERE email = $1',
     [email.trim().toLowerCase()]

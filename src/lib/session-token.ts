@@ -1,15 +1,10 @@
 import { createHmac, timingSafeEqual } from 'crypto'
+import { requireProductionSecret } from '@/lib/env'
 
 const DEV_FALLBACK_SECRET = 'dev-only-insecure-session-secret-do-not-use-in-production'
 
 function getSessionSecret(): string {
-  const secret = process.env.SESSION_SECRET
-  if (secret) return secret
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('SESSION_SECRET environment variable is required for session signing.')
-  }
-  console.warn('SESSION_SECRET is not set — using an insecure development fallback. Set SESSION_SECRET before deploying.')
-  return DEV_FALLBACK_SECRET
+  return requireProductionSecret('SESSION_SECRET', DEV_FALLBACK_SECRET)
 }
 
 function sign(userId: string): string {

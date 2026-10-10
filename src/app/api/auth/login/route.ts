@@ -3,6 +3,7 @@ import { query } from '@/lib/db'
 import { verifyPassword, LOGIN_MAX_ATTEMPTS, LOGIN_LOCKOUT_MINUTES } from '@/lib/auth'
 import { setSession } from '@/lib/session'
 import { issueVerificationOtp } from '@/lib/otp'
+import { ConfigError } from '@/lib/env'
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
@@ -18,7 +19,14 @@ export async function POST(req: NextRequest) {
   try {
     return await handleLogin(email, password)
   } catch (err) {
-    console.error('[auth/login] unexpected failure:', err)
+    // A ConfigError means credentials were valid but a required deployment
+    // env var is missing — log it distinctly so it's immediately
+    // identifiable in function logs instead of looking like a generic bug.
+    if (err instanceof ConfigError) {
+      console.error('[auth/login] CONFIGURATION ERROR — this deployment is missing a required environment variable:', err.message)
+    } else {
+      console.error('[auth/login] unexpected failure:', err)
+    }
     return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
   }
 }
