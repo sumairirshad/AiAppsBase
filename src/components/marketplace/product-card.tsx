@@ -75,7 +75,7 @@ export function ProductCard({ repo, priority = false }: { repo: Repo; priority?:
           {repo.isNew && <Badge className={cn('border-0', mediaChipClass)}><Sparkles className="size-3" /> New</Badge>}
         </div>
         <Bookmarkable repo={repo} className="absolute right-3 top-3" />
-        <span className={cn('absolute bottom-3 left-3 right-3 truncate font-display text-xl font-bold', mediaTextClass)}>{repo.title}</span>
+        <span className={cn('absolute bottom-3 left-3 right-3 line-clamp-2 font-display text-xl font-bold leading-tight', mediaTextClass)}>{repo.title}</span>
       </Link>
 
       <div className="flex flex-1 flex-col p-4">
@@ -97,11 +97,15 @@ export function ProductCard({ repo, priority = false }: { repo: Repo; priority?:
         </div>
 
         <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
-          <div className="flex items-center gap-1 text-sm">
-            <Star className="size-4 fill-amber-400 text-amber-400" />
-            <span className="font-semibold">{repo.rating}</span>
-            <span className="text-xs text-muted-foreground">({repo.reviewCount})</span>
-          </div>
+          {repo.reviewCount > 0 ? (
+            <div className="flex items-center gap-1 text-sm">
+              <Star className="size-4 fill-amber-400 text-amber-400" />
+              <span className="font-semibold">{repo.rating}</span>
+              <span className="text-xs text-muted-foreground">({repo.reviewCount})</span>
+            </div>
+          ) : (
+            <Badge variant="muted">New</Badge>
+          )}
           <div className="flex items-center gap-3">
             <Price repo={repo} />
             <Button size="sm" asChild>
@@ -120,7 +124,7 @@ export function ProductRow({ repo, priority = false }: { repo: Repo; priority?: 
       <Link href={productPath(repo)} className="group/media relative block h-28 shrink-0 overflow-hidden rounded-lg sm:w-56">
         <ProductImage src={repo.image} alt={repo.title} logoClassName="size-10 -translate-y-3" sizes="224px" priority={priority} />
         <div className={cn('absolute inset-0', mediaScrimClass)} />
-        <span className={cn('absolute bottom-2 left-3 right-3 truncate font-display text-lg font-bold', mediaTextClass)}>{repo.title}</span>
+        <span className={cn('absolute bottom-2 left-3 right-3 line-clamp-2 font-display text-lg font-bold leading-tight', mediaTextClass)}>{repo.title}</span>
         <Bookmarkable repo={repo} className="absolute right-2 top-2" />
       </Link>
 
@@ -130,13 +134,16 @@ export function ProductRow({ repo, priority = false }: { repo: Repo; priority?: 
           {repo.verified && <BadgeCheck className="size-4 text-primary" />}
           <Badge variant="muted">{repo.category}</Badge>
           {repo.trending && <Badge variant="warning"><Flame className="size-3" /> Trending</Badge>}
+          {repo.reviewCount === 0 && <Badge variant="muted">New</Badge>}
         </div>
         <p className="mt-1 line-clamp-2 flex-1 text-sm text-muted-foreground">{repo.description}</p>
         <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1"><span className="size-2.5 rounded-full" style={{ backgroundColor: repo.languageColor }} /> {repo.language}</span>
           <span className="inline-flex items-center gap-1"><Star className="size-3.5" /> {formatNumber(repo.stars)}</span>
           <span className="inline-flex items-center gap-1"><GitFork className="size-3.5" /> {formatNumber(repo.forks)}</span>
-          <span className="inline-flex items-center gap-1"><Star className="size-3.5 fill-amber-400 text-amber-400" /> {repo.rating} ({repo.reviewCount})</span>
+          {repo.reviewCount > 0 && (
+            <span className="inline-flex items-center gap-1"><Star className="size-3.5 fill-amber-400 text-amber-400" /> {repo.rating} ({repo.reviewCount})</span>
+          )}
         </div>
       </div>
 

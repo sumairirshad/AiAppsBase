@@ -11,10 +11,12 @@ import { formatNumber } from '@/lib/utils'
 import { listPublicSellers } from '@/lib/products'
 import { sellerPath } from '@/lib/seo'
 
-export const revalidate = 300
+// Short revalidate window: with very few sellers, a stale ranking is highly
+// visible (e.g. a seller's first sale not yet reflected in their rank).
+export const revalidate = 60
 
 export const metadata: Metadata = {
-  title: 'Top sellers on AIAppsBase',
+  title: 'Top sellers',
   description: 'Meet the developers turning their repositories into thriving businesses. Browse creator storefronts ranked by sales and rating.',
   alternates: { canonical: '/top-sellers' },
 }

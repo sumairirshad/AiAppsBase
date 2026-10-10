@@ -1,10 +1,9 @@
 import Link from 'next/link'
 
-import { Icon } from '@/components/icon'
 import { BrandLogo } from '@/components/brand-logo'
 import { Separator } from '@/components/ui/separator'
 import { NewsletterForm } from '@/components/landing/newsletter-form'
-import { footerColumns, footerLegalBar, socialLinks } from '@/lib/nav-data'
+import { footerColumns, footerLegalBar } from '@/lib/nav-data'
 
 export function Footer() {
   return (
@@ -22,20 +21,6 @@ export function Footer() {
               <p className="text-sm font-medium">Get product updates</p>
               <NewsletterForm />
             </div>
-            <div className="flex items-center gap-2">
-              {socialLinks.map((s) => (
-                <a
-                  key={s.label}
-                  href={s.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={s.label}
-                  className="grid size-9 place-items-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-                >
-                  <Icon name={s.icon} className="size-4" />
-                </a>
-              ))}
-            </div>
           </div>
 
           {/* Link columns */}
@@ -48,7 +33,7 @@ export function Footer() {
                     <li key={item.label}>
                       <Link
                         href={item.href}
-                        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                        className="-my-1.5 block py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
                       >
                         {item.label}
                       </Link>
@@ -66,7 +51,7 @@ export function Footer() {
           <p>&copy; {new Date().getFullYear()} AIAppsBase, Inc. All rights reserved.</p>
           <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
             {footerLegalBar.map((l) => (
-              <Link key={l.href} href={l.href} className="transition-colors hover:text-foreground">
+              <Link key={l.href} href={l.href} className="-my-2 inline-block py-2 transition-colors hover:text-foreground">
                 {l.label}
               </Link>
             ))}

@@ -82,15 +82,23 @@ export function CartView({ items: initial, authed }: { items: CartItem[]; authed
   }
 
   if (!authed) {
-    return <EmptyState icon="ShoppingBag" title="Sign in to view your cart" description="Your cart is saved to your account. Sign in to see your items." actionLabel="Sign in" actionHref="/auth/login" />
+    return (
+      <div className="container py-8">
+        <EmptyState icon="ShoppingBag" title="Sign in to view your cart" description="Your cart is saved to your account. Sign in to see your items." actionLabel="Sign in" actionHref="/auth/login" />
+      </div>
+    )
   }
 
   if (items.length === 0) {
-    return <EmptyState icon="ShoppingBag" title="Your cart is empty" description="Browse the marketplace and add projects you want to buy." actionLabel="Browse marketplace" actionHref="/products" />
+    return (
+      <div className="container py-8">
+        <EmptyState icon="ShoppingBag" title="Your cart is empty" description="Browse the marketplace and add projects you want to buy." actionLabel="Browse marketplace" actionHref="/products" />
+      </div>
+    )
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1.6fr_1fr]">
+    <div className="container grid gap-8 py-8 lg:grid-cols-[1.6fr_1fr]">
       {/* Items */}
       <div className="space-y-4">
         {items.map((item) => (

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   Star, GitFork, Eye, GitCommitHorizontal, CircleDot, Users, BadgeCheck,
-  Check, Share2, Heart, ShieldCheck, Download, ExternalLink, Github, ChevronRight,
+  Check, Share2, Heart, ShieldCheck, Download, ExternalLink, Github, ChevronRight, ChevronLeft,
   Sparkles, Flame, Clock, ThumbsUp, Maximize2,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -30,18 +30,23 @@ import { sellerPath } from '@/lib/seo'
 import { isHttpUrl } from '@/lib/utils'
 import type { Repo, Seller } from '@/lib/marketplace-config'
 
+/** Open-source license strings (see LICENSES in marketplace-config.ts) — a
+ * listing carrying one of these is a curated third-party project, not
+ * original work the seller is granting a commercial license for. */
+const OSS_LICENSES = new Set(['MIT', 'Apache-2.0', 'GPL-3.0', 'MPL-2.0', 'BSD-3-Clause'])
+
 function StatTile({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
   return (
     <div className="rounded-xl border border-border bg-card p-3 text-center">
       <Icon className="mx-auto mb-1 size-4 text-muted-foreground" />
       <div className="font-display text-lg font-bold">{value}</div>
-      <div className="text-[11px] text-muted-foreground">{label}</div>
+      <div className="text-xs text-muted-foreground">{label}</div>
     </div>
   )
 }
 
 function Gallery({ repo }: { repo: Repo }) {
-  // Real screenshots; with none, a single panel shows the AiAppsBase logo (not openable — there's nothing to view).
+  // Real screenshots; with none, a single panel shows the AIAppsBase logo (not openable — there's nothing to view).
   const hasImages = repo.images.length > 0
   const panels: (string | null)[] = hasImages ? repo.images : [null]
   const [active, setActive] = React.useState(0)
@@ -63,7 +68,10 @@ function Gallery({ repo }: { repo: Repo }) {
       >
         <ProductImage src={panels[active]} alt={repo.title} logoClassName="size-24 -translate-y-6" sizes="(min-width: 1024px) 60vw, 100vw" priority />
         <div className={cn('absolute inset-0', mediaScrimClass)} />
-        <div className={cn('absolute bottom-6 left-6', mediaTextClass)}>
+        {/* Hidden on mobile — the title immediately follows as an <h1> below,
+            and on a narrow screen the two sit close enough to read as a
+            duplicate. The two-column desktop layout has room for both. */}
+        <div className={cn('absolute bottom-6 left-6 hidden sm:block', mediaTextClass)}>
           <div className="font-display text-3xl font-bold">{repo.title}</div>
           <div className="mt-1 font-mono text-sm opacity-80">{repo.owner}/{repo.name}</div>
         </div>
@@ -204,6 +212,26 @@ function PurchasePanel({ repo }: { repo: Repo }) {
   }
 
   return (
+    <>
+    {/* Mobile-only sticky buy bar — on a single-column mobile layout the
+        real purchase card sits far below the fold, under the gallery, tabs,
+        and tech-stack sections. This keeps price + the primary action
+        reachable without scrolling, using the exact same state/handlers as
+        the full card below so there's one source of truth for the purchase. */}
+    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 p-3 backdrop-blur-lg lg:hidden">
+      <div className="flex items-center gap-3">
+        <span className="font-display text-xl font-bold">{displayPrice === 0 ? 'Free' : `$${displayPrice}`}</span>
+        <Button
+          variant="gradient"
+          size="lg"
+          className="flex-1"
+          disabled={loading}
+          onClick={repo.price === 0 ? getItFree : addToCart}
+        >
+          {loading ? (repo.price === 0 ? 'Getting it...' : 'Adding...') : repo.price === 0 ? 'Get it free' : 'Add to cart'}
+        </Button>
+      </div>
+    </div>
     <Card className="p-5">
       <div className="flex items-baseline gap-2">
         <span className="font-display text-3xl font-bold">{displayPrice === 0 ? 'Free' : `$${displayPrice}`}</span>
@@ -256,10 +284,10 @@ function PurchasePanel({ repo }: { repo: Repo }) {
       <ul className="space-y-2.5 text-sm">
         {[
           'Full source code via GitHub',
-          'Instant access after purchase',
+          repo.price === 0 ? 'Instant access, no account charges' : 'Instant access after purchase',
           'Free lifetime updates',
-          '14-day buyer protection',
-          'Commercial license included',
+          ...(repo.price > 0 ? ['14-day buyer protection'] : []),
+          `${repo.license} license`,
         ].map((t) => (
           <li key={t} className="flex items-center gap-2 text-muted-foreground">
             <Check className="size-4 shrink-0 text-success" /> {t}
@@ -268,13 +296,16 @@ function PurchasePanel({ repo }: { repo: Repo }) {
       </ul>
 
       <div className="mt-5 flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-xs text-success">
-        <ShieldCheck className="size-4 shrink-0" /> Secure checkout · Scanned & verified
+        <ShieldCheck className="size-4 shrink-0" /> Secure checkout · Reviewed before listing
       </div>
     </Card>
+    </>
   )
 }
 
-export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: Seller; related: Repo[] }) {
+export function ProductDetail({
+  repo, seller, related, isOwned,
+}: { repo: Repo; seller?: Seller; related: Repo[]; isOwned: boolean }) {
   // Computed from the product's real reviews — never fabricated.
   const ratingDist = [5, 4, 3, 2, 1].map((stars) => {
     const n = repo.reviews.filter((r) => Math.round(r.rating) === stars).length
@@ -282,9 +313,10 @@ export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: 
   })
 
   return (
-    <div className="container py-8">
-      {/* Breadcrumb */}
-      <nav className="mb-6 flex items-center gap-1.5 text-sm text-muted-foreground">
+    <div className="container py-8 pb-24 lg:pb-8">
+      {/* Breadcrumb — a full trail on larger screens; a simple back link on
+          mobile, where the full trail wraps and crowds out the title. */}
+      <nav className="mb-6 hidden flex-wrap items-center gap-1.5 text-sm text-muted-foreground sm:flex">
         <Link href="/" className="hover:text-foreground">Home</Link>
         <ChevronRight className="size-3.5" />
         <Link href="/products" className="hover:text-foreground">Marketplace</Link>
@@ -299,6 +331,9 @@ export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: 
         <ChevronRight className="size-3.5" />
         <span className="truncate text-foreground">{repo.title}</span>
       </nav>
+      <Link href="/products" className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground sm:hidden">
+        <ChevronLeft className="size-4" /> Back to Marketplace
+      </Link>
 
       <div className="grid gap-8 lg:grid-cols-[1.7fr_1fr]">
         {/* Main */}
@@ -312,18 +347,30 @@ export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: 
               {repo.trending && <Badge variant="warning"><Flame className="size-3" /> Trending</Badge>}
               {repo.isNew && <Badge variant="success"><Sparkles className="size-3" /> New</Badge>}
               <Badge variant="muted">{repo.license} license</Badge>
+              {OSS_LICENSES.has(repo.license) && (
+                <Badge variant="outline">Community open-source project</Badge>
+              )}
             </div>
 
             <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">{repo.title}</h1>
+            {OSS_LICENSES.has(repo.license) && (
+              <p className="text-sm text-muted-foreground">
+                A free, open-source project curated for this marketplace — not created by the listing owner. Full credit and license terms apply from the original repository.
+              </p>
+            )}
 
             <div className="flex flex-wrap items-center gap-4 text-sm">
               <span className="font-mono text-muted-foreground">{repo.owner}/{repo.name}</span>
-              <span className="flex items-center gap-1">
-                <Star className="size-4 fill-amber-400 text-amber-400" />
-                <span className="font-semibold">{repo.rating}</span>
-                <span className="text-muted-foreground">({repo.reviewCount} reviews)</span>
-              </span>
-              <span className="flex items-center gap-1 text-muted-foreground"><Download className="size-4" /> {formatNumber(repo.sales)} sales</span>
+              {repo.reviewCount > 0 && (
+                <span className="flex items-center gap-1">
+                  <Star className="size-4 fill-amber-400 text-amber-400" />
+                  <span className="font-semibold">{repo.rating}</span>
+                  <span className="text-muted-foreground">({repo.reviewCount} reviews)</span>
+                </span>
+              )}
+              {repo.sales > 0 && (
+                <span className="flex items-center gap-1 text-muted-foreground"><Download className="size-4" /> {formatNumber(repo.sales)} sales</span>
+              )}
             </div>
 
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
@@ -338,12 +385,18 @@ export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: 
 
           {/* Tabs */}
           <Tabs defaultValue="overview">
-            <TabsList className="w-full justify-start overflow-x-auto">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="features">Features</TabsTrigger>
-              <TabsTrigger value="reviews">Reviews</TabsTrigger>
-              <TabsTrigger value="changelog">Changelog</TabsTrigger>
-            </TabsList>
+            <div className="relative">
+              <TabsList className="w-full justify-start overflow-x-auto">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="features">Features</TabsTrigger>
+                <TabsTrigger value="reviews">Reviews</TabsTrigger>
+                <TabsTrigger value="changelog">Changelog</TabsTrigger>
+              </TabsList>
+              {/* Scroll hint: the tab row scrolls further than it visually
+                  shows on narrow screens — fade the trailing edge so that's
+                  obvious rather than looking like the last tab is cut off. */}
+              <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent sm:hidden" />
+            </div>
 
             <TabsContent value="overview" className="space-y-6">
               <p className="leading-relaxed text-muted-foreground">{repo.longDescription}</p>
@@ -352,7 +405,9 @@ export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: 
                 <div className="flex flex-wrap gap-2">
                   <Badge variant="secondary"><span className="mr-1 size-2 rounded-full" style={{ backgroundColor: repo.languageColor }} />{repo.language}</Badge>
                   {repo.techStack.map((t) => <Badge key={t} variant="secondary">{t}</Badge>)}
-                  <Badge variant="brand"><Sparkles className="size-3" /> Built with {repo.aiTool}</Badge>
+                  {repo.aiTool !== 'Other' && (
+                    <Badge variant="brand"><Sparkles className="size-3" /> Built with {repo.aiTool}</Badge>
+                  )}
                 </div>
               </div>
               {repo.tags.length > 0 && (
@@ -372,12 +427,18 @@ export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: 
                 </div>
               )}
               {(isHttpUrl(repo.demoUrl) || isHttpUrl(repo.repoUrl)) && (
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   {isHttpUrl(repo.demoUrl) && (
                     <Button variant="outline" asChild><a href={repo.demoUrl} target="_blank" rel="noreferrer"><ExternalLink className="size-4" /> Live demo</a></Button>
                   )}
                   {isHttpUrl(repo.repoUrl) && (
-                    <Button variant="outline" asChild><a href={repo.repoUrl} target="_blank" rel="noreferrer"><Github className="size-4" /> Repository</a></Button>
+                    isOwned ? (
+                      <Button variant="outline" asChild><a href={repo.repoUrl} target="_blank" rel="noreferrer"><Github className="size-4" /> Repository</a></Button>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Github className="size-4" /> Repository link unlocks after purchase
+                      </span>
+                    )
                   )}
                 </div>
               )}
@@ -395,6 +456,13 @@ export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: 
             </TabsContent>
 
             <TabsContent value="reviews" className="space-y-6">
+              {repo.reviewCount === 0 ? (
+                <div className="rounded-2xl border border-dashed border-border p-10 text-center">
+                  <Star className="mx-auto mb-3 size-8 text-muted-foreground" />
+                  <p className="font-medium">No reviews yet</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Be the first to buy and review this listing.</p>
+                </div>
+              ) : (
               <div className="grid gap-6 rounded-2xl border border-border bg-card p-6 sm:grid-cols-[auto_1fr]">
                 <div className="text-center">
                   <div className="font-display text-5xl font-bold">{repo.rating}</div>
@@ -409,6 +477,7 @@ export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: 
                   {ratingDist.map((r) => <RatingBar key={r.stars} {...r} />)}
                 </div>
               </div>
+              )}
               <div className="space-y-4">
                 {repo.reviews.map((rev) => (
                   <Card key={rev.id} className="p-5">
@@ -436,6 +505,13 @@ export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: 
             </TabsContent>
 
             <TabsContent value="changelog" className="space-y-4">
+              {repo.changelog.length === 0 && (
+                <div className="rounded-2xl border border-dashed border-border p-10 text-center">
+                  <GitCommitHorizontal className="mx-auto mb-3 size-8 text-muted-foreground" />
+                  <p className="font-medium">No changelog yet</p>
+                  <p className="mt-1 text-sm text-muted-foreground">The seller hasn&apos;t posted a version history for this listing.</p>
+                </div>
+              )}
               {repo.changelog.map((c, i) => (
                 <div key={c.version} className="relative pl-6">
                   <div className="absolute left-0 top-1.5 size-2.5 rounded-full bg-primary" />

@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { InfoPage } from '@/components/layout/info-page'
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy | AIAppsBase',
+  title: 'Privacy Policy',
   description: 'Learn how AIAppsBase collects, uses, and protects your personal data.',
   robots: { index: true, follow: true },
 }

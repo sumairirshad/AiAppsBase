@@ -39,7 +39,7 @@ import { HeaderSearch } from '@/components/layout/header-search'
 const primaryMenus = megaMenus.filter((m) => m.label === 'Marketplace')
 const secondaryMenus = megaMenus.filter((m) => m.label !== 'Marketplace')
 
-type Me = { full_name: string; email: string; role: string }
+export type Me = { full_name: string; email: string; role: string }
 
 function Logo() {
   return <BrandLogo />
@@ -146,6 +146,7 @@ function MobileNav({ user, onLogout }: { user: Me | null; onLogout: () => void }
           <SheetTitle><Logo /></SheetTitle>
         </SheetHeader>
         <div className="flex-1 overflow-y-auto p-4">
+          <HeaderSearch className="mb-4 w-full" />
           <Accordion type="multiple" className="w-full">
             {megaMenus.map((menu) => (
               <AccordionItem key={menu.label} value={menu.label}>
@@ -212,18 +213,23 @@ function MobileNav({ user, onLogout }: { user: Me | null; onLogout: () => void }
   )
 }
 
-export function Navbar() {
+export function Navbar({ initialUser = undefined }: { initialUser?: Me | null }) {
   const router = useRouter()
-  const [user, setUser] = React.useState<Me | null>(null)
-  const [loading, setLoading] = React.useState(true)
+  const [user, setUser] = React.useState<Me | null>(initialUser ?? null)
+  // Server already resolved the session (see RootLayout), so there's nothing
+  // to wait for — only fall back to a client fetch if no initial value was
+  // passed at all (e.g. an older caller of this component).
+  const [loading, setLoading] = React.useState(initialUser === undefined)
   const [scrolled, setScrolled] = React.useState(false)
 
   React.useEffect(() => {
+    if (initialUser !== undefined) return
     fetch('/api/auth/me')
       .then((r) => r.json())
       .then((d) => setUser(d.user ?? null))
       .catch(() => setUser(null))
       .finally(() => setLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   React.useEffect(() => {

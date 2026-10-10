@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 
 export const metadata: Metadata = {
-  title: 'Cookie Policy | AIAppsBase',
+  title: 'Cookie Policy',
   description: 'Learn about the cookies AIAppsBase uses, what they do, and how to manage them.',
   robots: { index: true, follow: true },
 }

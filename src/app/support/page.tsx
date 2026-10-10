@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 
 export const metadata: Metadata = {
-  title: 'Support — Help Center | AIAppsBase',
+  title: 'Support — Help Center',
   description:
     'Find answers to common questions about buying, selling, payments, and account management on AIAppsBase.',
   openGraph: {
