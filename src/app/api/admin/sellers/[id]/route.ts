@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getClientIp, isAdminGuardError, logAdminAction, requireAdmin } from '@/lib/admin'
+import { sendModerationDecisionEmail } from '@/lib/email'
 
 const VALID_STATUSES = ['pending', 'approved', 'rejected', 'suspended', 'banned']
 
@@ -47,6 +48,19 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     })
 
     const s = updated.rows[0] as any
+
+    if (sellerStatus === 'approved' || sellerStatus === 'rejected') {
+      try {
+        await sendModerationDecisionEmail(s.email, {
+          kind: 'seller',
+          status: sellerStatus,
+          reason: sellerStatus === 'rejected' ? reason.trim() : null,
+        })
+      } catch (error) {
+        console.error('[admin/sellers] Failed to send moderation decision email', params.id, error)
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       seller: { id: s.id, name: s.full_name, email: s.email, sellerStatus: s.seller_status, accountStatus: s.account_status, memberSince: s.created_at },

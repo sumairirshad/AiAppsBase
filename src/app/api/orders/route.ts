@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
+import { sendOrderReceiptEmail } from '@/lib/email'
 
 export async function GET() {
   const userId = await getSessionUserId()
@@ -89,7 +90,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    const productRes = await query('SELECT id, price, seller_id FROM products WHERE id = $1 AND status = $2', [
+    const productRes = await query('SELECT id, title, price, seller_id FROM products WHERE id = $1 AND status = $2', [
       productId,
       'approved',
     ])
@@ -129,6 +130,21 @@ export async function POST(req: NextRequest) {
     )
 
     await query('DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2', [userId, productId])
+
+    try {
+      const buyerRes = await query<{ email: string }>('SELECT email FROM users WHERE id = $1', [userId])
+      const buyerEmail = buyerRes.rows[0]?.email
+      if (buyerEmail) {
+        await sendOrderReceiptEmail(buyerEmail, {
+          orderId: res.rows[0].id,
+          productTitle: product.title,
+          amount,
+          licenseType,
+        })
+      }
+    } catch (error) {
+      console.error('[orders] Failed to send order receipt email', res.rows[0].id, error)
+    }
 
     return NextResponse.json({ ok: true, orderId: res.rows[0].id, licenseKey: res.rows[0].license_key })
   } catch {

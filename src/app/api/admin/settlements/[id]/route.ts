@@ -3,6 +3,23 @@ import { query, withTransaction } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
 import { stripe } from '@/lib/stripe'
 import { getClientIp, logAdminAction } from '@/lib/admin'
+import { sendPayoutStatusEmail } from '@/lib/email'
+
+async function notifyPayoutStatusBestEffort(
+  sellerId: string,
+  status: 'approved' | 'rejected',
+  netAmount: number,
+  reason?: string | null
+) {
+  try {
+    const sellerRes = await query<{ email: string }>('SELECT email FROM users WHERE id = $1', [sellerId])
+    const email = sellerRes.rows[0]?.email
+    if (!email) return
+    await sendPayoutStatusEmail(email, { status, netAmount, reason })
+  } catch (error) {
+    console.error('[admin/settlements] Failed to send payout status email', sellerId, error)
+  }
+}
 
 type ApproveResult =
   | { kind: 'not_found' }
@@ -114,6 +131,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         newValue: { status: 'rejected', sellerId: result.sellerId, netAmount: result.netAmount },
         ipAddress,
       })
+      await notifyPayoutStatusBestEffort(result.sellerId, 'rejected', result.netAmount, reason)
       return NextResponse.json({ ok: true, status: 'rejected' })
     case 'not_payout_capable':
       return NextResponse.json(
@@ -130,6 +148,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         newValue: { status: 'approved', sellerId: result.sellerId, netAmount: result.netAmount, transferId: result.transferId },
         ipAddress,
       })
+      await notifyPayoutStatusBestEffort(result.sellerId, 'approved', result.netAmount)
       return NextResponse.json({ ok: true, status: 'approved', transferId: result.transferId })
     case 'transfer_failed':
       await logAdminAction({

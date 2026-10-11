@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getClientIp, isAdminGuardError, logAdminAction, requireAdmin } from '@/lib/admin'
+import { sendModerationDecisionEmail } from '@/lib/email'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const guard = await requireAdmin()
@@ -16,7 +17,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   try {
-    const existing = await query('SELECT id, title, status FROM products WHERE id = $1', [params.id])
+    const existing = await query(
+      `SELECT p.id, p.title, p.status, u.email AS seller_email
+       FROM products p JOIN users u ON p.seller_id = u.id
+       WHERE p.id = $1`,
+      [params.id]
+    )
     if (existing.rowCount === 0) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 })
     }
@@ -42,6 +48,19 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       newValue: { status },
       ipAddress: getClientIp(req),
     })
+
+    if (status === 'approved' || status === 'rejected') {
+      try {
+        await sendModerationDecisionEmail(before.seller_email, {
+          kind: 'product',
+          status,
+          title: before.title,
+          reason: rejectionReason,
+        })
+      } catch (error) {
+        console.error('[admin/products] Failed to send moderation decision email', params.id, error)
+      }
+    }
 
     return NextResponse.json({ ok: true })
   } catch (error) {
