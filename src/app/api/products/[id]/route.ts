@@ -93,7 +93,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     await query('DELETE FROM products WHERE id = $1 AND seller_id = $2', [params.id, userId])
     // The product is gone: remove its image folder, plus any legacy
     // /Uploads images no other product still uses.
-    deleteProductImageDir(userId, params.id)
+    await deleteProductImageDir(userId, params.id)
     await deleteRemovedImages(existing.rows[0].screenshots ?? [])
     return NextResponse.json({ ok: true })
   } catch (err: any) {

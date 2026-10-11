@@ -6,6 +6,51 @@ import { beforeAll, describe, expect, it, vi } from 'vitest'
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'assets-'))
 vi.stubEnv('ASSETS_DIR', tmp)
 
+vi.stubEnv('SFTP_HOST', 'test-sftp-host')
+vi.stubEnv('SFTP_USERNAME', 'test-user')
+vi.stubEnv('SFTP_PASSWORD', 'test-pass')
+vi.stubEnv('SFTP_REMOTE_DIR', '/remote')
+
+// Product images are uploaded over SFTP (same storage deliverables use), so
+// writeProductImage/deleteProductImageDir etc. are tested here against an
+// in-memory fake of the remote filesystem rather than a real SFTP server.
+const remoteFiles = new Map<string, Buffer>()
+
+vi.mock('ssh2-sftp-client', () => ({
+  default: class FakeSftpClient {
+    async connect() {}
+    async end() {}
+    async mkdir() {}
+    async put(data: Buffer, remotePath: string) {
+      remoteFiles.set(remotePath, data)
+    }
+    async delete(remotePath: string) {
+      remoteFiles.delete(remotePath)
+    }
+    async rmdir(remotePath: string) {
+      for (const key of Array.from(remoteFiles.keys())) {
+        if (key === remotePath || key.startsWith(`${remotePath}/`)) remoteFiles.delete(key)
+      }
+    }
+    async stat(remotePath: string) {
+      const data = remoteFiles.get(remotePath)
+      if (!data) throw new Error('not found')
+      return { size: data.length }
+    }
+    get(remotePath: string, dst: NodeJS.WritableStream) {
+      const data = remoteFiles.get(remotePath)
+      return new Promise((resolve, reject) => {
+        if (!data) {
+          reject(new Error('not found'))
+          return
+        }
+        dst.end(data)
+        resolve(dst)
+      })
+    }
+  },
+}))
+
 type Mod = typeof import('./product-images')
 let m: Mod
 beforeAll(async () => {
@@ -17,6 +62,8 @@ const P = '5903d025-0686-4ccd-9cc6-6d38f79fe90e'
 const OTHER = '11111111-2222-3333-4444-555555555555'
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0])
 const file = (bytes: Uint8Array, name: string, type: string) => new File([new Uint8Array(bytes)], name, { type })
+const remotePathFor = (userId: string, productId: string, fileName: string) =>
+  `/remote/product-images/${userId}/${productId}/${fileName}`
 
 describe('product image paths', () => {
   it('stores under ASSETS_DIR/products/{userId}/{productId}', () => {
@@ -62,13 +109,13 @@ describe('image validation', () => {
 })
 
 describe('storing and ownership', () => {
-  it('writes unique, sanitised names and never overwrites', async () => {
+  it('writes unique, sanitised names to the remote product folder', async () => {
     const a = await m.saveProductImage(file(PNG, 'My Shot (1).PNG', 'image/png'), U, P)
     const b = await m.saveProductImage(file(PNG, 'My Shot (1).PNG', 'image/png'), U, P)
     expect(a).not.toBe(b)
     expect(a).toMatch(new RegExp(`^/assets/products/${U}/${P}/\\d+-[a-z0-9]+-my-shot-1\\.png$`))
     const parsed = m.parseProductImagePath(a)!
-    expect(fs.existsSync(m.productImageFilePath(parsed.userId, parsed.productId, parsed.file)!)).toBe(true)
+    expect(remoteFiles.has(remotePathFor(parsed.userId, parsed.productId, parsed.file))).toBe(true)
   })
   it("only accepts new images from the product's own folder", async () => {
     const mine = await m.saveProductImage(file(PNG, 'mine.png', 'image/png'), U, P)
@@ -78,9 +125,11 @@ describe('storing and ownership', () => {
     // Images the product already has (including legacy paths) are kept as-is.
     expect(m.resolveImageList(['/Uploads/old.png', mine], ['/Uploads/old.png'], { userId: U, productId: P }).ok).toBe(true)
   })
-  it('deleting a product removes its whole folder', async () => {
-    await m.saveProductImage(file(PNG, 'gone.png', 'image/png'), OTHER, P)
-    m.deleteProductImageDir(OTHER, P)
-    expect(fs.existsSync(m.productImageDir(OTHER, P))).toBe(false)
+  it('deleting a product removes its whole remote folder', async () => {
+    const gone = await m.saveProductImage(file(PNG, 'gone.png', 'image/png'), OTHER, P)
+    const parsed = m.parseProductImagePath(gone)!
+    expect(remoteFiles.has(remotePathFor(parsed.userId, parsed.productId, parsed.file))).toBe(true)
+    await m.deleteProductImageDir(OTHER, P)
+    expect(remoteFiles.has(remotePathFor(parsed.userId, parsed.productId, parsed.file))).toBe(false)
   })
 })

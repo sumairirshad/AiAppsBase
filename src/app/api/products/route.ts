@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
         const screenshots = await Promise.all(validatedImages.map((img) => writeProductImage(img.buf, img.name, userId, productId)))
         return await insert(screenshots)
       } catch (err) {
-        deleteProductImageDir(userId, productId)
+        await deleteProductImageDir(userId, productId)
         throw err
       }
     }
