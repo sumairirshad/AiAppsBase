@@ -5,6 +5,8 @@ import { ArrowRight, Code, Shield, ShoppingBag, TrendingUp, Users, Zap } from 'l
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { formatNumber } from '@/lib/utils'
+import { getPlatformStats } from '@/lib/products'
 
 export const metadata: Metadata = {
   title: 'About AIAppsBase — The AI-Built App Marketplace',
@@ -16,13 +18,6 @@ export const metadata: Metadata = {
     type: 'website',
   },
 }
-
-const stats = [
-  { label: 'Products Listed', value: '1,200+' },
-  { label: 'Active Sellers', value: '340+' },
-  { label: 'Happy Buyers', value: '5,000+' },
-  { label: 'AI Tools Supported', value: '9+' },
-]
 
 const steps = [
   {
@@ -66,7 +61,15 @@ const values = [
   },
 ]
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const platformStats = await getPlatformStats()
+  const stats = [
+    { label: 'Products Listed', value: platformStats.products.toLocaleString() },
+    { label: 'Active Sellers', value: platformStats.sellers.toLocaleString() },
+    { label: 'Completed Sales', value: platformStats.sales.toLocaleString() },
+    { label: 'Paid to Creators', value: `$${formatNumber(platformStats.paidOut)}` },
+  ]
+
   return (
     <div className="relative overflow-hidden">
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
