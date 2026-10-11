@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { getAdminOrderDetail } from '@/lib/admin-data'
 import { OrderRefundAction } from '@/components/admin/order-refund-action'
+import { OrderDisputeResolution } from '@/components/admin/order-dispute-resolution'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,9 +35,8 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
         </div>
         <div className="flex items-center gap-3">
           <Badge variant={statusVariant[order.status] ?? 'muted'} className="w-fit text-sm capitalize">{order.status}</Badge>
-          {(order.status === 'completed' || order.status === 'disputed') && (
-            <OrderRefundAction orderId={order.id} />
-          )}
+          {order.status === 'completed' && <OrderRefundAction orderId={order.id} />}
+          {order.status === 'disputed' && <OrderDisputeResolution orderId={order.id} />}
         </div>
       </div>
 
@@ -58,6 +58,9 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
             <p className="flex items-center gap-1 text-xs text-muted-foreground"><Key className="size-3" /> {order.license_key}</p>
             {order.status === 'refunded' && order.refund_reason && (
               <p className="text-xs text-muted-foreground">Refund reason: {order.refund_reason}</p>
+            )}
+            {order.status === 'disputed' && order.dispute_reason && (
+              <p className="text-xs text-muted-foreground">Dispute reason: {order.dispute_reason}</p>
             )}
           </CardContent>
         </Card>

@@ -405,7 +405,7 @@ export async function getAdminOrderDetail(id: string) {
   try {
     const res = await query(
       `SELECT o.id, o.amount::float AS amount, o.status, o.license_type, o.license_key, o.created_at,
-              o.refund_reason, o.refunded_at,
+              o.refund_reason, o.refunded_at, o.dispute_reason, o.disputed_at,
               p.id AS product_id, p.title AS product, p.category,
               b.id AS buyer_id, b.full_name AS buyer, b.email AS buyer_email,
               s.id AS seller_id, s.full_name AS seller, s.email AS seller_email
