@@ -19,7 +19,7 @@ export default async function SellerAnalyticsPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <PageHead title="Analytics" description="Traffic, conversion, and revenue insights for your store." />
+      <PageHead title="Analytics" description="Revenue, sales, and customer insights for your store." />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Revenue" value={stats.revenue} prefix="$" icon={DollarSign} />

@@ -33,11 +33,11 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 
 export type SellerStats = {
   revenue: number; sales: number; products: number; customers: number
-  avgRating: number; conversion: number; payout: number; pending: number
+  avgRating: number; payout: number; pending: number
 }
 
 export async function getSellerStats(userId: string): Promise<SellerStats> {
-  const empty: SellerStats = { revenue: 0, sales: 0, products: 0, customers: 0, avgRating: 0, conversion: 0, payout: 0, pending: 0 }
+  const empty: SellerStats = { revenue: 0, sales: 0, products: 0, customers: 0, avgRating: 0, payout: 0, pending: 0 }
   try {
     const res = await query(
       `SELECT
@@ -60,7 +60,7 @@ export async function getSellerStats(userId: string): Promise<SellerStats> {
     const available = Math.max(0, r.revenue - r.withdrawn_or_pending)
     return {
       revenue: Math.round(r.revenue), sales: r.sales, products: r.products, customers: r.customers,
-      avgRating: Math.round(r.avg_rating * 10) / 10, conversion: 0,
+      avgRating: Math.round(r.avg_rating * 10) / 10,
       payout: Math.round(available), pending: Math.round(r.pending_withdrawals),
     }
   } catch { return empty }

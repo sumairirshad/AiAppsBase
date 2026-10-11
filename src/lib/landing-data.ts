@@ -34,7 +34,7 @@ export const features: Feature[] = [
   {
     title: 'Built-in analytics',
     description:
-      'Track views, conversion, revenue, and traffic sources with a dashboard that would make a growth team jealous.',
+      'Track revenue, sales, and category performance with a dashboard that would make a growth team jealous.',
     icon: 'LineChart',
   },
   {
