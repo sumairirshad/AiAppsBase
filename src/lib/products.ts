@@ -114,6 +114,7 @@ export async function getProductById(id: string): Promise<{ repo: Repo; seller: 
       date: r.created_at ? new Date(r.created_at).toISOString().slice(0, 10) : '',
       helpful: Number(r.helpful) || 0,
       verified: Boolean(r.verified),
+      sellerResponse: r.seller_response || null,
     }))
 
     const seller = await getSellerById(row.seller_id)
@@ -300,7 +301,7 @@ export async function getStorefront(id: string): Promise<Storefront | null> {
         [id]
       ),
       query(
-        `SELECT r.id, r.rating, r.comment, r.verified, r.helpful, r.created_at,
+        `SELECT r.id, r.rating, r.comment, r.verified, r.helpful, r.created_at, r.seller_response,
                 u.full_name AS author, p.id AS product_id, p.title AS product_title
          FROM reviews r
          JOIN products p ON r.product_id = p.id
@@ -329,6 +330,7 @@ export async function getStorefront(id: string): Promise<Storefront | null> {
       date: r.created_at ? new Date(r.created_at).toISOString().slice(0, 10) : '',
       helpful: Number(r.helpful) || 0,
       verified: Boolean(r.verified),
+      sellerResponse: r.seller_response || null,
       productId: r.product_id,
       productTitle: r.product_title,
     }))

@@ -13,7 +13,14 @@ import { canBuyerReview } from '@/lib/products'
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await getSessionUserId()
   const canReview = await canBuyerReview(userId, params.id)
-  return NextResponse.json({ canReview })
+
+  let isSeller = false
+  if (userId) {
+    const productRes = await query('SELECT 1 FROM products WHERE id = $1 AND seller_id = $2', [params.id, userId])
+    isSeller = (productRes.rowCount ?? 0) > 0
+  }
+
+  return NextResponse.json({ canReview, isSeller })
 }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -72,6 +79,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         date: new Date(row.created_at).toISOString().slice(0, 10),
         helpful: 0,
         verified: true,
+        sellerResponse: null,
       },
     })
   } catch (err: any) {

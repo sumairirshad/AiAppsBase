@@ -187,6 +187,82 @@ function WriteReviewForm({ productId, onSubmitted }: { productId: string; onSubm
   )
 }
 
+function SellerReplyBox({
+  reviewId,
+  sellerResponse,
+  isSeller,
+  onReplied,
+}: {
+  reviewId: string
+  sellerResponse: string | null
+  isSeller: boolean
+  onReplied: (reviewId: string, response: string) => void
+}) {
+  const [editing, setEditing] = React.useState(false)
+  const [draft, setDraft] = React.useState(sellerResponse ?? '')
+  const [submitting, setSubmitting] = React.useState(false)
+
+  const submit = async () => {
+    if (!draft.trim()) {
+      toast.error('Write a reply before submitting')
+      return
+    }
+    setSubmitting(true)
+    try {
+      const res = await fetch(`/api/reviews/${reviewId}/reply`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ response: draft.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to post reply')
+      onReplied(reviewId, data.sellerResponse)
+      setEditing(false)
+    } catch (err) {
+      toast.error((err as Error).message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (!editing) {
+    if (sellerResponse) {
+      return (
+        <div className="mt-3 rounded-lg border border-border bg-muted/40 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold">Response from the seller</p>
+            {isSeller && (
+              <button className="text-xs text-muted-foreground hover:text-foreground" onClick={() => setEditing(true)}>
+                Edit
+              </button>
+            )}
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">{sellerResponse}</p>
+        </div>
+      )
+    }
+    return isSeller ? (
+      <button className="mt-3 text-xs font-medium text-primary hover:underline" onClick={() => setEditing(true)}>
+        Reply as seller
+      </button>
+    ) : null
+  }
+
+  return (
+    <div className="mt-3 space-y-2">
+      <Textarea value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Write a reply to this review" rows={2} />
+      <div className="flex gap-2">
+        <Button size="sm" onClick={submit} loading={submitting} disabled={submitting}>
+          Post reply
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => setEditing(false)} disabled={submitting}>
+          Cancel
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 function PurchasePanel({ repo }: { repo: Repo }) {
   const router = useRouter()
   const wishlistIds = useWishlistIds()
@@ -351,17 +427,25 @@ function PurchasePanel({ repo }: { repo: Repo }) {
 export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: Seller; related: Repo[] }) {
   const [reviews, setReviews] = React.useState(repo.reviews)
   const [canReview, setCanReview] = React.useState(false)
+  const [isSeller, setIsSeller] = React.useState(false)
 
   React.useEffect(() => {
     fetch(`/api/products/${repo.id}/reviews`)
       .then((res) => res.json())
-      .then((data) => setCanReview(Boolean(data.canReview)))
+      .then((data) => {
+        setCanReview(Boolean(data.canReview))
+        setIsSeller(Boolean(data.isSeller))
+      })
       .catch(() => {})
   }, [repo.id])
 
   const addReview = (review: Review) => {
     setReviews((prev) => [review, ...prev])
     setCanReview(false)
+  }
+
+  const setReviewReply = (reviewId: string, sellerResponse: string) => {
+    setReviews((prev) => prev.map((r) => (r.id === reviewId ? { ...r, sellerResponse } : r)))
   }
 
   // Computed from the product's real reviews — never fabricated.
@@ -525,6 +609,12 @@ export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: 
                     <h4 className="mt-3 text-sm font-semibold">{rev.title}</h4>
                     <p className="mt-1 text-sm text-muted-foreground">{rev.body}</p>
                     <button className="mt-3 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"><ThumbsUp className="size-3.5" /> Helpful ({rev.helpful})</button>
+                    <SellerReplyBox
+                      reviewId={rev.id}
+                      sellerResponse={rev.sellerResponse}
+                      isSeller={isSeller}
+                      onReplied={setReviewReply}
+                    />
                   </Card>
                 ))}
               </div>
