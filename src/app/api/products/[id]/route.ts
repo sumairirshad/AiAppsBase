@@ -59,13 +59,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   try {
-    // Edited content needs a fresh admin review before it goes live again.
+    // Edited content needs a fresh admin review before it goes live again —
+    // this is also how a seller resubmits a rejected product: saving an
+    // edit sends it back into the review queue and clears the old
+    // rejection reason, which no longer applies to the new submission.
     const res = await query(
       `UPDATE products SET
         title = $1, description = $2, category = $3, human_mod_level = $4,
         license_type = $5, preview_url = $6, price = $7, tags = $8, ai_tools = $9,
         screenshots = COALESCE($12::text[], screenshots),
-        status = CASE WHEN status = 'approved' THEN 'pending' ELSE status END,
+        status = CASE WHEN status IN ('approved', 'rejected') THEN 'pending' ELSE status END,
+        rejection_reason = CASE WHEN status = 'rejected' THEN NULL ELSE rejection_reason END,
         updated_at = NOW()
        WHERE id = $10 AND seller_id = $11
        RETURNING id`,

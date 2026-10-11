@@ -141,6 +141,13 @@ export default function MyProductsPage() {
                       Rejected: {product.rejection_reason}
                     </p>
                   )}
+                  {product.status === 'rejected' && (
+                    <Button asChild size="sm" variant="outline" className="mt-2 w-full">
+                      <Link href={`/panel/seller/edit-product/${product.id}`}>
+                        <RefreshCw className="size-4" /> Resubmit for review
+                      </Link>
+                    </Button>
+                  )}
                 </div>
 
                 <div className="mt-auto flex items-center justify-between border-t border-border pt-4">
