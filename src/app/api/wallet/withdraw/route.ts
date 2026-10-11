@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { query } from '@/lib/db'
+import { query, withTransaction } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
 import { computeWithdrawalSplit } from '@/lib/payouts'
 
@@ -42,30 +42,42 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Minimum withdrawal is $1' }, { status: 400 })
   }
 
-  const balanceRes = await query(
-    `SELECT
-       COALESCE((SELECT SUM(o.amount) FROM orders o JOIN products p ON o.product_id=p.id
-                 WHERE p.seller_id=$1 AND o.status='completed'),0)::float AS revenue,
-       COALESCE((SELECT SUM(requested_amount) FROM withdrawal_requests
-                 WHERE seller_id=$1 AND status IN ('pending','approved','failed')),0)::float AS withdrawn_or_pending`,
-    [userId]
-  )
-  const { revenue, withdrawn_or_pending } = balanceRes.rows[0]
-  const available = Math.max(0, revenue - withdrawn_or_pending)
-
-  if (amount > available) {
-    return NextResponse.json({ error: 'That amount is more than your available balance' }, { status: 400 })
-  }
-
-  const { feeAmount, netAmount } = computeWithdrawalSplit(amount)
-
   try {
-    const res = await query(
-      `INSERT INTO withdrawal_requests (seller_id, requested_amount, fee_amount, net_amount)
-       VALUES ($1, $2, $3, $4) RETURNING id`,
-      [userId, amount, feeAmount, netAmount]
-    )
-    return NextResponse.json({ ok: true, id: res.rows[0].id })
+    const result = await withTransaction(async (client) => {
+      // Lock the seller's own row so two concurrent withdrawal requests from
+      // the same seller can't both read the same "available balance" before
+      // either INSERT lands — without this, both could pass the balance
+      // check and together overdraw the seller's actual earnings.
+      await client.query('SELECT id FROM users WHERE id = $1 FOR UPDATE', [userId])
+
+      const balanceRes = await client.query(
+        `SELECT
+           COALESCE((SELECT SUM(o.amount) FROM orders o JOIN products p ON o.product_id=p.id
+                     WHERE p.seller_id=$1 AND o.status='completed'),0)::float AS revenue,
+           COALESCE((SELECT SUM(requested_amount) FROM withdrawal_requests
+                     WHERE seller_id=$1 AND status IN ('pending','approved','failed')),0)::float AS withdrawn_or_pending`,
+        [userId]
+      )
+      const { revenue, withdrawn_or_pending } = balanceRes.rows[0]
+      const available = Math.max(0, revenue - withdrawn_or_pending)
+
+      if (amount > available) {
+        return { ok: false as const, error: 'That amount is more than your available balance' }
+      }
+
+      const { feeAmount, netAmount } = computeWithdrawalSplit(amount)
+      const res = await client.query(
+        `INSERT INTO withdrawal_requests (seller_id, requested_amount, fee_amount, net_amount)
+         VALUES ($1, $2, $3, $4) RETURNING id`,
+        [userId, amount, feeAmount, netAmount]
+      )
+      return { ok: true as const, id: res.rows[0].id }
+    })
+
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 400 })
+    }
+    return NextResponse.json({ ok: true, id: result.id })
   } catch {
     return NextResponse.json({ error: 'Failed to create withdrawal request' }, { status: 500 })
   }

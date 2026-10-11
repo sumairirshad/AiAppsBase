@@ -1,4 +1,4 @@
-import { Pool, QueryResult } from 'pg'
+import { Pool, PoolClient, QueryResult } from 'pg'
 
 let pool: Pool | null = null
 
@@ -54,4 +54,27 @@ export async function query<T extends Record<string, unknown> = any>(
 
 export async function getClient() {
   return getPool().connect()
+}
+
+/**
+ * Runs `fn` inside a single DB transaction on a dedicated client, committing
+ * on success and rolling back if `fn` throws. Use this for any read-then-write
+ * sequence that must not interleave with a concurrent request on the same
+ * rows (e.g. balance checks before an INSERT, or a status transition guarded
+ * by `FOR UPDATE`) — without it, two concurrent requests can both read the
+ * pre-write state and both proceed, double-processing the same money.
+ */
+export async function withTransaction<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
+  const client = await getPool().connect()
+  try {
+    await client.query('BEGIN')
+    const result = await fn(client)
+    await client.query('COMMIT')
+    return result
+  } catch (error) {
+    await client.query('ROLLBACK')
+    throw error
+  } finally {
+    client.release()
+  }
 }
