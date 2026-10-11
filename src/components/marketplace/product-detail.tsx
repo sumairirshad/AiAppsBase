@@ -28,6 +28,7 @@ import { claimFreeProduct } from '@/lib/client/claim-free-product'
 import { addToWishlist, removeFromWishlist } from '@/lib/client/wishlist'
 import { sellerPath } from '@/lib/seo'
 import { isHttpUrl } from '@/lib/utils'
+import { computeLicensePrice } from '@/lib/license-pricing'
 import type { Repo, Seller } from '@/lib/marketplace-config'
 
 function StatTile({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
@@ -122,8 +123,7 @@ function PurchasePanel({ repo }: { repo: Repo }) {
   const [saved, setSaved] = React.useState(false)
   const [wishlistLoading, setWishlistLoading] = React.useState(false)
   const [license, setLicense] = React.useState('commercial')
-  const licenseMultiplier: Record<string, number> = { personal: 1, commercial: 1, extended: 2.5 }
-  const displayPrice = repo.price === 0 ? 0 : Math.round(repo.price * (licenseMultiplier[license] ?? 1))
+  const displayPrice = computeLicensePrice(repo.price, license)
   const [loading, setLoading] = React.useState(false)
   const [shareOpen, setShareOpen] = React.useState(false)
 
