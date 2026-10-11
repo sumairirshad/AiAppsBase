@@ -1,5 +1,6 @@
 import { query } from '@/lib/db'
 import { sendOrderReceiptEmail } from '@/lib/email'
+import { getPlatformFeePercent } from '@/lib/payouts'
 
 /**
  * Idempotently finalizes a paid checkout session: creates the order (if one
@@ -21,11 +22,11 @@ export async function completeCheckoutSession(
   if (row.status === 'completed') return
 
   const inserted = await query<{ id: string }>(
-    `INSERT INTO orders (product_id, buyer_id, amount, license_type, stripe_payment_intent_id)
-     VALUES ($1, $2, $3, $4, $5)
+    `INSERT INTO orders (product_id, buyer_id, amount, license_type, stripe_payment_intent_id, commission_rate_snapshot)
+     VALUES ($1, $2, $3, $4, $5, $6)
      ON CONFLICT (product_id, buyer_id) DO NOTHING
      RETURNING id`,
-    [row.product_id, row.user_id, Number(row.amount), row.license_type, paymentIntentId ?? null]
+    [row.product_id, row.user_id, Number(row.amount), row.license_type, paymentIntentId ?? null, getPlatformFeePercent()]
   )
 
   await query(`DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2`, [row.user_id, row.product_id])

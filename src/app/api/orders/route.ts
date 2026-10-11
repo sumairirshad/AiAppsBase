@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
 import { sendOrderReceiptEmail } from '@/lib/email'
+import { getPlatformFeePercent } from '@/lib/payouts'
 
 export async function GET() {
   const userId = await getSessionUserId()
@@ -123,10 +124,10 @@ export async function POST(req: NextRequest) {
     }
 
     const res = await query(
-      `INSERT INTO orders (product_id, buyer_id, amount, license_type)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO orders (product_id, buyer_id, amount, license_type, commission_rate_snapshot)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING id, license_key`,
-      [productId, userId, amount, licenseType]
+      [productId, userId, amount, licenseType, getPlatformFeePercent()]
     )
 
     await query('DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2', [userId, productId])

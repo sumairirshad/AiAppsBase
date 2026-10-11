@@ -56,6 +56,9 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
             <p className="text-2xl font-bold">${order.amount}</p>
             <p className="text-muted-foreground">{statusLabel[order.status] ?? order.status}</p>
             <p className="flex items-center gap-1 text-xs text-muted-foreground"><Key className="size-3" /> {order.license_key}</p>
+            {order.commission_rate_snapshot != null && (
+              <p className="text-xs text-muted-foreground">Commission rate at sale: {order.commission_rate_snapshot}%</p>
+            )}
             {order.status === 'refunded' && order.refund_reason && (
               <p className="text-xs text-muted-foreground">Refund reason: {order.refund_reason}</p>
             )}
