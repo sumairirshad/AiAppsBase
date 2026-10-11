@@ -22,7 +22,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   try {
     const existing = await query(
-      `SELECT p.id, p.title, p.status, u.email AS seller_email
+      `SELECT p.id, p.title, p.status, u.email AS seller_email, u.email_notifications_enabled
        FROM products p JOIN users u ON p.seller_id = u.id
        WHERE p.id = $1`,
       [params.id]
@@ -53,7 +53,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ipAddress: getClientIp(req),
     })
 
-    if (status === 'approved' || status === 'rejected') {
+    if ((status === 'approved' || status === 'rejected') && before.email_notifications_enabled) {
       try {
         await sendModerationDecisionEmail(before.seller_email, {
           kind: 'product',

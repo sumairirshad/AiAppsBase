@@ -11,10 +11,13 @@ async function notifyPayoutStatusBestEffort(
   reason?: string | null
 ) {
   try {
-    const sellerRes = await query<{ email: string }>('SELECT email FROM users WHERE id = $1', [sellerId])
-    const email = sellerRes.rows[0]?.email
-    if (!email) return
-    await sendPayoutStatusEmail(email, { status, netAmount, reason })
+    const sellerRes = await query<{ email: string; email_notifications_enabled: boolean }>(
+      'SELECT email, email_notifications_enabled FROM users WHERE id = $1',
+      [sellerId]
+    )
+    const seller = sellerRes.rows[0]
+    if (!seller?.email || !seller.email_notifications_enabled) return
+    await sendPayoutStatusEmail(seller.email, { status, netAmount, reason })
   } catch (error) {
     console.error('[admin/settlements] Failed to send payout status email', sellerId, error)
   }

@@ -10,8 +10,8 @@ import { getPlatformFeePercent } from '@/lib/payouts'
  */
 
 export type CurrentUser = {
-  id: string; full_name: string; email: string; role: string; github_username: string | null
-  bio: string | null; location: string | null; website_url: string | null
+  id: string; full_name: string; email: string; pending_email: string | null; role: string; github_username: string | null
+  bio: string | null; location: string | null; website_url: string | null; email_notifications_enabled: boolean
 }
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
@@ -19,7 +19,8 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     const id = await getSessionUserId()
     if (!id) return null
     const res = await query(
-      `SELECT id, full_name, email, role, github_username, bio, location, website_url FROM users WHERE id = $1`, [id]
+      `SELECT id, full_name, email, pending_email, role, github_username, bio, location, website_url, email_notifications_enabled
+       FROM users WHERE id = $1`, [id]
     )
     return res.rowCount ? (res.rows[0] as CurrentUser) : null
   } catch {

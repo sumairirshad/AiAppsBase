@@ -128,6 +128,18 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string) {
   return sendEmail({ to, subject: 'Reset your AIApps password', html })
 }
 
+export async function sendEmailChangeConfirmationEmail(to: string, confirmUrl: string) {
+  const html = layout(`
+    <h2 style="margin: 0 0 8px;">Confirm your new email address</h2>
+    <p style="margin: 0 0 16px;">Click the link below to finish moving your AIApps account to this email address:</p>
+    <p style="margin: 0 0 24px;"><a href="${confirmUrl}" style="color: #3b82f6;">${confirmUrl}</a></p>
+    <p style="margin: 0 0 16px;">This link expires in 1 hour. You'll need to sign in with this new address afterward.</p>
+    <p style="margin: 0; color: #888; font-size: 12px;">If you didn't request this, you can safely ignore this email — your account email won't change.</p>
+  `)
+
+  return sendEmail({ to, subject: 'Confirm your new AIApps email address', html })
+}
+
 export async function sendOrderReceiptEmail(
   to: string,
   order: { orderId: string; productTitle: string; amount: number; licenseType: string }

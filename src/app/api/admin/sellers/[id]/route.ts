@@ -23,7 +23,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   try {
-    const existing = await query("SELECT id, full_name, seller_status FROM users WHERE id = $1 AND role = 'seller'", [params.id])
+    const existing = await query(
+      "SELECT id, full_name, seller_status, email_notifications_enabled FROM users WHERE id = $1 AND role = 'seller'",
+      [params.id]
+    )
     if (existing.rowCount === 0) {
       return NextResponse.json({ error: 'Provider not found' }, { status: 404 })
     }
@@ -49,7 +52,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     const s = updated.rows[0] as any
 
-    if (sellerStatus === 'approved' || sellerStatus === 'rejected') {
+    if ((sellerStatus === 'approved' || sellerStatus === 'rejected') && before.email_notifications_enabled) {
       try {
         await sendModerationDecisionEmail(s.email, {
           kind: 'seller',
