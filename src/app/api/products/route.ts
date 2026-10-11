@@ -43,6 +43,17 @@ export async function POST(req: NextRequest) {
 
   if (role === 'buyer') {
     await query("UPDATE users SET role = 'seller', seller_status = 'pending' WHERE id = $1", [userId])
+    return NextResponse.json(
+      { error: 'Your seller application has been submitted and is pending review. You can list products once approved.' },
+      { status: 403 }
+    )
+  } else if (role === 'seller' && sellerStatus === 'pending') {
+    // Without this, a pending seller could list products immediately —
+    // the seller approval gate existed in name only.
+    return NextResponse.json(
+      { error: 'Your seller account is still pending review and cannot list products yet.' },
+      { status: 403 }
+    )
   } else if (role === 'seller' && ['rejected', 'suspended', 'banned'].includes(sellerStatus)) {
     return NextResponse.json(
       { error: `Your seller account is ${sellerStatus} and cannot list new products. Contact support.` },
