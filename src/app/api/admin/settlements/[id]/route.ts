@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query, withTransaction } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
 import { stripe } from '@/lib/stripe'
+import { getClientIp, logAdminAction } from '@/lib/admin'
 
 type ApproveResult =
   | { kind: 'not_found' }
-  | { kind: 'already_processed'; status: string }
-  | { kind: 'rejected' }
-  | { kind: 'not_payout_capable' }
-  | { kind: 'approved'; transferId: string }
-  | { kind: 'transfer_failed'; message: string }
+  | { kind: 'already_processed'; status: string; sellerId: string }
+  | { kind: 'rejected'; sellerId: string; netAmount: number }
+  | { kind: 'not_payout_capable'; sellerId: string }
+  | { kind: 'approved'; transferId: string; sellerId: string; netAmount: number }
+  | { kind: 'transfer_failed'; message: string; sellerId: string; netAmount: number }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await getSessionUserId()
@@ -49,9 +50,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     )
     if ((wRes.rowCount ?? 0) === 0) return { kind: 'not_found' }
     const withdrawal = wRes.rows[0]
+    const netAmount = Number(withdrawal.net_amount)
 
     if (withdrawal.status !== 'pending' && withdrawal.status !== 'failed') {
-      return { kind: 'already_processed', status: withdrawal.status }
+      return { kind: 'already_processed', status: withdrawal.status, sellerId: withdrawal.seller_id }
     }
 
     if (action === 'reject') {
@@ -60,18 +62,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
          WHERE id = $3`,
         [reason || null, userId, params.id]
       )
-      return { kind: 'rejected' }
+      return { kind: 'rejected', sellerId: withdrawal.seller_id, netAmount }
     }
 
     // Approve: re-verify the seller's Stripe account live before moving money.
     try {
       const account = await stripe.accounts.retrieve(withdrawal.stripe_account_id)
       if (!account.payouts_enabled) {
-        return { kind: 'not_payout_capable' }
+        return { kind: 'not_payout_capable', sellerId: withdrawal.seller_id }
       }
 
       const transfer = await stripe.transfers.create({
-        amount: Math.round(Number(withdrawal.net_amount) * 100),
+        amount: Math.round(netAmount * 100),
         currency: 'usd',
         destination: withdrawal.stripe_account_id,
         transfer_group: withdrawal.id,
@@ -82,7 +84,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
          WHERE id = $3`,
         [transfer.id, userId, params.id]
       )
-      return { kind: 'approved', transferId: transfer.id }
+      return { kind: 'approved', transferId: transfer.id, sellerId: withdrawal.seller_id, netAmount }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error'
       console.error('[admin/settlements] transfer failed:', message, err)
@@ -91,9 +93,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
          WHERE id = $3`,
         [message, userId, params.id]
       )
-      return { kind: 'transfer_failed', message }
+      return { kind: 'transfer_failed', message, sellerId: withdrawal.seller_id, netAmount }
     }
   })
+
+  const ipAddress = getClientIp(req)
 
   switch (result.kind) {
     case 'not_found':
@@ -101,6 +105,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     case 'already_processed':
       return NextResponse.json({ error: 'This request has already been processed' }, { status: 409 })
     case 'rejected':
+      await logAdminAction({
+        adminId: userId,
+        action: 'payout.rejected',
+        targetType: 'withdrawal_request',
+        targetId: params.id,
+        reason: reason || 'No reason provided',
+        newValue: { status: 'rejected', sellerId: result.sellerId, netAmount: result.netAmount },
+        ipAddress,
+      })
       return NextResponse.json({ ok: true, status: 'rejected' })
     case 'not_payout_capable':
       return NextResponse.json(
@@ -108,8 +121,26 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         { status: 400 }
       )
     case 'approved':
+      await logAdminAction({
+        adminId: userId,
+        action: 'payout.approved',
+        targetType: 'withdrawal_request',
+        targetId: params.id,
+        reason: 'Approved by admin',
+        newValue: { status: 'approved', sellerId: result.sellerId, netAmount: result.netAmount, transferId: result.transferId },
+        ipAddress,
+      })
       return NextResponse.json({ ok: true, status: 'approved', transferId: result.transferId })
     case 'transfer_failed':
+      await logAdminAction({
+        adminId: userId,
+        action: 'payout.transfer_failed',
+        targetType: 'withdrawal_request',
+        targetId: params.id,
+        reason: result.message,
+        newValue: { status: 'failed', sellerId: result.sellerId, netAmount: result.netAmount },
+        ipAddress,
+      })
       return NextResponse.json({ error: `Transfer failed: ${result.message}` }, { status: 502 })
   }
 }
