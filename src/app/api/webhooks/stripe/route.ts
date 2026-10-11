@@ -40,7 +40,9 @@ export async function POST(req: NextRequest) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
         if (session.payment_status === 'paid') {
-          await completeCheckoutSession(session.id)
+          const paymentIntentId =
+            typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id ?? null
+          await completeCheckoutSession(session.id, paymentIntentId)
         }
         break
       }

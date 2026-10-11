@@ -6,7 +6,10 @@ import { query } from '@/lib/db'
  * item, and marks the checkout session completed. Safe to call more than
  * once for the same session (e.g. the buyer reloading /checkout/success).
  */
-export async function completeCheckoutSession(stripeSessionId: string): Promise<void> {
+export async function completeCheckoutSession(
+  stripeSessionId: string,
+  paymentIntentId?: string | null
+): Promise<void> {
   const res = await query(
     `SELECT user_id, product_id, license_type, amount, status
      FROM checkout_sessions WHERE stripe_session_id = $1`,
@@ -17,10 +20,10 @@ export async function completeCheckoutSession(stripeSessionId: string): Promise<
   if (row.status === 'completed') return
 
   await query(
-    `INSERT INTO orders (product_id, buyer_id, amount, license_type)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO orders (product_id, buyer_id, amount, license_type, stripe_payment_intent_id)
+     VALUES ($1, $2, $3, $4, $5)
      ON CONFLICT (product_id, buyer_id) DO NOTHING`,
-    [row.product_id, row.user_id, Number(row.amount), row.license_type]
+    [row.product_id, row.user_id, Number(row.amount), row.license_type, paymentIntentId ?? null]
   )
 
   await query(`DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2`, [row.user_id, row.product_id])

@@ -39,7 +39,11 @@ export async function GET(
     const stripeSession = await stripe.checkout.sessions.retrieve(sessionId)
 
     if (stripeSession.payment_status === 'paid') {
-      await completeCheckoutSession(sessionId)
+      const paymentIntentId =
+        typeof stripeSession.payment_intent === 'string'
+          ? stripeSession.payment_intent
+          : stripeSession.payment_intent?.id ?? null
+      await completeCheckoutSession(sessionId, paymentIntentId)
       row.status = 'completed'
     } else if (stripeSession.status === 'expired') {
       await expireCheckoutSession(sessionId)
