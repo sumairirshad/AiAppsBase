@@ -7,6 +7,7 @@ import { isAllowedDeliverableUpload } from '@/lib/upload-safety'
 import {
   ImageUploadError, MAX_PRODUCT_IMAGES, deleteProductImageDir, readValidatedImage, writeProductImage,
 } from '@/lib/product-images'
+import { syncProductGithubStats } from '@/lib/github-stats'
 
 export async function GET() {
   const userId = await getSessionUserId()
@@ -209,6 +210,10 @@ export async function POST(req: NextRequest) {
         githubDefaultBranch,
       ]
     )).rows[0].id)
+
+    // Best-effort: seed real stats immediately instead of leaving them at
+    // their zero defaults until the seller manually refreshes.
+    await syncProductGithubStats(id, userId, githubRepoName, githubDefaultBranch)
 
     return NextResponse.json({ ok: true, id })
   } catch {

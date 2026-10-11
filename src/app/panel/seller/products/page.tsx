@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { PlusCircle, Edit, Trash2, Eye, History } from 'lucide-react'
+import { PlusCircle, Edit, Trash2, Eye, History, RefreshCw } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 import { cn } from '@/lib/utils'
@@ -27,6 +27,7 @@ export default function MyProductsPage() {
   const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [confirmTarget, setConfirmTarget] = useState<any | null>(null)
+  const [refreshingId, setRefreshingId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchProducts()
@@ -60,6 +61,21 @@ export default function MyProductsPage() {
       toast.error((err as Error).message)
     } finally {
       setDeletingId(null)
+    }
+  }
+
+  const refreshGithubStats = async (productId: string) => {
+    setRefreshingId(productId)
+    try {
+      const res = await fetch(`/api/products/${productId}/sync-github-stats`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to refresh stats')
+      setProducts((prev) => prev.map((p) => (p.id === productId ? { ...p, ...data.stats } : p)))
+      toast.success('GitHub stats refreshed')
+    } catch (err) {
+      toast.error((err as Error).message)
+    } finally {
+      setRefreshingId(null)
     }
   }
 
@@ -159,6 +175,16 @@ export default function MyProductsPage() {
                     >
                       <History className="size-4" />
                     </Link>
+                    {product.github_repo_name && (
+                      <button
+                        onClick={() => refreshGithubStats(product.id)}
+                        disabled={refreshingId === product.id}
+                        className="grid size-8 place-items-center rounded-lg border border-border bg-muted/40 text-muted-foreground transition-colors hover:text-primary disabled:opacity-50"
+                        title="Refresh GitHub stats"
+                      >
+                        <RefreshCw className={cn('size-4', refreshingId === product.id && 'animate-spin')} />
+                      </button>
+                    )}
                     <button
                       onClick={() => setConfirmTarget(product)}
                       disabled={deletingId === product.id}
