@@ -22,6 +22,10 @@ const targetHref: Record<string, (id: string) => string> = {
   user: (id) => `/admin/users/${id}`,
   seller: (id) => `/admin/sellers/${id}`,
   review: () => `/admin/reviews`,
+  product: (id) => `/product/${id}`,
+  order: (id) => `/admin/orders/${id}`,
+  withdrawal_request: () => `/admin/settlements`,
+  platform_settings: () => `/admin/settings`,
 }
 
 const PAGE_SIZE = 25
@@ -65,6 +69,10 @@ export default function AdminAuditLogsPage() {
           <SelectItem value="user">Users</SelectItem>
           <SelectItem value="seller">Providers</SelectItem>
           <SelectItem value="review">Reviews</SelectItem>
+          <SelectItem value="product">Products</SelectItem>
+          <SelectItem value="order">Orders</SelectItem>
+          <SelectItem value="withdrawal_request">Payouts</SelectItem>
+          <SelectItem value="platform_settings">Platform settings</SelectItem>
         </SelectContent>
       </Select>
 
