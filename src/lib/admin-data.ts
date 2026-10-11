@@ -357,6 +357,63 @@ export async function getSellerDetail(id: string) {
 }
 
 /* -------------------------------------------------------------------------- */
+/*                                  Products                                  */
+/* -------------------------------------------------------------------------- */
+
+export async function listAdminProducts(opts: {
+  search?: string; status?: string; page?: number; pageSize?: number
+}) {
+  const conditions: string[] = []
+  const params: unknown[] = []
+  let idx = 1
+
+  if (opts.status && opts.status !== 'all') { conditions.push(`p.status = $${idx++}`); params.push(opts.status) }
+  if (opts.search) {
+    conditions.push(`(p.title ILIKE $${idx} OR u.full_name ILIKE $${idx})`)
+    params.push(`%${opts.search}%`); idx++
+  }
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
+  const { limit, offset } = paginate(opts.page, opts.pageSize)
+
+  try {
+    const [rowsRes, countRes] = await Promise.all([
+      query(
+        `SELECT
+          p.id, p.title, p.description, p.price, p.category,
+          p.ai_tools, p.tech_stack, p.human_mod_level,
+          p.screenshots, p.license_type, p.status, p.tags,
+          p.created_at, p.updated_at,
+          u.id AS seller_id, u.full_name AS seller_name, u.email AS seller_email
+         FROM products p
+         LEFT JOIN users u ON p.seller_id = u.id
+         ${where} ORDER BY p.created_at DESC LIMIT $${idx} OFFSET $${idx + 1}`,
+        [...params, limit, offset]
+      ),
+      query(`SELECT COUNT(*)::int AS total FROM products p LEFT JOIN users u ON p.seller_id = u.id ${where}`, params),
+    ])
+
+    const products = rowsRes.rows.map((row: any) => ({
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      price: Number(row.price),
+      category: row.category,
+      aiTools: row.ai_tools,
+      techStack: row.tech_stack,
+      humanModLevel: row.human_mod_level,
+      screenshots: row.screenshots,
+      licenseType: row.license_type,
+      status: row.status,
+      tags: row.tags,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      seller: { id: row.seller_id, name: row.seller_name, email: row.seller_email },
+    }))
+    return { products, total: (countRes.rows[0] as any).total }
+  } catch { return { products: [], total: 0 } }
+}
+
+/* -------------------------------------------------------------------------- */
 /*                              Orders (Bookings)                             */
 /* -------------------------------------------------------------------------- */
 

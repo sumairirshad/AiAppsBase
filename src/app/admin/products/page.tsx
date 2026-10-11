@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Package, CheckCircle, XCircle, AlertCircle, Clock, Search } from 'lucide-react'
+import { Package, CheckCircle, XCircle, AlertCircle, Clock, Search, ChevronLeft, ChevronRight } from 'lucide-react'
 
 import { formatPrice, timeAgo } from '@/lib/utils'
 import type { ProductStatus } from '@/types'
@@ -38,32 +38,44 @@ interface AdminProduct {
   status: ProductStatus; createdAt: string; seller: { id: string; name: string; email: string }
 }
 
+const PAGE_SIZE = 20
+
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<AdminProduct[]>([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<TabKey>('all')
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [pendingAction, setPendingAction] = useState<{ ids: string[]; status: ProductStatus } | null>(null)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
+    const controller = new AbortController()
     setLoading(true)
     setError(null)
-    fetch('/api/admin/products')
-      .then(async (r) => {
-        const data = await r.json()
-        if (!r.ok) throw new Error(data.error || `Error ${r.status}`)
-        setProducts(data.products ?? [])
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false))
-  }, [])
+    const params = new URLSearchParams({
+      page: String(page), pageSize: String(PAGE_SIZE),
+      ...(search ? { search } : {}), ...(activeTab !== 'all' ? { status: activeTab } : {}),
+    })
+    const timeout = setTimeout(() => {
+      fetch(`/api/admin/products?${params}`, { signal: controller.signal })
+        .then(async (r) => {
+          const data = await r.json()
+          if (!r.ok) throw new Error(data.error || `Error ${r.status}`)
+          setProducts(data.products ?? [])
+          setTotal(data.total ?? 0)
+          setSelectedIds(new Set())
+        })
+        .catch((e) => { if (e.name !== 'AbortError') setError(e.message) })
+        .finally(() => setLoading(false))
+    }, 300)
+    return () => { clearTimeout(timeout); controller.abort() }
+  }, [search, activeTab, page])
 
-  const filtered = products
-    .filter((p) => activeTab === 'all' || p.status === activeTab)
-    .filter((p) => !search || p.title.toLowerCase().includes(search.toLowerCase()) || p.seller.name?.toLowerCase().includes(search.toLowerCase()))
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   const applyStatus = async (reason: string, notes: string) => {
     if (!pendingAction) return
@@ -77,7 +89,16 @@ export default function AdminProductsPage() {
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || 'Failed to update product')
       }
-      setProducts((prev) => prev.map((p) => (pendingAction.ids.includes(p.id) ? { ...p, status: pendingAction.status } : p)))
+      setProducts((prev) => {
+        // Viewing a specific status tab: a product that just moved to a
+        // different status no longer belongs on this page, so drop it
+        // instead of leaving a stale row until the next fetch.
+        if (activeTab !== 'all' && pendingAction.status !== activeTab) {
+          return prev.filter((p) => !pendingAction.ids.includes(p.id))
+        }
+        return prev.map((p) => (pendingAction.ids.includes(p.id) ? { ...p, status: pendingAction.status } : p))
+      })
+      setTotal((prev) => (activeTab !== 'all' && pendingAction.status !== activeTab ? prev - pendingAction.ids.length : prev))
       setSelectedIds(new Set())
       toast.success(pendingAction.ids.length > 1 ? `${pendingAction.ids.length} products updated` : 'Product updated')
       setPendingAction(null)
@@ -97,37 +118,36 @@ export default function AdminProductsPage() {
   }
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === filtered.length) setSelectedIds(new Set())
-    else setSelectedIds(new Set(filtered.map((p) => p.id)))
+    if (selectedIds.size === products.length) setSelectedIds(new Set())
+    else setSelectedIds(new Set(products.map((p) => p.id)))
   }
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-        <PageHead title="Product Management" description="Review submissions and manage product listings." />
-        <span className="text-sm text-muted-foreground">{products.filter((p) => p.status === 'pending').length} pending review</span>
-      </div>
+      <PageHead title="Product Management" description="Review submissions and manage product listings." />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="inline-flex w-fit gap-1 rounded-lg bg-muted p-1">
-          {tabs.map((tab) => {
-            const count = tab.key === 'all' ? products.length : products.filter((p) => p.status === tab.key).length
-            return (
-              <button
-                key={tab.key}
-                onClick={() => { setActiveTab(tab.key); setSelectedIds(new Set()) }}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                  activeTab === tab.key ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {tab.label} ({count})
-              </button>
-            )
-          })}
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => { setActiveTab(tab.key); setPage(1) }}
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                activeTab === tab.key ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
         <div className="relative sm:w-64">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          <Input
+            placeholder="Search products..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+            className="pl-9"
+          />
         </div>
       </div>
 
@@ -152,7 +172,7 @@ export default function AdminProductsPage() {
         <Card><CardContent className="space-y-3 p-6">
           {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
         </CardContent></Card>
-      ) : filtered.length === 0 ? (
+      ) : products.length === 0 ? (
         <EmptyState icon="Package" title="No products found" description="Try adjusting your search or filters." />
       ) : (
         <Card>
@@ -161,7 +181,7 @@ export default function AdminProductsPage() {
               <thead>
                 <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground">
                   <th className="w-10 px-6 py-3">
-                    <input type="checkbox" checked={selectedIds.size === filtered.length && filtered.length > 0} onChange={toggleSelectAll} className="rounded border-input" />
+                    <input type="checkbox" checked={selectedIds.size === products.length && products.length > 0} onChange={toggleSelectAll} className="rounded border-input" />
                   </th>
                   <th className="px-3 py-3 font-medium">Product</th><th className="px-3 py-3 font-medium">Seller</th>
                   <th className="px-3 py-3 font-medium">Category</th><th className="px-3 py-3 font-medium">Price</th>
@@ -170,7 +190,7 @@ export default function AdminProductsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((product) => {
+                {products.map((product) => {
                   const status = statusConfig[product.status]
                   const StatusIcon = status.icon
                   return (
@@ -216,6 +236,20 @@ export default function AdminProductsPage() {
             </table>
           </CardContent>
         </Card>
+      )}
+
+      {!loading && !error && total > 0 && (
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>{total} product{total === 1 ? '' : 's'} · page {page} of {totalPages}</span>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+              <ChevronLeft className="size-4" /> Prev
+            </Button>
+            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+              Next <ChevronRight className="size-4" />
+            </Button>
+          </div>
+        </div>
       )}
 
       <ReasonDialog
