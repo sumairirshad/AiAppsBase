@@ -7,9 +7,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const guard = await requireAdmin()
   if (isAdminGuardError(guard)) return guard
 
-  const { status, reason, notes } = await req.json()
+  const body = await req.json().catch(() => null)
+  if (!body || typeof body !== 'object') {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  }
+  const { status, reason, notes } = body as { status?: string; reason?: string; notes?: string }
   const allowed = ['approved', 'rejected', 'suspended', 'pending']
-  if (!allowed.includes(status)) {
+  if (!status || !allowed.includes(status)) {
     return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
   }
   if (!reason || !String(reason).trim()) {
