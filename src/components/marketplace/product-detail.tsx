@@ -29,7 +29,8 @@ import { addToWishlist, removeFromWishlist } from '@/lib/client/wishlist'
 import { sellerPath } from '@/lib/seo'
 import { isHttpUrl } from '@/lib/utils'
 import { computeLicensePrice } from '@/lib/license-pricing'
-import type { Repo, Seller } from '@/lib/marketplace-config'
+import { Textarea } from '@/components/ui/textarea'
+import type { Repo, Review, Seller } from '@/lib/marketplace-config'
 
 function StatTile({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
   return (
@@ -115,6 +116,74 @@ function RatingBar({ stars, pct }: { stars: number; pct: number }) {
       </div>
       <span className="w-8 text-right text-muted-foreground">{pct}%</span>
     </div>
+  )
+}
+
+function WriteReviewForm({ productId, onSubmitted }: { productId: string; onSubmitted: (review: Review) => void }) {
+  const [rating, setRating] = React.useState(0)
+  const [hoverRating, setHoverRating] = React.useState(0)
+  const [comment, setComment] = React.useState('')
+  const [submitting, setSubmitting] = React.useState(false)
+
+  const submit = async () => {
+    if (rating < 1) {
+      toast.error('Choose a star rating')
+      return
+    }
+    if (!comment.trim()) {
+      toast.error('Write a short review before submitting')
+      return
+    }
+    setSubmitting(true)
+    try {
+      const res = await fetch(`/api/products/${productId}/reviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating, comment: comment.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to submit review')
+      toast.success('Thanks for your review!')
+      onSubmitted(data.review)
+    } catch (err) {
+      toast.error((err as Error).message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <Card className="p-5">
+      <h3 className="text-sm font-semibold">Write a review</h3>
+      <p className="mt-1 text-xs text-muted-foreground">You bought this product — share what you thought.</p>
+      <div className="mt-3 flex gap-1" onMouseLeave={() => setHoverRating(0)}>
+        {Array.from({ length: 5 }).map((_, i) => {
+          const value = i + 1
+          const filled = (hoverRating || rating) >= value
+          return (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setRating(value)}
+              onMouseEnter={() => setHoverRating(value)}
+              aria-label={`Rate ${value} star${value > 1 ? 's' : ''}`}
+            >
+              <Star className={cn('size-6', filled ? 'fill-amber-400 text-amber-400' : 'text-muted')} />
+            </button>
+          )
+        })}
+      </div>
+      <Textarea
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        placeholder="What did you like or dislike? Would you recommend it?"
+        rows={3}
+        className="mt-3"
+      />
+      <Button className="mt-3" onClick={submit} loading={submitting} disabled={submitting}>
+        Submit review
+      </Button>
+    </Card>
   )
 }
 
@@ -275,10 +344,25 @@ function PurchasePanel({ repo }: { repo: Repo }) {
 }
 
 export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: Seller; related: Repo[] }) {
+  const [reviews, setReviews] = React.useState(repo.reviews)
+  const [canReview, setCanReview] = React.useState(false)
+
+  React.useEffect(() => {
+    fetch(`/api/products/${repo.id}/reviews`)
+      .then((res) => res.json())
+      .then((data) => setCanReview(Boolean(data.canReview)))
+      .catch(() => {})
+  }, [repo.id])
+
+  const addReview = (review: Review) => {
+    setReviews((prev) => [review, ...prev])
+    setCanReview(false)
+  }
+
   // Computed from the product's real reviews — never fabricated.
   const ratingDist = [5, 4, 3, 2, 1].map((stars) => {
-    const n = repo.reviews.filter((r) => Math.round(r.rating) === stars).length
-    return { stars, pct: repo.reviews.length ? Math.round((n / repo.reviews.length) * 100) : 0 }
+    const n = reviews.filter((r) => Math.round(r.rating) === stars).length
+    return { stars, pct: reviews.length ? Math.round((n / reviews.length) * 100) : 0 }
   })
 
   return (
@@ -414,8 +498,9 @@ export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: 
                   {ratingDist.map((r) => <RatingBar key={r.stars} {...r} />)}
                 </div>
               </div>
+              {canReview && <WriteReviewForm productId={repo.id} onSubmitted={addReview} />}
               <div className="space-y-4">
-                {repo.reviews.map((rev) => (
+                {reviews.map((rev) => (
                   <Card key={rev.id} className="p-5">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-center gap-3">

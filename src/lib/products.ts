@@ -124,6 +124,27 @@ export async function getProductById(id: string): Promise<{ repo: Repo; seller: 
   }
 }
 
+/**
+ * True when this buyer has a completed order for the product and hasn't
+ * already reviewed it — the two conditions that gate review-authoring
+ * (verified purchase, one review per buyer per product).
+ */
+export async function canBuyerReview(userId: string | undefined, productId: string): Promise<boolean> {
+  if (!userId) return false
+  try {
+    const res = await query(
+      `SELECT
+         EXISTS(SELECT 1 FROM orders WHERE buyer_id = $1 AND product_id = $2 AND status = 'completed') AS purchased,
+         EXISTS(SELECT 1 FROM reviews WHERE user_id = $1 AND product_id = $2) AS reviewed`,
+      [userId, productId]
+    )
+    const row = res.rows[0]
+    return Boolean(row.purchased) && !row.reviewed
+  } catch {
+    return false
+  }
+}
+
 /** Same category first, then products sharing at least one of this product's tags, then most recent. */
 export async function getRelatedProducts(product: Repo, n = 3): Promise<Repo[]> {
   try {
