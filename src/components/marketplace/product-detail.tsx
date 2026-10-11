@@ -326,14 +326,19 @@ export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: 
               <span className="flex items-center gap-1 text-muted-foreground"><Download className="size-4" /> {formatNumber(repo.sales)} sales</span>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
-              <StatTile icon={Star} label="Stars" value={formatNumber(repo.stars)} />
-              <StatTile icon={GitFork} label="Forks" value={formatNumber(repo.forks)} />
-              <StatTile icon={Eye} label="Watchers" value={formatNumber(repo.watchers)} />
-              <StatTile icon={GitCommitHorizontal} label="Commits" value={formatNumber(repo.commits)} />
-              <StatTile icon={CircleDot} label="Issues" value={String(repo.issues)} />
-              <StatTile icon={Users} label="Contributors" value={String(repo.contributors)} />
-            </div>
+            {/* GitHub repo stats only mean anything for a product actually linked to a
+                repo — a zip-uploaded product has no stars/forks/etc. and would only
+                ever show zeroes here. */}
+            {repo.repoUrl && (
+              <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+                <StatTile icon={Star} label="Stars" value={formatNumber(repo.stars)} />
+                <StatTile icon={GitFork} label="Forks" value={formatNumber(repo.forks)} />
+                <StatTile icon={Eye} label="Watchers" value={formatNumber(repo.watchers)} />
+                <StatTile icon={GitCommitHorizontal} label="Commits" value={formatNumber(repo.commits)} />
+                <StatTile icon={CircleDot} label="Issues" value={String(repo.issues)} />
+                <StatTile icon={Users} label="Contributors" value={String(repo.contributors)} />
+              </div>
+            )}
           </div>
 
           {/* Tabs */}
