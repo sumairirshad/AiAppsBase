@@ -1,3 +1,5 @@
+import { randomBytes } from 'crypto'
+
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { getSessionUserId } from '@/lib/session'
@@ -16,7 +18,9 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const role = searchParams.get('role') === 'seller' ? 'seller' : 'buyer'
 
-  const state = Math.random().toString(36).slice(2) + Date.now().toString(36)
+  // Math.random() is not a CSPRNG — its output is predictable enough to be
+  // modeled/brute-forced, which defeats the point of a CSRF state token.
+  const state = randomBytes(32).toString('hex')
   const cookieOpts = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
