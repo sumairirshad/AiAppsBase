@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
-import { getSessionUserId } from '@/lib/session'
-import { getClientIp, logAdminAction } from '@/lib/admin'
+import { getClientIp, isAdminGuardError, logAdminAction, requireAdmin } from '@/lib/admin'
 import { sendPayoutStatusEmail } from '@/lib/email'
 import { processWithdrawalAction } from '@/lib/settlements'
 
@@ -22,15 +21,9 @@ async function notifyPayoutStatusBestEffort(
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const userId = await getSessionUserId()
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const adminRes = await query('SELECT role FROM users WHERE id = $1', [userId])
-  if ((adminRes.rowCount ?? 0) === 0 || adminRes.rows[0].role !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const guard = await requireAdmin()
+  if (isAdminGuardError(guard)) return guard
+  const userId = guard.id
 
   let action: string
   let reason: string | undefined
