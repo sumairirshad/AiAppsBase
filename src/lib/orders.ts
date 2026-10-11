@@ -26,7 +26,7 @@ export async function completeCheckoutSession(
      VALUES ($1, $2, $3, $4, $5, $6)
      ON CONFLICT (product_id, buyer_id) DO NOTHING
      RETURNING id`,
-    [row.product_id, row.user_id, Number(row.amount), row.license_type, paymentIntentId ?? null, getPlatformFeePercent()]
+    [row.product_id, row.user_id, Number(row.amount), row.license_type, paymentIntentId ?? null, await getPlatformFeePercent()]
   )
 
   await query(`DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2`, [row.user_id, row.product_id])

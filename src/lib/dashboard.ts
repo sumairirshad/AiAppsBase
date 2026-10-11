@@ -288,7 +288,7 @@ export async function getAdminFinances(): Promise<AdminFinances> {
     )
     const r = res.rows[0] as any
     const revenue = Math.round(r.revenue)
-    const commission = Math.round(revenue * (getPlatformFeePercent() / 100))
+    const commission = Math.round(revenue * ((await getPlatformFeePercent()) / 100))
     return { revenue, commission, net: revenue - commission, sales: r.sales, pending: Math.round(r.pending) }
   } catch { return { revenue: 0, commission: 0, net: 0, sales: 0, pending: 0 } }
 }

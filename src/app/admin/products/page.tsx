@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Package, CheckCircle, XCircle, AlertCircle, Clock, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Package, CheckCircle, XCircle, AlertCircle, Clock, Search, ChevronLeft, ChevronRight, Star } from 'lucide-react'
 
 import { formatPrice, timeAgo } from '@/lib/utils'
 import type { ProductStatus } from '@/types'
@@ -35,7 +35,7 @@ const statusConfig: Record<ProductStatus, { label: string; icon: typeof CheckCir
 
 interface AdminProduct {
   id: string; title: string; description: string; price: number; category: string
-  status: ProductStatus; createdAt: string; seller: { id: string; name: string; email: string }
+  status: ProductStatus; featured: boolean; createdAt: string; seller: { id: string; name: string; email: string }
 }
 
 const PAGE_SIZE = 20
@@ -106,6 +106,23 @@ export default function AdminProductsPage() {
       toast.error((err as Error).message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const toggleFeatured = async (product: AdminProduct) => {
+    const next = !product.featured
+    setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, featured: next } : p)))
+    try {
+      const res = await fetch(`/api/admin/products/${product.id}/featured`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ featured: next }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to update')
+      toast.success(next ? 'Marked as featured' : 'Removed from featured')
+    } catch (err) {
+      setProducts((prev) => prev.map((p) => (p.id === product.id ? { ...p, featured: !next } : p)))
+      toast.error((err as Error).message)
     }
   }
 
@@ -186,6 +203,7 @@ export default function AdminProductsPage() {
                   <th className="px-3 py-3 font-medium">Product</th><th className="px-3 py-3 font-medium">Seller</th>
                   <th className="px-3 py-3 font-medium">Category</th><th className="px-3 py-3 font-medium">Price</th>
                   <th className="px-3 py-3 font-medium">Date</th><th className="px-3 py-3 font-medium">Status</th>
+                  <th className="px-3 py-3 font-medium">Featured</th>
                   <th className="px-3 py-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
@@ -212,6 +230,15 @@ export default function AdminProductsPage() {
                       <td className="px-3 py-3 text-muted-foreground">{timeAgo(product.createdAt)}</td>
                       <td className="px-3 py-3">
                         <Badge variant={status.variant} className="w-fit gap-1"><StatusIcon className="size-3" /> {status.label}</Badge>
+                      </td>
+                      <td className="px-3 py-3">
+                        <button
+                          onClick={() => toggleFeatured(product)}
+                          aria-label={product.featured ? 'Remove from featured' : 'Mark as featured'}
+                          className="grid size-8 place-items-center rounded-lg border border-border text-muted-foreground transition-colors hover:text-amber-500"
+                        >
+                          <Star className={`size-4 ${product.featured ? 'fill-amber-400 text-amber-400' : ''}`} />
+                        </button>
                       </td>
                       <td className="px-3 py-3 text-right">
                         <div className="flex items-center justify-end gap-2">

@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
         return { ok: false as const, error: 'That amount is more than your available balance' }
       }
 
-      const { feeAmount, netAmount } = computeWithdrawalSplit(amount)
+      const { feeAmount, netAmount } = await computeWithdrawalSplit(amount)
       const res = await client.query(
         `INSERT INTO withdrawal_requests (seller_id, requested_amount, fee_amount, net_amount)
          VALUES ($1, $2, $3, $4) RETURNING id`,

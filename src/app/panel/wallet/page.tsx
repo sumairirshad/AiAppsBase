@@ -24,7 +24,7 @@ export default async function SellerWalletPage() {
     getSellerStats(uid), getSellerOrders(uid, 50), getSellerStripeStatus(uid), getSellerWithdrawals(uid),
   ])
   const earnings = orders.filter((o) => o.status === 'completed')
-  const feePercent = getPlatformFeePercent()
+  const feePercent = await getPlatformFeePercent()
 
   return (
     <div className="mx-auto max-w-5xl">

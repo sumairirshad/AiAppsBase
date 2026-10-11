@@ -381,7 +381,7 @@ export async function listAdminProducts(opts: {
         `SELECT
           p.id, p.title, p.description, p.price, p.category,
           p.ai_tools, p.tech_stack, p.human_mod_level,
-          p.screenshots, p.license_type, p.status, p.tags,
+          p.screenshots, p.license_type, p.status, p.tags, p.featured,
           p.created_at, p.updated_at,
           u.id AS seller_id, u.full_name AS seller_name, u.email AS seller_email
          FROM products p
@@ -405,6 +405,7 @@ export async function listAdminProducts(opts: {
       licenseType: row.license_type,
       status: row.status,
       tags: row.tags,
+      featured: Boolean(row.featured),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       seller: { id: row.seller_id, name: row.seller_name, email: row.seller_email },

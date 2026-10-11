@@ -127,7 +127,7 @@ export async function POST(req: NextRequest) {
       `INSERT INTO orders (product_id, buyer_id, amount, license_type, commission_rate_snapshot)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING id, license_key`,
-      [productId, userId, amount, licenseType, getPlatformFeePercent()]
+      [productId, userId, amount, licenseType, await getPlatformFeePercent()]
     )
 
     await query('DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2', [userId, productId])
