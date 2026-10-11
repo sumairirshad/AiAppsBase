@@ -24,10 +24,29 @@ export function CartView({ items: initial, authed }: { items: CartItem[]; authed
   const router = useRouter()
   const [items, setItems] = React.useState(initial)
   const [busy, setBusy] = React.useState<string | null>(null)
+  const [checkingOutAll, setCheckingOutAll] = React.useState(false)
 
   const subtotal = items.reduce((a, b) => a + b.price, 0)
   const fee = 0
   const total = subtotal + fee
+
+  // What "Checkout all" actually sends to Stripe — everything else (free,
+  // already owned) goes through its own per-item action instead.
+  const payableItems = items.filter((item) => !item.ownedAlready && item.price > 0)
+  const payableTotal = payableItems.reduce((a, b) => a + b.price, 0)
+
+  async function checkoutAll() {
+    setCheckingOutAll(true)
+    try {
+      const res = await fetch('/api/checkout/create-cart-session', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to start checkout')
+      window.location.href = data.url
+    } catch (err) {
+      toast.error((err as Error).message)
+      setCheckingOutAll(false)
+    }
+  }
 
   async function remove(productId: string) {
     const prev = items
@@ -137,6 +156,12 @@ export function CartView({ items: initial, authed }: { items: CartItem[]; authed
           <p className="mt-4 text-xs text-muted-foreground">
             Each project is delivered instantly after payment. Digital licenses are purchased per project via secure Stripe checkout.
           </p>
+
+          {payableItems.length > 1 && (
+            <Button className="mt-4 w-full" variant="gradient" loading={checkingOutAll} onClick={checkoutAll}>
+              Checkout all ({payableItems.length} items · ${payableTotal})
+            </Button>
+          )}
 
           <Button className="mt-4 w-full" variant="outline" asChild>
             <Link href="/products"><ShoppingCart className="size-4" /> Continue shopping <ArrowRight className="size-4" /></Link>

@@ -11,12 +11,17 @@ import { formatPrice } from '@/lib/utils'
 
 type VerifyStatus = 'loading' | 'completed' | 'expired' | 'pending' | 'error'
 
-interface SessionData {
-  status: string
+interface SessionItem {
   productId: string
   productTitle: string
   amount: number
   licenseType: string
+}
+
+interface SessionData {
+  status: string
+  items: SessionItem[]
+  totalAmount: number
   completedAt: string
 }
 
@@ -118,21 +123,19 @@ function SuccessContent() {
 
           <h1 className="mb-2 text-2xl font-bold">Payment Successful!</h1>
           <p className="mb-8 text-sm text-muted-foreground">
-            Your purchase has been confirmed.
+            {data.items.length === 1 ? 'Your purchase has been confirmed.' : `Your purchase of ${data.items.length} items has been confirmed.`}
           </p>
 
           <div className="mb-8 space-y-3 rounded-xl bg-muted/50 p-5 text-left">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Product</span>
-              <span className="font-medium">{data.productTitle}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">License</span>
-              <span>{data.licenseType}</span>
-            </div>
+            {data.items.map((item) => (
+              <div key={item.productId} className="flex justify-between text-sm">
+                <span className="text-muted-foreground">{item.productTitle} <span className="text-xs">({item.licenseType})</span></span>
+                <span className="font-medium">{formatPrice(item.amount)}</span>
+              </div>
+            ))}
             <div className="mt-3 flex justify-between border-t border-border pt-3 text-sm">
               <span className="text-muted-foreground">Amount Paid</span>
-              <span className="font-semibold text-success">{formatPrice(data.amount)}</span>
+              <span className="font-semibold text-success">{formatPrice(data.totalAmount)}</span>
             </div>
           </div>
 

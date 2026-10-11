@@ -2,8 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
 import { stripe } from '@/lib/stripe'
+import { computeLicensePrice, normalizeLicenseType } from '@/lib/license-pricing'
+import { rateLimit } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
+  const limited = await rateLimit(req, 'checkout:create-session', 10, 60)
+  if (limited) return limited
+
   const userId = await getSessionUserId()
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -18,6 +23,9 @@ export async function POST(req: NextRequest) {
 
   if (!productId || !licenseType) {
     return NextResponse.json({ error: 'productId and licenseType are required' }, { status: 400 })
+  }
+  if (!normalizeLicenseType(licenseType)) {
+    return NextResponse.json({ error: 'Invalid licenseType' }, { status: 400 })
   }
 
   // Fetch product
@@ -45,7 +53,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'You already own this product' }, { status: 409 })
   }
 
-  const amount = Number(product.price)
+  // Charge the price for the selected license tier, not the product's flat
+  // base price — the buyer picks personal/commercial/extended client-side,
+  // and that choice must be priced server-side or every buyer pays the same
+  // amount no matter which tier they select.
+  const amount = computeLicensePrice(Number(product.price), licenseType)
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
   // Stripe requires a minimum charge of $0.50 USD. Reject cheaper/zero amounts

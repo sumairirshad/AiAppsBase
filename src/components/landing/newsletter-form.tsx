@@ -12,19 +12,28 @@ export function NewsletterForm() {
   const [loading, setLoading] = React.useState(false)
   const [done, setDone] = React.useState(false)
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault()
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       toast.error('Please enter a valid email address')
       return
     }
     setLoading(true)
-    // Simulated subscribe — wired to a real endpoint in a later phase.
-    setTimeout(() => {
-      setLoading(false)
+    try {
+      const res = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Could not subscribe right now')
       setDone(true)
       toast.success('You’re subscribed! Check your inbox.')
-    }, 900)
+    } catch (err) {
+      toast.error((err as Error).message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   if (done) {

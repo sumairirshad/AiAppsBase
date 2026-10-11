@@ -21,10 +21,9 @@ export const megaMenus: MegaMenu[] = [
         items: [
           { label: 'Browse all', href: '/products', description: 'The full catalog', icon: 'LayoutGrid' },
           { label: 'Trending', href: '/products?sort=trending', description: 'Hot this week', icon: 'Flame' },
-          { label: 'New arrivals', href: '/products?sort=new', description: 'Fresh listings', icon: 'Sparkles' },
+          { label: 'New arrivals', href: '/products?sort=newest', description: 'Fresh listings', icon: 'Sparkles' },
           { label: 'Featured', href: '/products?featured=true', description: 'Editor picks', icon: 'Star' },
           { label: 'Top sellers', href: '/top-sellers', description: 'Best creators', icon: 'Trophy' },
-          { label: 'Premium', href: '/products?tier=premium', description: 'Best-in-class', icon: 'Crown' },
         ],
       },
       {
@@ -86,7 +85,7 @@ export const footerColumns: NavColumn[] = [
     items: [
       { label: 'Browse all', href: '/products' },
       { label: 'Trending', href: '/products?sort=trending' },
-      { label: 'New arrivals', href: '/products?sort=new' },
+      { label: 'New arrivals', href: '/products?sort=newest' },
       { label: 'Featured', href: '/products?featured=true' },
       { label: 'Top sellers', href: '/top-sellers' },
       { label: 'Become a seller', href: '/auth/register' },

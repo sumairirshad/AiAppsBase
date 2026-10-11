@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { productPath } from '@/lib/seo'
 import { ProductImage, mediaChipClass, mediaScrimClass, mediaTextClass } from '@/components/products/product-image'
-import { addToWishlist, removeFromWishlist } from '@/lib/client/wishlist'
+import { addToWishlist, removeFromWishlist, useWishlistIds } from '@/lib/client/wishlist'
 import type { Repo } from '@/lib/marketplace-config'
 
 function Price({ repo, className }: { repo: Repo; className?: string }) {
@@ -28,8 +28,13 @@ function Price({ repo, className }: { repo: Repo; className?: string }) {
 
 function Bookmarkable({ repo, className }: { repo: Repo; className?: string }) {
   const router = useRouter()
+  const wishlistIds = useWishlistIds()
   const [saved, setSaved] = React.useState(false)
   const [loading, setLoading] = React.useState(false)
+
+  React.useEffect(() => {
+    if (wishlistIds) setSaved(wishlistIds.has(repo.id))
+  }, [wishlistIds, repo.id])
 
   async function toggle(e: React.MouseEvent) {
     e.preventDefault()

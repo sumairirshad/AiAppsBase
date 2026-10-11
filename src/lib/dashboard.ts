@@ -10,8 +10,8 @@ import { getPlatformFeePercent } from '@/lib/payouts'
  */
 
 export type CurrentUser = {
-  id: string; full_name: string; email: string; role: string; github_username: string | null
-  bio: string | null; location: string | null; website_url: string | null
+  id: string; full_name: string; email: string; pending_email: string | null; role: string; github_username: string | null
+  bio: string | null; location: string | null; website_url: string | null; email_notifications_enabled: boolean
 }
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
@@ -19,7 +19,8 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     const id = await getSessionUserId()
     if (!id) return null
     const res = await query(
-      `SELECT id, full_name, email, role, github_username, bio, location, website_url FROM users WHERE id = $1`, [id]
+      `SELECT id, full_name, email, pending_email, role, github_username, bio, location, website_url, email_notifications_enabled
+       FROM users WHERE id = $1`, [id]
     )
     return res.rowCount ? (res.rows[0] as CurrentUser) : null
   } catch {
@@ -33,11 +34,11 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 
 export type SellerStats = {
   revenue: number; sales: number; products: number; customers: number
-  avgRating: number; conversion: number; payout: number; pending: number
+  avgRating: number; payout: number; pending: number
 }
 
 export async function getSellerStats(userId: string): Promise<SellerStats> {
-  const empty: SellerStats = { revenue: 0, sales: 0, products: 0, customers: 0, avgRating: 0, conversion: 0, payout: 0, pending: 0 }
+  const empty: SellerStats = { revenue: 0, sales: 0, products: 0, customers: 0, avgRating: 0, payout: 0, pending: 0 }
   try {
     const res = await query(
       `SELECT
@@ -60,7 +61,7 @@ export async function getSellerStats(userId: string): Promise<SellerStats> {
     const available = Math.max(0, r.revenue - r.withdrawn_or_pending)
     return {
       revenue: Math.round(r.revenue), sales: r.sales, products: r.products, customers: r.customers,
-      avgRating: Math.round(r.avg_rating * 10) / 10, conversion: 0,
+      avgRating: Math.round(r.avg_rating * 10) / 10,
       payout: Math.round(available), pending: Math.round(r.pending_withdrawals),
     }
   } catch { return empty }
@@ -230,6 +231,7 @@ export async function getBuyerOrders(userId: string, limit = 50) {
   try {
     const res = await query(
       `SELECT o.id, o.amount::float AS amount, o.status, o.license_type, o.license_key, o.created_at,
+              o.dispute_reason,
               p.id AS product_id, p.title AS product, p.screenshots[1] AS image, p.github_repo_name, p.deliverable_remote_path
        FROM orders o JOIN products p ON o.product_id=p.id
        WHERE o.buyer_id=$1 ORDER BY o.created_at DESC LIMIT $2`, [userId, limit]
@@ -238,9 +240,46 @@ export async function getBuyerOrders(userId: string, limit = 50) {
       id: r.id, productId: r.product_id, product: r.product, gradient: gradientFor(r.product_id), image: r.image || '',
       amount: Math.round(Number(r.amount)), status: r.status, license: r.license_type,
       licenseKey: r.license_key, downloadable: Boolean(r.github_repo_name || r.deliverable_remote_path),
+      disputeReason: r.dispute_reason as string | null,
       date: new Date(r.created_at).toISOString().slice(0, 10),
     }))
   } catch { return [] }
+}
+
+/** One order's full receipt detail, scoped to this buyer — null if it doesn't exist or isn't theirs. */
+export async function getBuyerOrderReceipt(orderId: string, buyerId: string) {
+  try {
+    const res = await query(
+      `SELECT o.id, o.amount::float AS amount, o.status, o.license_type, o.license_key, o.created_at,
+              o.commission_rate_snapshot,
+              p.id AS product_id, p.title AS product_title, p.category,
+              b.full_name AS buyer_name, b.email AS buyer_email,
+              s.full_name AS seller_name
+       FROM orders o
+       JOIN products p ON o.product_id = p.id
+       JOIN users b ON o.buyer_id = b.id
+       JOIN users s ON p.seller_id = s.id
+       WHERE o.id = $1 AND o.buyer_id = $2`,
+      [orderId, buyerId]
+    )
+    if (res.rowCount === 0) return null
+    const r = res.rows[0] as any
+    return {
+      id: r.id,
+      amount: Number(r.amount),
+      status: r.status,
+      licenseType: r.license_type,
+      licenseKey: r.license_key,
+      commissionRateSnapshot: r.commission_rate_snapshot != null ? Number(r.commission_rate_snapshot) : null,
+      productId: r.product_id,
+      productTitle: r.product_title,
+      category: r.category,
+      buyerName: r.buyer_name,
+      buyerEmail: r.buyer_email,
+      sellerName: r.seller_name,
+      date: new Date(r.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+    }
+  } catch { return null }
 }
 
 export async function getBuyerWishlist(userId: string) {
@@ -286,7 +325,7 @@ export async function getAdminFinances(): Promise<AdminFinances> {
     )
     const r = res.rows[0] as any
     const revenue = Math.round(r.revenue)
-    const commission = Math.round(revenue * (getPlatformFeePercent() / 100))
+    const commission = Math.round(revenue * ((await getPlatformFeePercent()) / 100))
     return { revenue, commission, net: revenue - commission, sales: r.sales, pending: Math.round(r.pending) }
   } catch { return { revenue: 0, commission: 0, net: 0, sales: 0, pending: 0 } }
 }

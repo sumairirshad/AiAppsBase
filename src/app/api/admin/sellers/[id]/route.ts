@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getClientIp, isAdminGuardError, logAdminAction, requireAdmin } from '@/lib/admin'
+import { sendModerationDecisionEmail } from '@/lib/email'
 
 const VALID_STATUSES = ['pending', 'approved', 'rejected', 'suspended', 'banned']
 
@@ -22,7 +23,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   try {
-    const existing = await query("SELECT id, full_name, seller_status FROM users WHERE id = $1 AND role = 'seller'", [params.id])
+    const existing = await query(
+      "SELECT id, full_name, seller_status, email_notifications_enabled FROM users WHERE id = $1 AND role = 'seller'",
+      [params.id]
+    )
     if (existing.rowCount === 0) {
       return NextResponse.json({ error: 'Provider not found' }, { status: 404 })
     }
@@ -47,6 +51,19 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     })
 
     const s = updated.rows[0] as any
+
+    if ((sellerStatus === 'approved' || sellerStatus === 'rejected') && before.email_notifications_enabled) {
+      try {
+        await sendModerationDecisionEmail(s.email, {
+          kind: 'seller',
+          status: sellerStatus,
+          reason: sellerStatus === 'rejected' ? reason.trim() : null,
+        })
+      } catch (error) {
+        console.error('[admin/sellers] Failed to send moderation decision email', params.id, error)
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       seller: { id: s.id, name: s.full_name, email: s.email, sellerStatus: s.seller_status, accountStatus: s.account_status, memberSince: s.created_at },

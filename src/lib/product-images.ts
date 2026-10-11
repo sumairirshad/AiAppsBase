@@ -4,15 +4,25 @@ import sharp from 'sharp'
 
 import { query } from '@/lib/db'
 import { isAllowedImageUpload, safeFileName } from '@/lib/upload-safety'
+import {
+  deleteProductImage as sftpDeleteProductImage,
+  deleteProductImageDir as sftpDeleteProductImageDir,
+  uploadProductImage,
+} from '@/lib/sftp'
 
 /**
  * Product image storage.
  *
- * Files live outside public/ at
- *   <ASSETS_DIR or ./assets>/products/{userId}/{productId}/{timestamp}-{random}-{name}.{ext}
- * and are served by app/assets/products/[userId]/[productId]/[file]/route.ts at
- *   /assets/products/{userId}/{productId}/{file}
- * which is the path stored in products.screenshots.
+ * Files are uploaded to the SFTP server (same storage deliverables use —
+ * see src/lib/sftp.ts) under product-images/{userId}/{productId}/{file},
+ * and streamed back by app/assets/products/[userId]/[productId]/[file]/route.ts
+ * at the public URL /assets/products/{userId}/{productId}/{file}, which is
+ * the path stored in products.screenshots. Local disk is never used for new
+ * uploads — it's lost on every redeploy/restart on serverless hosting.
+ *
+ * `productImageDir`/`productImageFilePath` below only build and validate
+ * that URL's path segments (UUID/UUID/safe-filename) against path traversal
+ * — they don't touch the filesystem.
  *
  * Images uploaded before this layout ("/Uploads/<file>" in public/Uploads)
  * keep working; they're only cleaned up, never rewritten.
@@ -139,16 +149,14 @@ async function downscaleForStorage(buf: Buffer): Promise<Buffer> {
 }
 
 /**
- * Stores an already-validated image in the product's folder and returns its
- * public URL. Names are timestamped + random and written with the "wx" flag,
- * so an existing file is never overwritten.
+ * Uploads an already-validated image to the product's SFTP folder and
+ * returns its public URL. Names are timestamped + random, so collisions
+ * are effectively impossible even without an atomic no-overwrite write.
  */
 export async function writeProductImage(buf: Buffer, originalName: string, userId: string, productId: string): Promise<string> {
-  const dir = productImageDir(userId, productId)
-  fs.mkdirSync(dir, { recursive: true })
   const name = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeFileName(originalName)}`.toLowerCase()
   const stored = await downscaleForStorage(buf)
-  fs.writeFileSync(path.join(dir, name), stored, { flag: 'wx' })
+  await uploadProductImage(stored, userId.toLowerCase(), productId.toLowerCase(), name)
   return `${PRODUCT_IMAGE_URL_PREFIX}${userId.toLowerCase()}/${productId.toLowerCase()}/${name}`
 }
 
@@ -159,9 +167,16 @@ export async function saveProductImage(file: File, userId: string, productId: st
 
 /**
  * Validates the image list submitted when editing a product. Each entry must
- * be one of the product's current images (kept as stored) or an image that
- * exists in THIS product's folder — never another product's or user's files,
- * or arbitrary paths/URLs. Duplicates are dropped; order is preserved.
+ * be one of the product's current images (kept as stored) or a path that
+ * belongs to THIS product's own folder — never another product's or user's
+ * files, or arbitrary paths/URLs. Duplicates are dropped; order is preserved.
+ *
+ * This only checks the path's ownership pattern, not that the file actually
+ * exists on the remote SFTP server — images aren't local anymore, so that
+ * would mean a network round trip per image on every edit. A seller can only
+ * ever reference a path shaped like their own product's folder, so the
+ * worst case of skipping that check is a dead image they uploaded
+ * themselves, not a cross-user/cross-product leak.
  */
 export function resolveImageList(
   requested: unknown,
@@ -182,9 +197,8 @@ export function resolveImageList(
       parsed &&
       parsed.userId.toLowerCase() === owner.userId.toLowerCase() &&
       parsed.productId.toLowerCase() === owner.productId.toLowerCase()
-    const file = ownsIt ? productImageFilePath(parsed.userId, parsed.productId, parsed.file) : null
-    if (!file || !fs.existsSync(file)) {
-      return { ok: false, error: 'One of the images is invalid or no longer exists. Please re-upload it.' }
+    if (!ownsIt) {
+      return { ok: false, error: 'One of the images is invalid or does not belong to this product.' }
     }
   }
   return { ok: true, images }
@@ -192,16 +206,16 @@ export function resolveImageList(
 
 /**
  * Deletes image files that were removed from a product. Product-folder files
- * belong to one product and are removed directly; legacy /Uploads files are
- * only removed if no other product still references them.
+ * belong to one product and are removed directly from SFTP; legacy /Uploads
+ * files are only removed (from local disk) if no other product still
+ * references them.
  */
 export async function deleteRemovedImages(paths: string[]): Promise<void> {
   for (const p of paths) {
     try {
       const parsed = parseProductImagePath(p)
       if (parsed) {
-        const file = productImageFilePath(parsed.userId, parsed.productId, parsed.file)
-        if (file) fs.rmSync(file, { force: true })
+        await sftpDeleteProductImage(parsed.userId, parsed.productId, parsed.file)
         continue
       }
       const legacy = legacyUploadFileName(p)
@@ -214,13 +228,10 @@ export async function deleteRemovedImages(paths: string[]): Promise<void> {
   }
 }
 
-/** Removes a product's whole image folder (after the product is deleted, or a failed create). */
-export function deleteProductImageDir(userId: string, productId: string): void {
+/** Removes a product's whole image folder from SFTP (after the product is deleted, or a failed create). */
+export async function deleteProductImageDir(userId: string, productId: string): Promise<void> {
   try {
-    fs.rmSync(productImageDir(userId, productId), { recursive: true, force: true })
-    // Tidy the user's folder if this was their last product with images.
-    const userDir = path.dirname(productImageDir(userId, productId))
-    if (fs.existsSync(userDir) && fs.readdirSync(userDir).length === 0) fs.rmdirSync(userDir)
+    await sftpDeleteProductImageDir(userId, productId)
   } catch (err) {
     console.error(`[product-images] could not remove images for product ${productId}:`, (err as Error).message)
   }

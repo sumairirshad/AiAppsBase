@@ -149,6 +149,7 @@ export type Review = {
   date: string
   helpful: number
   verified: boolean
+  sellerResponse: string | null
 }
 
 export type ChangelogEntry = { version: string; date: string; notes: string[] }
