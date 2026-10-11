@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
-import { hashPassword, verifyPassword } from '@/lib/auth'
+import { hashPassword, validatePasswordStrength, verifyPassword } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
   const userId = await getSessionUserId()
@@ -10,8 +10,9 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
   const current = typeof body.current === 'string' ? body.current : ''
   const next = typeof body.next === 'string' ? body.next : ''
-  if (next.length < 8) {
-    return NextResponse.json({ error: 'New password must be at least 8 characters.' }, { status: 400 })
+  const passwordError = validatePasswordStrength(next)
+  if (passwordError) {
+    return NextResponse.json({ error: passwordError }, { status: 400 })
   }
 
   try {
