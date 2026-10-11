@@ -9,6 +9,31 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: aiappsbase_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aiappsbase_test
+      DATABASE_SSL: disable
+      SESSION_SECRET: ci-session-secret-not-for-production-use-only
+      TOKEN_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef
+      STRIPE_SECRET_KEY: sk_test_ci_placeholder
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_ci_placeholder
+      STRIPE_WEBHOOK_SECRET: whsec_ci_placeholder
+
     steps:
       - uses: actions/checkout@v4
 
@@ -26,5 +51,8 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Unit tests
+      - name: Run database migrations
+        run: npm run migrate
+
+      - name: Unit & integration tests
         run: npm test

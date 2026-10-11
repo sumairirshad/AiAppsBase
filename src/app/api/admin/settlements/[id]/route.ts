@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { query, withTransaction } from '@/lib/db'
+import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
-import { stripe } from '@/lib/stripe'
 import { getClientIp, logAdminAction } from '@/lib/admin'
 import { sendPayoutStatusEmail } from '@/lib/email'
+import { processWithdrawalAction } from '@/lib/settlements'
 
 async function notifyPayoutStatusBestEffort(
   sellerId: string,
@@ -20,14 +20,6 @@ async function notifyPayoutStatusBestEffort(
     console.error('[admin/settlements] Failed to send payout status email', sellerId, error)
   }
 }
-
-type ApproveResult =
-  | { kind: 'not_found' }
-  | { kind: 'already_processed'; status: string; sellerId: string }
-  | { kind: 'rejected'; sellerId: string; netAmount: number }
-  | { kind: 'not_payout_capable'; sellerId: string }
-  | { kind: 'approved'; transferId: string; sellerId: string; netAmount: number }
-  | { kind: 'transfer_failed'; message: string; sellerId: string; netAmount: number }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await getSessionUserId()
@@ -54,66 +46,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: 'action must be "approve" or "reject"' }, { status: 400 })
   }
 
-  // The whole read-check-write sequence (including the Stripe transfer call
-  // for approvals) runs under a row lock on this withdrawal request, so two
-  // concurrent approve/reject calls on the same request can never both pass
-  // the pending/failed check and double-transfer or double-reject it.
-  const result = await withTransaction<ApproveResult>(async (client) => {
-    const wRes = await client.query(
-      `SELECT w.id, w.seller_id, w.net_amount, w.status, u.stripe_account_id
-       FROM withdrawal_requests w JOIN users u ON w.seller_id = u.id
-       WHERE w.id = $1 FOR UPDATE OF w`,
-      [params.id]
-    )
-    if ((wRes.rowCount ?? 0) === 0) return { kind: 'not_found' }
-    const withdrawal = wRes.rows[0]
-    const netAmount = Number(withdrawal.net_amount)
-
-    if (withdrawal.status !== 'pending' && withdrawal.status !== 'failed') {
-      return { kind: 'already_processed', status: withdrawal.status, sellerId: withdrawal.seller_id }
-    }
-
-    if (action === 'reject') {
-      await client.query(
-        `UPDATE withdrawal_requests SET status = 'rejected', rejection_reason = $1, processed_by = $2, processed_at = NOW()
-         WHERE id = $3`,
-        [reason || null, userId, params.id]
-      )
-      return { kind: 'rejected', sellerId: withdrawal.seller_id, netAmount }
-    }
-
-    // Approve: re-verify the seller's Stripe account live before moving money.
-    try {
-      const account = await stripe.accounts.retrieve(withdrawal.stripe_account_id)
-      if (!account.payouts_enabled) {
-        return { kind: 'not_payout_capable', sellerId: withdrawal.seller_id }
-      }
-
-      const transfer = await stripe.transfers.create({
-        amount: Math.round(netAmount * 100),
-        currency: 'usd',
-        destination: withdrawal.stripe_account_id,
-        transfer_group: withdrawal.id,
-      })
-
-      await client.query(
-        `UPDATE withdrawal_requests SET status = 'approved', stripe_transfer_id = $1, processed_by = $2, processed_at = NOW()
-         WHERE id = $3`,
-        [transfer.id, userId, params.id]
-      )
-      return { kind: 'approved', transferId: transfer.id, sellerId: withdrawal.seller_id, netAmount }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error'
-      console.error('[admin/settlements] transfer failed:', message, err)
-      await client.query(
-        `UPDATE withdrawal_requests SET status = 'failed', rejection_reason = $1, processed_by = $2, processed_at = NOW()
-         WHERE id = $3`,
-        [message, userId, params.id]
-      )
-      return { kind: 'transfer_failed', message, sellerId: withdrawal.seller_id, netAmount }
-    }
-  })
-
+  const result = await processWithdrawalAction(params.id, action, userId, reason)
   const ipAddress = getClientIp(req)
 
   switch (result.kind) {
