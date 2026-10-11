@@ -3,6 +3,7 @@ import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
 import { sendOrderReceiptEmail } from '@/lib/email'
 import { getPlatformFeePercent } from '@/lib/payouts'
+import { rateLimit } from '@/lib/rate-limit'
 
 export async function GET() {
   const userId = await getSessionUserId()
@@ -79,6 +80,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const limited = await rateLimit(req, 'orders:create', 10, 60)
+  if (limited) return limited
+
   const userId = await getSessionUserId()
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes, createHash } from 'crypto'
 import { query } from '@/lib/db'
 import { sendPasswordResetEmail, EmailSendError } from '@/lib/email'
+import { rateLimit } from '@/lib/rate-limit'
 
 const RESET_TOKEN_TTL_MINUTES = 60
 
 export async function POST(req: NextRequest) {
+  const limited = await rateLimit(req, 'auth:forgot-password', 5, 600)
+  if (limited) return limited
+
   const body = await req.json().catch(() => null)
   if (!body || typeof body !== 'object') {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })

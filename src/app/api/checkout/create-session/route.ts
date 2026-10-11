@@ -3,8 +3,12 @@ import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
 import { stripe } from '@/lib/stripe'
 import { computeLicensePrice, normalizeLicenseType } from '@/lib/license-pricing'
+import { rateLimit } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
+  const limited = await rateLimit(req, 'checkout:create-session', 10, 60)
+  if (limited) return limited
+
   const userId = await getSessionUserId()
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
