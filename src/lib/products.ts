@@ -1,7 +1,7 @@
 import { query } from '@/lib/db'
 import {
   gradientFor, slugifyCategory, slugifySubcategory, languageColor,
-  type Repo, type Review, type Seller,
+  type ChangelogEntry, type Repo, type Review, type Seller,
 } from '@/lib/marketplace-config'
 import { sellerHandle } from '@/lib/seo'
 
@@ -115,6 +115,16 @@ export async function getProductById(id: string): Promise<{ repo: Repo; seller: 
       helpful: Number(r.helpful) || 0,
       verified: Boolean(r.verified),
       sellerResponse: r.seller_response || null,
+    }))
+
+    const changelogRes = await query(
+      `SELECT version, notes, created_at FROM product_changelog WHERE product_id = $1 ORDER BY created_at DESC`,
+      [id]
+    )
+    repo.changelog = changelogRes.rows.map((c: any): ChangelogEntry => ({
+      version: c.version,
+      notes: c.notes || [],
+      date: c.created_at ? new Date(c.created_at).toISOString().slice(0, 10) : '',
     }))
 
     const seller = await getSellerById(row.seller_id)

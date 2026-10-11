@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { PlusCircle, Edit, Trash2, Eye } from 'lucide-react'
+import { PlusCircle, Edit, Trash2, Eye, History } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 import { cn } from '@/lib/utils'
@@ -151,6 +151,13 @@ export default function MyProductsPage() {
                       title="Edit"
                     >
                       <Edit className="size-4" />
+                    </Link>
+                    <Link
+                      href={`/panel/seller/products/${product.id}/changelog`}
+                      className="grid size-8 place-items-center rounded-lg border border-border bg-muted/40 text-muted-foreground transition-colors hover:text-primary"
+                      title="Changelog"
+                    >
+                      <History className="size-4" />
                     </Link>
                     <button
                       onClick={() => setConfirmTarget(product)}
