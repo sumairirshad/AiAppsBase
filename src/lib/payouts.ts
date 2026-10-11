@@ -1,6 +1,6 @@
 export function getPlatformFeePercent(): number {
   const raw = Number(process.env.PLATFORM_FEE_PERCENT)
-  if (!Number.isFinite(raw)) return 5
+  if (!Number.isFinite(raw)) return 10
   return Math.min(100, Math.max(0, raw))
 }
 

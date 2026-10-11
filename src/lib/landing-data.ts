@@ -74,8 +74,8 @@ export const plans: Plan[] = [
   },
   {
     name: 'Pro', price: '$19', period: 'per month',
-    description: 'For creators who sell seriously.', fee: '5% per sale',
-    features: ['Everything in Starter', 'Lower 5% fee', 'Advanced analytics', 'Featured placements', 'Custom storefront', 'Priority payouts'],
+    description: 'For creators who sell seriously.', fee: '10% per sale',
+    features: ['Everything in Starter', 'Advanced analytics', 'Featured placements', 'Custom storefront', 'Priority payouts'],
     highlighted: true, cta: 'Go Pro',
   },
   {
@@ -90,7 +90,7 @@ export type Faq = { q: string; a: string }
 
 export const faqs: Faq[] = [
   { q: 'How does selling a GitHub repository work?', a: 'Connect your GitHub account, choose which repositories to list, and set a price. When a buyer purchases, AIAppsBase grants them access — either a private-repo collaborator invite or a signed archive download — and issues a license key. Your source stays private until a sale closes.' },
-  { q: 'What fees does AIAppsBase charge?', a: 'The Starter plan is free with a 10% fee per sale. Pro is $19/month and drops the fee to 5%. There are no listing fees, and you keep the rest. Payments are processed securely through Stripe.' },
+  { q: 'What fees does AIAppsBase charge?', a: 'AIAppsBase charges a flat 10% fee per sale across every plan. There are no listing fees, and you keep the rest. Payments are processed securely through Stripe.' },
   { q: 'How and when do I get paid?', a: 'Sales are held for a 14-day buyer-protection window, then become available in your wallet. You can withdraw to your bank account via Stripe Connect at any time. Pro sellers get priority payouts.' },
   { q: 'Is buyer protection included?', a: 'Yes. Every purchase is covered by our protection policy. If a project is materially misrepresented or broken, buyers can request a refund within the protection window, and our team mediates disputes fairly.' },
   { q: 'How do you keep the marketplace high quality?', a: 'Every listing passes automated malware and secret scanning plus a human review before going live. Listings are ranked by code quality, documentation, freshness, and verified buyer reviews.' },

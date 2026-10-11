@@ -26,7 +26,7 @@ const sections = [
   },
   {
     title: '5. Seller Terms',
-    content: `To list products on AIAppsBase you must be at least 18 years old and own or have the right to sell the listed content. You grant AIAppsBase a non-exclusive license to display and market your product on the Platform. AIAppsBase retains 20% of each sale as a platform fee. You are solely responsible for the accuracy of product descriptions and the legality of your content. Listing products that infringe third-party intellectual property rights will result in immediate removal and account suspension.`,
+    content: `To list products on AIAppsBase you must be at least 18 years old and own or have the right to sell the listed content. You grant AIAppsBase a non-exclusive license to display and market your product on the Platform. AIAppsBase retains 10% of each sale as a platform fee. You are solely responsible for the accuracy of product descriptions and the legality of your content. Listing products that infringe third-party intellectual property rights will result in immediate removal and account suspension.`,
   },
   {
     title: '6. Prohibited Conduct',
