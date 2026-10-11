@@ -25,7 +25,7 @@ import { ImageLightbox } from '@/components/marketplace/image-lightbox'
 import { ShareModal } from '@/components/marketplace/share-modal'
 import { ProductImage, mediaChipClass, mediaScrimClass, mediaTextClass } from '@/components/products/product-image'
 import { claimFreeProduct } from '@/lib/client/claim-free-product'
-import { addToWishlist, removeFromWishlist } from '@/lib/client/wishlist'
+import { addToWishlist, removeFromWishlist, useWishlistIds } from '@/lib/client/wishlist'
 import { sellerPath } from '@/lib/seo'
 import { isHttpUrl } from '@/lib/utils'
 import { computeLicensePrice } from '@/lib/license-pricing'
@@ -189,8 +189,13 @@ function WriteReviewForm({ productId, onSubmitted }: { productId: string; onSubm
 
 function PurchasePanel({ repo }: { repo: Repo }) {
   const router = useRouter()
+  const wishlistIds = useWishlistIds()
   const [saved, setSaved] = React.useState(false)
   const [wishlistLoading, setWishlistLoading] = React.useState(false)
+
+  React.useEffect(() => {
+    if (wishlistIds) setSaved(wishlistIds.has(repo.id))
+  }, [wishlistIds, repo.id])
   const [license, setLicense] = React.useState('commercial')
   const displayPrice = computeLicensePrice(repo.price, license)
   const [loading, setLoading] = React.useState(false)
