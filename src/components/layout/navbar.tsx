@@ -217,6 +217,7 @@ export function Navbar() {
   const [user, setUser] = React.useState<Me | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [scrolled, setScrolled] = React.useState(false)
+  const [cartCount, setCartCount] = React.useState(0)
 
   React.useEffect(() => {
     fetch('/api/auth/me')
@@ -225,6 +226,22 @@ export function Navbar() {
       .catch(() => setUser(null))
       .finally(() => setLoading(false))
   }, [])
+
+  React.useEffect(() => {
+    if (!user) {
+      setCartCount(0)
+      return
+    }
+    const refreshCartCount = () => {
+      fetch('/api/cart')
+        .then((r) => r.json())
+        .then((d) => setCartCount(Number(d.count) || 0))
+        .catch(() => {})
+    }
+    refreshCartCount()
+    window.addEventListener('cart-updated', refreshCartCount)
+    return () => window.removeEventListener('cart-updated', refreshCartCount)
+  }, [user])
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
@@ -265,8 +282,15 @@ export function Navbar() {
 
         <div className="ml-auto flex items-center gap-1.5">
           <ThemeToggle />
-          <Button  variant="ghost" size="icon" asChild aria-label="Cart">
-            <Link href="/cart"><ShoppingCart className="size-5" /></Link>
+          <Button variant="ghost" size="icon" asChild aria-label="Cart" className="relative">
+            <Link href="/cart">
+              <ShoppingCart className="size-5" />
+              {cartCount > 0 && (
+                <Badge variant="brand" className="absolute -right-1 -top-1 h-5 min-w-5 justify-center rounded-full px-1 text-[10px]">
+                  {cartCount > 9 ? '9+' : cartCount}
+                </Badge>
+              )}
+            </Link>
           </Button>
 
           {loading ? (
