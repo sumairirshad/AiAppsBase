@@ -245,6 +245,42 @@ export async function getBuyerOrders(userId: string, limit = 50) {
   } catch { return [] }
 }
 
+/** One order's full receipt detail, scoped to this buyer — null if it doesn't exist or isn't theirs. */
+export async function getBuyerOrderReceipt(orderId: string, buyerId: string) {
+  try {
+    const res = await query(
+      `SELECT o.id, o.amount::float AS amount, o.status, o.license_type, o.license_key, o.created_at,
+              o.commission_rate_snapshot,
+              p.id AS product_id, p.title AS product_title, p.category,
+              b.full_name AS buyer_name, b.email AS buyer_email,
+              s.full_name AS seller_name
+       FROM orders o
+       JOIN products p ON o.product_id = p.id
+       JOIN users b ON o.buyer_id = b.id
+       JOIN users s ON p.seller_id = s.id
+       WHERE o.id = $1 AND o.buyer_id = $2`,
+      [orderId, buyerId]
+    )
+    if (res.rowCount === 0) return null
+    const r = res.rows[0] as any
+    return {
+      id: r.id,
+      amount: Number(r.amount),
+      status: r.status,
+      licenseType: r.license_type,
+      licenseKey: r.license_key,
+      commissionRateSnapshot: r.commission_rate_snapshot != null ? Number(r.commission_rate_snapshot) : null,
+      productId: r.product_id,
+      productTitle: r.product_title,
+      category: r.category,
+      buyerName: r.buyer_name,
+      buyerEmail: r.buyer_email,
+      sellerName: r.seller_name,
+      date: new Date(r.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+    }
+  } catch { return null }
+}
+
 export async function getBuyerWishlist(userId: string) {
   try {
     const res = await query(

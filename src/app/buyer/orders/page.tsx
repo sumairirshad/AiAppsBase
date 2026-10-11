@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Download } from 'lucide-react'
+import { Download, Receipt } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -55,6 +55,9 @@ export default async function BuyerOrdersPage() {
                           <Button size="sm" variant="outline" asChild><a href={`/api/orders/${o.id}/download`}><Download className="size-4" /> Download</a></Button>
                         )}
                         {o.status === 'completed' && <OrderDisputeAction orderId={o.id} />}
+                        <Button size="sm" variant="outline" asChild>
+                          <Link href={`/buyer/orders/${o.id}/receipt`}><Receipt className="size-4" /> Receipt</Link>
+                        </Button>
                       </div>
                     </td>
                   </tr>
