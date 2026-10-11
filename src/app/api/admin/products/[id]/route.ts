@@ -22,7 +22,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
     const before = existing.rows[0] as any
 
-    await query('UPDATE products SET status = $1 WHERE id = $2', [status, params.id])
+    // Surface the reason to the seller for a rejection; clear any stale
+    // reason once the product moves to any other status.
+    const rejectionReason = status === 'rejected' ? String(reason).trim() : null
+    await query('UPDATE products SET status = $1, rejection_reason = $2 WHERE id = $3', [
+      status,
+      rejectionReason,
+      params.id,
+    ])
 
     await logAdminAction({
       adminId: guard.id,

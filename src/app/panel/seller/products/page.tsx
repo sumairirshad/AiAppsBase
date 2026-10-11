@@ -120,6 +120,11 @@ export default function MyProductsPage() {
                   <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
                     {product.description}
                   </p>
+                  {product.status === 'rejected' && product.rejection_reason && (
+                    <p className="mt-2 rounded-md bg-destructive/10 px-2.5 py-1.5 text-xs text-destructive">
+                      Rejected: {product.rejection_reason}
+                    </p>
+                  )}
                 </div>
 
                 <div className="mt-auto flex items-center justify-between border-t border-border pt-4">
