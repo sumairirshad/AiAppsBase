@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
-import { getSessionUserId } from '@/lib/session'
+import { getSessionUserId, invalidateSessions, setSession } from '@/lib/session'
 import { hashPassword, validatePasswordStrength, verifyPassword } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
@@ -24,6 +24,12 @@ export async function POST(req: NextRequest) {
 
     const hash = await hashPassword(next)
     await query(`UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2`, [hash, userId])
+
+    // Invalidate every other signed-in session, then re-issue a fresh cookie
+    // for this one so the device making the change stays logged in.
+    await invalidateSessions(userId)
+    await setSession(userId)
+
     return NextResponse.json({ ok: true })
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 })
