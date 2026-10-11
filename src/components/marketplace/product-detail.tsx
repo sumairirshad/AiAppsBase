@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import {
   Star, GitFork, Eye, GitCommitHorizontal, CircleDot, Users, BadgeCheck,
   Check, Share2, Heart, ShieldCheck, Download, ExternalLink, Github, ChevronRight,
-  Sparkles, Flame, Clock, ThumbsUp, Maximize2,
+  Sparkles, Flame, Clock, ThumbsUp, Maximize2, Flag,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -30,6 +30,7 @@ import { sellerPath } from '@/lib/seo'
 import { isHttpUrl } from '@/lib/utils'
 import { computeLicensePrice } from '@/lib/license-pricing'
 import { Textarea } from '@/components/ui/textarea'
+import { ReasonDialog } from '@/components/dashboard/reason-dialog'
 import type { Repo, Review, Seller } from '@/lib/marketplace-config'
 
 function StatTile({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
@@ -116,6 +117,60 @@ function RatingBar({ stars, pct }: { stars: number; pct: number }) {
       </div>
       <span className="w-8 text-right text-muted-foreground">{pct}%</span>
     </div>
+  )
+}
+
+function ReportProductButton({ productId }: { productId: string }) {
+  const router = useRouter()
+  const [open, setOpen] = React.useState(false)
+  const [loading, setLoading] = React.useState(false)
+
+  const submit = async (reason: string, _notes: string) => {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/products/${productId}/report`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        if (res.status === 401) {
+          toast.error('Please log in to report a listing.')
+          router.push('/auth/login')
+          return
+        }
+        throw new Error(data.error || 'Failed to submit report')
+      }
+      toast.success('Thanks — our team will take a look')
+      setOpen(false)
+    } catch (err) {
+      toast.error((err as Error).message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive"
+      >
+        <Flag className="size-3.5" /> Report this product
+      </button>
+      <ReasonDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Report this product?"
+        description="Tell us what's wrong — a scam, stolen code, or something that violates our policies. Our team will review the listing."
+        confirmLabel="Submit report"
+        destructive
+        loading={loading}
+        onConfirm={submit}
+      />
+    </>
   )
 }
 
@@ -397,6 +452,7 @@ function PurchasePanel({ repo }: { repo: Repo }) {
             <Share2 className="size-4" /> Share
           </Button>
         </div>
+        <ReportProductButton productId={repo.id} />
       </div>
 
       <ShareModal open={shareOpen} onOpenChange={setShareOpen} title={repo.title} />

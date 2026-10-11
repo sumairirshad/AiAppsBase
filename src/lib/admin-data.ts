@@ -481,6 +481,40 @@ export async function getAdminOrderDetail(id: string) {
 }
 
 /* -------------------------------------------------------------------------- */
+/*                               Product Reports                              */
+/* -------------------------------------------------------------------------- */
+
+export async function listProductReports(opts: {
+  status?: string; page?: number; pageSize?: number
+}) {
+  const conditions: string[] = []
+  const params: unknown[] = []
+  let idx = 1
+
+  if (opts.status && opts.status !== 'all') { conditions.push(`pr.status = $${idx++}`); params.push(opts.status) }
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
+  const { limit, offset } = paginate(opts.page, opts.pageSize)
+
+  try {
+    const [rowsRes, countRes] = await Promise.all([
+      query(
+        `SELECT pr.id, pr.reason, pr.status, pr.created_at, pr.resolved_at,
+                p.id AS product_id, p.title AS product_title,
+                u.id AS reporter_id, u.full_name AS reporter_name
+         FROM product_reports pr
+         JOIN products p ON pr.product_id = p.id
+         JOIN users u ON pr.reporter_id = u.id
+         ${where} ORDER BY pr.created_at DESC LIMIT $${idx} OFFSET $${idx + 1}`,
+        [...params, limit, offset]
+      ),
+      query(`SELECT COUNT(*)::int AS total FROM product_reports pr ${where}`, params),
+    ])
+    const reports = rowsRes.rows.map((r: any) => ({ ...r, date: new Date(r.created_at).toISOString().slice(0, 10) }))
+    return { reports, total: (countRes.rows[0] as any).total }
+  } catch { return { reports: [], total: 0 } }
+}
+
+/* -------------------------------------------------------------------------- */
 /*                                   Reviews                                  */
 /* -------------------------------------------------------------------------- */
 
