@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   Star, GitFork, Eye, GitCommitHorizontal, CircleDot, Users, BadgeCheck,
-  Check, Share2, Heart, ShieldCheck, Download, ExternalLink, Github, ChevronRight,
+  Check, Share2, Heart, ShieldCheck, Download, ExternalLink, Github, ChevronRight, ChevronLeft,
   Sparkles, Flame, Clock, ThumbsUp, Maximize2, Flag,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -509,7 +509,9 @@ function PurchasePanel({ repo }: { repo: Repo }) {
   )
 }
 
-export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: Seller; related: Repo[] }) {
+export function ProductDetail({
+  repo, seller, related, isOwned = false,
+}: { repo: Repo; seller?: Seller; related: Repo[]; isOwned?: boolean }) {
   const [reviews, setReviews] = React.useState(repo.reviews)
   const [canReview, setCanReview] = React.useState(false)
   const [isSeller, setIsSeller] = React.useState(false)
@@ -709,6 +711,7 @@ export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: 
                   {ratingDist.map((r) => <RatingBar key={r.stars} {...r} />)}
                 </div>
               </div>
+              )}
               {canReview && <WriteReviewForm productId={repo.id} onSubmitted={addReview} />}
               <div className="space-y-4">
                 {reviews.map((rev) => (
