@@ -155,10 +155,16 @@ async function downscaleForStorage(buf: Buffer): Promise<Buffer> {
  * returns its public URL. Names are timestamped + random, so collisions
  * are effectively impossible even without an atomic no-overwrite write.
  */
-export async function writeProductImage(buf: Buffer, originalName: string, userId: string, productId: string): Promise<string> {
+export async function writeProductImage(
+  buf: Buffer,
+  originalName: string,
+  userId: string,
+  productId: string,
+  correlationId?: string
+): Promise<string> {
   const name = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeFileName(originalName)}`.toLowerCase()
   const stored = await downscaleForStorage(buf)
-  await uploadProductImage(stored, userId.toLowerCase(), productId.toLowerCase(), name)
+  await uploadProductImage(stored, userId.toLowerCase(), productId.toLowerCase(), name, correlationId)
   return `${PRODUCT_IMAGE_URL_PREFIX}${userId.toLowerCase()}/${productId.toLowerCase()}/${name}`
 }
 

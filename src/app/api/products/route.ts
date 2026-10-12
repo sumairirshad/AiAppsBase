@@ -64,9 +64,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Only sellers and admins can add products' }, { status: 403 })
   }
 
+  // Declared ahead of the try block so the outer catch (which logs the
+  // real failure) can still report which product/request it happened for.
+  const productId = randomUUID()
+  const uploadCorrelationId = randomUUID()
+
   try {
     const formData = await req.formData()
-    
+
     const title = formData.get('title') as string
     const description = formData.get('description') as string
     const price = parseFloat(formData.get('price') as string) || 0
@@ -83,10 +88,6 @@ export async function POST(req: NextRequest) {
     if (!title || !description || !category || !humanModLevel || !licenseType) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
-
-    // Allocate the product id up front so its images go straight into
-    // assets/products/{userId}/{productId}/.
-    const productId = randomUUID()
 
     // Validate every image (type, size, real content) before storing anything.
     const imageFiles = formData.getAll('screenshotFiles').filter((f): f is File => typeof f !== 'string' && f.size > 0)
@@ -105,11 +106,31 @@ export async function POST(req: NextRequest) {
 
     // Writes the images and inserts the product; if the insert fails, the
     // product's image folder is removed so nothing is left behind.
+    //
+    // Images are uploaded one at a time, not via Promise.all: each upload
+    // opens its own SFTP connection and recursively creates the same new
+    // {userId}/{productId} folder (see uploadProductImage in src/lib/sftp.ts).
+    // That directory check-then-create isn't atomic, so firing them
+    // concurrently raced multiple connections to create the same folder —
+    // intermittently failing with "already exists" from the real server,
+    // which aborted the whole batch and (via the cleanup below) deleted
+    // whatever had already been uploaded, leaving only the parent userId
+    // folder behind.
     const storeImagesAndInsert = async (insert: (screenshots: string[]) => Promise<string>) => {
+      const screenshots: string[] = []
       try {
-        const screenshots = await Promise.all(validatedImages.map((img) => writeProductImage(img.buf, img.name, userId, productId)))
+        for (const img of validatedImages) {
+          screenshots.push(await writeProductImage(img.buf, img.name, userId, productId, uploadCorrelationId))
+        }
         return await insert(screenshots)
       } catch (err) {
+        console.error('[products/create] image upload or insert failed, removing partial image folder:', {
+          correlationId: uploadCorrelationId,
+          userId,
+          productId,
+          imagesUploadedBeforeFailure: screenshots.length,
+          imagesRequested: validatedImages.length,
+        }, err)
         await deleteProductImageDir(userId, productId)
         throw err
       }
@@ -229,7 +250,20 @@ export async function POST(req: NextRequest) {
     await syncProductGithubStats(id, userId, githubRepoName, githubDefaultBranch)
 
     return NextResponse.json({ ok: true, id })
-  } catch {
-    return NextResponse.json({ error: 'Failed to create product' }, { status: 500 })
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err))
+    console.error('[products/create] failed:', {
+      correlationId: uploadCorrelationId,
+      userId,
+      productId,
+      errorName: error.name,
+      errorMessage: error.message,
+    }, error)
+    // The real cause is always logged above; only its message (never a
+    // stack trace, never SFTP/DB credentials) is ever handed to the client,
+    // and only outside production, so a local dev session can see why a
+    // product failed to create instead of just "Failed to create product".
+    const detail = process.env.NODE_ENV !== 'production' ? error.message : undefined
+    return NextResponse.json({ error: 'Failed to create product', ...(detail ? { detail } : {}) }, { status: 500 })
   }
 }
