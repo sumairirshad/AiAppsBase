@@ -22,7 +22,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   try {
-    const existing = await query('SELECT id, full_name, account_status FROM users WHERE id = $1', [params.id])
+    const existing = await query('SELECT id, full_name, role, account_status FROM users WHERE id = $1', [params.id])
     if (existing.rowCount === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
@@ -30,6 +30,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     if (before.id === guard.id && accountStatus !== 'active') {
       return NextResponse.json({ error: 'You cannot change your own account status' }, { status: 400 })
+    }
+
+    // There are no admin sub-roles/permissions yet, so any admin calling this
+    // route has full power over every other account — including other
+    // admins. Without this guard, one admin can suspend/ban every other
+    // admin (down to none left), locking the whole platform's admins out.
+    if (before.role === 'admin' && before.id !== guard.id && accountStatus !== 'active') {
+      return NextResponse.json({ error: 'Admins cannot change another admin’s account status' }, { status: 400 })
     }
 
     const updated = await query(

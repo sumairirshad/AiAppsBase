@@ -7,6 +7,7 @@ import { isAllowedDeliverableUpload } from '@/lib/upload-safety'
 import {
   ImageUploadError, MAX_PRODUCT_IMAGES, deleteProductImageDir, readValidatedImage, writeProductImage,
 } from '@/lib/product-images'
+import { syncProductGithubStats } from '@/lib/github-stats'
 
 export async function GET() {
   const userId = await getSessionUserId()
@@ -43,6 +44,17 @@ export async function POST(req: NextRequest) {
 
   if (role === 'buyer') {
     await query("UPDATE users SET role = 'seller', seller_status = 'pending' WHERE id = $1", [userId])
+    return NextResponse.json(
+      { error: 'Your seller application has been submitted and is pending review. You can list products once approved.' },
+      { status: 403 }
+    )
+  } else if (role === 'seller' && sellerStatus === 'pending') {
+    // Without this, a pending seller could list products immediately —
+    // the seller approval gate existed in name only.
+    return NextResponse.json(
+      { error: 'Your seller account is still pending review and cannot list products yet.' },
+      { status: 403 }
+    )
   } else if (role === 'seller' && ['rejected', 'suspended', 'banned'].includes(sellerStatus)) {
     return NextResponse.json(
       { error: `Your seller account is ${sellerStatus} and cannot list new products. Contact support.` },
@@ -98,7 +110,7 @@ export async function POST(req: NextRequest) {
         const screenshots = await Promise.all(validatedImages.map((img) => writeProductImage(img.buf, img.name, userId, productId)))
         return await insert(screenshots)
       } catch (err) {
-        deleteProductImageDir(userId, productId)
+        await deleteProductImageDir(userId, productId)
         throw err
       }
     }
@@ -211,6 +223,10 @@ export async function POST(req: NextRequest) {
         githubDefaultBranch,
       ]
     )).rows[0].id)
+
+    // Best-effort: seed real stats immediately instead of leaving them at
+    // their zero defaults until the seller manually refreshes.
+    await syncProductGithubStats(id, userId, githubRepoName, githubDefaultBranch)
 
     return NextResponse.json({ ok: true, id })
   } catch {

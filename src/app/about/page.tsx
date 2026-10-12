@@ -5,8 +5,8 @@ import { ArrowRight, Code, Shield, ShoppingBag, TrendingUp, Users, Zap } from 'l
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { getPlatformStats, isPlatformEstablished } from '@/lib/products'
-import { cn, formatNumber } from '@/lib/utils'
+import { formatNumber } from '@/lib/utils'
+import { getPlatformStats } from '@/lib/products'
 
 export const metadata: Metadata = {
   title: 'About',
@@ -18,7 +18,6 @@ export const metadata: Metadata = {
     type: 'website',
   },
 }
-
 
 const steps = [
   {
@@ -64,17 +63,12 @@ const values = [
 
 export default async function AboutPage() {
   const platformStats = await getPlatformStats()
-  // Sellers/sales/payouts only read as credible once they're meaningfully
-  // large — see isPlatformEstablished(). The listing count alone is fine
-  // to show regardless of how new the marketplace is.
-  const stats = isPlatformEstablished(platformStats)
-    ? [
-        { label: 'Products listed', value: platformStats.products.toLocaleString() },
-        { label: 'Active sellers', value: platformStats.sellers.toLocaleString() },
-        { label: 'Completed sales', value: platformStats.sales.toLocaleString() },
-        { label: 'Paid to creators', value: `$${formatNumber(platformStats.paidOut)}` },
-      ]
-    : [{ label: 'Products listed', value: platformStats.products.toLocaleString() }]
+  const stats = [
+    { label: 'Products Listed', value: platformStats.products.toLocaleString() },
+    { label: 'Active Sellers', value: platformStats.sellers.toLocaleString() },
+    { label: 'Completed Sales', value: platformStats.sales.toLocaleString() },
+    { label: 'Paid to Creators', value: `$${formatNumber(platformStats.paidOut)}` },
+  ]
 
   return (
     <div className="relative overflow-hidden">

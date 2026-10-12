@@ -5,8 +5,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   Star, GitFork, Eye, GitCommitHorizontal, CircleDot, Users, BadgeCheck,
-  Check, Share2, Heart, ShieldCheck, Download, ExternalLink, Github, ChevronRight, ChevronLeft,
-  Sparkles, Flame, Clock, ThumbsUp, Maximize2,
+  Check, Share2, Heart, ShieldCheck, Download, ExternalLink, Github, ChevronRight,
+  Sparkles, Flame, Clock, ThumbsUp, Maximize2, Flag,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -25,10 +25,13 @@ import { ImageLightbox } from '@/components/marketplace/image-lightbox'
 import { ShareModal } from '@/components/marketplace/share-modal'
 import { ProductImage, mediaChipClass, mediaScrimClass, mediaTextClass } from '@/components/products/product-image'
 import { claimFreeProduct } from '@/lib/client/claim-free-product'
-import { addToWishlist, removeFromWishlist } from '@/lib/client/wishlist'
+import { addToWishlist, removeFromWishlist, useWishlistIds } from '@/lib/client/wishlist'
 import { sellerPath } from '@/lib/seo'
 import { isHttpUrl } from '@/lib/utils'
-import type { Repo, Seller } from '@/lib/marketplace-config'
+import { computeLicensePrice } from '@/lib/license-pricing'
+import { Textarea } from '@/components/ui/textarea'
+import { ReasonDialog } from '@/components/dashboard/reason-dialog'
+import type { Repo, Review, Seller } from '@/lib/marketplace-config'
 
 /** Open-source license strings (see LICENSES in marketplace-config.ts) — a
  * listing carrying one of these is a curated third-party project, not
@@ -125,13 +128,215 @@ function RatingBar({ stars, pct }: { stars: number; pct: number }) {
   )
 }
 
+function ReportProductButton({ productId }: { productId: string }) {
+  const router = useRouter()
+  const [open, setOpen] = React.useState(false)
+  const [loading, setLoading] = React.useState(false)
+
+  const submit = async (reason: string, _notes: string) => {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/products/${productId}/report`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        if (res.status === 401) {
+          toast.error('Please log in to report a listing.')
+          router.push('/auth/login')
+          return
+        }
+        throw new Error(data.error || 'Failed to submit report')
+      }
+      toast.success('Thanks — our team will take a look')
+      setOpen(false)
+    } catch (err) {
+      toast.error((err as Error).message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive"
+      >
+        <Flag className="size-3.5" /> Report this product
+      </button>
+      <ReasonDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Report this product?"
+        description="Tell us what's wrong — a scam, stolen code, or something that violates our policies. Our team will review the listing."
+        confirmLabel="Submit report"
+        destructive
+        loading={loading}
+        onConfirm={submit}
+      />
+    </>
+  )
+}
+
+function WriteReviewForm({ productId, onSubmitted }: { productId: string; onSubmitted: (review: Review) => void }) {
+  const [rating, setRating] = React.useState(0)
+  const [hoverRating, setHoverRating] = React.useState(0)
+  const [comment, setComment] = React.useState('')
+  const [submitting, setSubmitting] = React.useState(false)
+
+  const submit = async () => {
+    if (rating < 1) {
+      toast.error('Choose a star rating')
+      return
+    }
+    if (!comment.trim()) {
+      toast.error('Write a short review before submitting')
+      return
+    }
+    setSubmitting(true)
+    try {
+      const res = await fetch(`/api/products/${productId}/reviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating, comment: comment.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to submit review')
+      toast.success('Thanks for your review!')
+      onSubmitted(data.review)
+    } catch (err) {
+      toast.error((err as Error).message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <Card className="p-5">
+      <h3 className="text-sm font-semibold">Write a review</h3>
+      <p className="mt-1 text-xs text-muted-foreground">You bought this product — share what you thought.</p>
+      <div className="mt-3 flex gap-1" onMouseLeave={() => setHoverRating(0)}>
+        {Array.from({ length: 5 }).map((_, i) => {
+          const value = i + 1
+          const filled = (hoverRating || rating) >= value
+          return (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setRating(value)}
+              onMouseEnter={() => setHoverRating(value)}
+              aria-label={`Rate ${value} star${value > 1 ? 's' : ''}`}
+            >
+              <Star className={cn('size-6', filled ? 'fill-amber-400 text-amber-400' : 'text-muted')} />
+            </button>
+          )
+        })}
+      </div>
+      <Textarea
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        placeholder="What did you like or dislike? Would you recommend it?"
+        rows={3}
+        className="mt-3"
+      />
+      <Button className="mt-3" onClick={submit} loading={submitting} disabled={submitting}>
+        Submit review
+      </Button>
+    </Card>
+  )
+}
+
+function SellerReplyBox({
+  reviewId,
+  sellerResponse,
+  isSeller,
+  onReplied,
+}: {
+  reviewId: string
+  sellerResponse: string | null
+  isSeller: boolean
+  onReplied: (reviewId: string, response: string) => void
+}) {
+  const [editing, setEditing] = React.useState(false)
+  const [draft, setDraft] = React.useState(sellerResponse ?? '')
+  const [submitting, setSubmitting] = React.useState(false)
+
+  const submit = async () => {
+    if (!draft.trim()) {
+      toast.error('Write a reply before submitting')
+      return
+    }
+    setSubmitting(true)
+    try {
+      const res = await fetch(`/api/reviews/${reviewId}/reply`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ response: draft.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to post reply')
+      onReplied(reviewId, data.sellerResponse)
+      setEditing(false)
+    } catch (err) {
+      toast.error((err as Error).message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (!editing) {
+    if (sellerResponse) {
+      return (
+        <div className="mt-3 rounded-lg border border-border bg-muted/40 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold">Response from the seller</p>
+            {isSeller && (
+              <button className="text-xs text-muted-foreground hover:text-foreground" onClick={() => setEditing(true)}>
+                Edit
+              </button>
+            )}
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">{sellerResponse}</p>
+        </div>
+      )
+    }
+    return isSeller ? (
+      <button className="mt-3 text-xs font-medium text-primary hover:underline" onClick={() => setEditing(true)}>
+        Reply as seller
+      </button>
+    ) : null
+  }
+
+  return (
+    <div className="mt-3 space-y-2">
+      <Textarea value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Write a reply to this review" rows={2} />
+      <div className="flex gap-2">
+        <Button size="sm" onClick={submit} loading={submitting} disabled={submitting}>
+          Post reply
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => setEditing(false)} disabled={submitting}>
+          Cancel
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 function PurchasePanel({ repo }: { repo: Repo }) {
   const router = useRouter()
+  const wishlistIds = useWishlistIds()
   const [saved, setSaved] = React.useState(false)
   const [wishlistLoading, setWishlistLoading] = React.useState(false)
+
+  React.useEffect(() => {
+    if (wishlistIds) setSaved(wishlistIds.has(repo.id))
+  }, [wishlistIds, repo.id])
   const [license, setLicense] = React.useState('commercial')
-  const licenseMultiplier: Record<string, number> = { personal: 1, commercial: 1, extended: 2.5 }
-  const displayPrice = repo.price === 0 ? 0 : Math.round(repo.price * (licenseMultiplier[license] ?? 1))
+  const displayPrice = computeLicensePrice(repo.price, license)
   const [loading, setLoading] = React.useState(false)
   const [shareOpen, setShareOpen] = React.useState(false)
 
@@ -275,6 +480,7 @@ function PurchasePanel({ repo }: { repo: Repo }) {
             <Share2 className="size-4" /> Share
           </Button>
         </div>
+        <ReportProductButton productId={repo.id} />
       </div>
 
       <ShareModal open={shareOpen} onOpenChange={setShareOpen} title={repo.title} />
@@ -303,13 +509,34 @@ function PurchasePanel({ repo }: { repo: Repo }) {
   )
 }
 
-export function ProductDetail({
-  repo, seller, related, isOwned,
-}: { repo: Repo; seller?: Seller; related: Repo[]; isOwned: boolean }) {
+export function ProductDetail({ repo, seller, related }: { repo: Repo; seller?: Seller; related: Repo[] }) {
+  const [reviews, setReviews] = React.useState(repo.reviews)
+  const [canReview, setCanReview] = React.useState(false)
+  const [isSeller, setIsSeller] = React.useState(false)
+
+  React.useEffect(() => {
+    fetch(`/api/products/${repo.id}/reviews`)
+      .then((res) => res.json())
+      .then((data) => {
+        setCanReview(Boolean(data.canReview))
+        setIsSeller(Boolean(data.isSeller))
+      })
+      .catch(() => {})
+  }, [repo.id])
+
+  const addReview = (review: Review) => {
+    setReviews((prev) => [review, ...prev])
+    setCanReview(false)
+  }
+
+  const setReviewReply = (reviewId: string, sellerResponse: string) => {
+    setReviews((prev) => prev.map((r) => (r.id === reviewId ? { ...r, sellerResponse } : r)))
+  }
+
   // Computed from the product's real reviews — never fabricated.
   const ratingDist = [5, 4, 3, 2, 1].map((stars) => {
-    const n = repo.reviews.filter((r) => Math.round(r.rating) === stars).length
-    return { stars, pct: repo.reviews.length ? Math.round((n / repo.reviews.length) * 100) : 0 }
+    const n = reviews.filter((r) => Math.round(r.rating) === stars).length
+    return { stars, pct: reviews.length ? Math.round((n / reviews.length) * 100) : 0 }
   })
 
   return (
@@ -373,14 +600,19 @@ export function ProductDetail({
               )}
             </div>
 
-            <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
-              <StatTile icon={Star} label="Stars" value={formatNumber(repo.stars)} />
-              <StatTile icon={GitFork} label="Forks" value={formatNumber(repo.forks)} />
-              <StatTile icon={Eye} label="Watchers" value={formatNumber(repo.watchers)} />
-              <StatTile icon={GitCommitHorizontal} label="Commits" value={formatNumber(repo.commits)} />
-              <StatTile icon={CircleDot} label="Issues" value={String(repo.issues)} />
-              <StatTile icon={Users} label="Contributors" value={String(repo.contributors)} />
-            </div>
+            {/* GitHub repo stats only mean anything for a product actually linked to a
+                repo — a zip-uploaded product has no stars/forks/etc. and would only
+                ever show zeroes here. */}
+            {repo.repoUrl && (
+              <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+                <StatTile icon={Star} label="Stars" value={formatNumber(repo.stars)} />
+                <StatTile icon={GitFork} label="Forks" value={formatNumber(repo.forks)} />
+                <StatTile icon={Eye} label="Watchers" value={formatNumber(repo.watchers)} />
+                <StatTile icon={GitCommitHorizontal} label="Commits" value={formatNumber(repo.commits)} />
+                <StatTile icon={CircleDot} label="Issues" value={String(repo.issues)} />
+                <StatTile icon={Users} label="Contributors" value={String(repo.contributors)} />
+              </div>
+            )}
           </div>
 
           {/* Tabs */}
@@ -477,9 +709,9 @@ export function ProductDetail({
                   {ratingDist.map((r) => <RatingBar key={r.stars} {...r} />)}
                 </div>
               </div>
-              )}
+              {canReview && <WriteReviewForm productId={repo.id} onSubmitted={addReview} />}
               <div className="space-y-4">
-                {repo.reviews.map((rev) => (
+                {reviews.map((rev) => (
                   <Card key={rev.id} className="p-5">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-center gap-3">
@@ -499,6 +731,12 @@ export function ProductDetail({
                     <h4 className="mt-3 text-sm font-semibold">{rev.title}</h4>
                     <p className="mt-1 text-sm text-muted-foreground">{rev.body}</p>
                     <button className="mt-3 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"><ThumbsUp className="size-3.5" /> Helpful ({rev.helpful})</button>
+                    <SellerReplyBox
+                      reviewId={rev.id}
+                      sellerResponse={rev.sellerResponse}
+                      isSeller={isSeller}
+                      onReplied={setReviewReply}
+                    />
                   </Card>
                 ))}
               </div>

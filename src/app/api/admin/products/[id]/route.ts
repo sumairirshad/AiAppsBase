@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getClientIp, isAdminGuardError, logAdminAction, requireAdmin } from '@/lib/admin'
+import { sendModerationDecisionEmail } from '@/lib/email'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const guard = await requireAdmin()
   if (isAdminGuardError(guard)) return guard
 
-  const { status, reason, notes } = await req.json()
+  const body = await req.json().catch(() => null)
+  if (!body || typeof body !== 'object') {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+  }
+  const { status, reason, notes } = body as { status?: string; reason?: string; notes?: string }
   const allowed = ['approved', 'rejected', 'suspended', 'pending']
-  if (!allowed.includes(status)) {
+  if (!status || !allowed.includes(status)) {
     return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
   }
   if (!reason || !String(reason).trim()) {
@@ -16,13 +21,25 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   try {
-    const existing = await query('SELECT id, title, status FROM products WHERE id = $1', [params.id])
+    const existing = await query(
+      `SELECT p.id, p.title, p.status, u.email AS seller_email, u.email_notifications_enabled
+       FROM products p JOIN users u ON p.seller_id = u.id
+       WHERE p.id = $1`,
+      [params.id]
+    )
     if (existing.rowCount === 0) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 })
     }
     const before = existing.rows[0] as any
 
-    await query('UPDATE products SET status = $1 WHERE id = $2', [status, params.id])
+    // Surface the reason to the seller for a rejection; clear any stale
+    // reason once the product moves to any other status.
+    const rejectionReason = status === 'rejected' ? String(reason).trim() : null
+    await query('UPDATE products SET status = $1, rejection_reason = $2 WHERE id = $3', [
+      status,
+      rejectionReason,
+      params.id,
+    ])
 
     await logAdminAction({
       adminId: guard.id,
@@ -35,6 +52,19 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       newValue: { status },
       ipAddress: getClientIp(req),
     })
+
+    if ((status === 'approved' || status === 'rejected') && before.email_notifications_enabled) {
+      try {
+        await sendModerationDecisionEmail(before.seller_email, {
+          kind: 'product',
+          status,
+          title: before.title,
+          reason: rejectionReason,
+        })
+      } catch (error) {
+        console.error('[admin/products] Failed to send moderation decision email', params.id, error)
+      }
+    }
 
     return NextResponse.json({ ok: true })
   } catch (error) {

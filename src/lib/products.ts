@@ -1,7 +1,7 @@
 import { query } from '@/lib/db'
 import {
   gradientFor, slugifyCategory, slugifySubcategory, languageColor,
-  type Repo, type Review, type Seller,
+  type ChangelogEntry, type Repo, type Review, type Seller,
 } from '@/lib/marketplace-config'
 import { sellerHandle } from '@/lib/seo'
 
@@ -114,6 +114,17 @@ export async function getProductById(id: string): Promise<{ repo: Repo; seller: 
       date: r.created_at ? new Date(r.created_at).toISOString().slice(0, 10) : '',
       helpful: Number(r.helpful) || 0,
       verified: Boolean(r.verified),
+      sellerResponse: r.seller_response || null,
+    }))
+
+    const changelogRes = await query(
+      `SELECT version, notes, created_at FROM product_changelog WHERE product_id = $1 ORDER BY created_at DESC`,
+      [id]
+    )
+    repo.changelog = changelogRes.rows.map((c: any): ChangelogEntry => ({
+      version: c.version,
+      notes: c.notes || [],
+      date: c.created_at ? new Date(c.created_at).toISOString().slice(0, 10) : '',
     }))
 
     const seller = await getSellerById(row.seller_id)
@@ -121,6 +132,27 @@ export async function getProductById(id: string): Promise<{ repo: Repo; seller: 
   } catch (err) {
     console.error('getProductById failed:', (err as Error).message)
     return null
+  }
+}
+
+/**
+ * True when this buyer has a completed order for the product and hasn't
+ * already reviewed it — the two conditions that gate review-authoring
+ * (verified purchase, one review per buyer per product).
+ */
+export async function canBuyerReview(userId: string | undefined, productId: string): Promise<boolean> {
+  if (!userId) return false
+  try {
+    const res = await query(
+      `SELECT
+         EXISTS(SELECT 1 FROM orders WHERE buyer_id = $1 AND product_id = $2 AND status = 'completed') AS purchased,
+         EXISTS(SELECT 1 FROM reviews WHERE user_id = $1 AND product_id = $2) AS reviewed`,
+      [userId, productId]
+    )
+    const row = res.rows[0]
+    return Boolean(row.purchased) && !row.reviewed
+  } catch {
+    return false
   }
 }
 
@@ -286,7 +318,7 @@ export async function getStorefront(id: string): Promise<Storefront | null> {
         [id]
       ),
       query(
-        `SELECT r.id, r.rating, r.comment, r.verified, r.helpful, r.created_at,
+        `SELECT r.id, r.rating, r.comment, r.verified, r.helpful, r.created_at, r.seller_response,
                 u.full_name AS author, p.id AS product_id, p.title AS product_title
          FROM reviews r
          JOIN products p ON r.product_id = p.id
@@ -315,6 +347,7 @@ export async function getStorefront(id: string): Promise<Storefront | null> {
       date: r.created_at ? new Date(r.created_at).toISOString().slice(0, 10) : '',
       helpful: Number(r.helpful) || 0,
       verified: Boolean(r.verified),
+      sellerResponse: r.seller_response || null,
       productId: r.product_id,
       productTitle: r.product_title,
     }))

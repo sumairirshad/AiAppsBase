@@ -1,5 +1,6 @@
 import { query } from '@/lib/db'
 import { gradientFor } from '@/lib/marketplace-config'
+import { computeLicensePrice } from '@/lib/license-pricing'
 
 export type CartItem = {
   id: string
@@ -34,7 +35,10 @@ export async function getCart(userId: string): Promise<Cart> {
       id: r.id,
       productId: r.product_id,
       title: r.title,
-      price: Number(r.price) || 0,
+      // The buyer's license tier changes what they actually owe (see
+      // computeLicensePrice) — showing the product's flat base price here
+      // would understate the total for anything above the "personal" tier.
+      price: computeLicensePrice(Number(r.price) || 0, r.license_type),
       category: r.category,
       license: r.license_type,
       gradient: gradientFor(r.product_id),

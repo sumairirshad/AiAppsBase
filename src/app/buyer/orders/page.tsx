@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Download } from 'lucide-react'
+import { Download, Receipt } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { PageHead } from '@/components/dashboard/page-head'
 import { EmptyState } from '@/components/dashboard/empty-state'
 import { getCurrentUser, getBuyerOrders } from '@/lib/dashboard'
+import { OrderDisputeAction } from '@/components/buyer/order-dispute-action'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,12 +42,23 @@ export default async function BuyerOrdersPage() {
                     <td className="px-6 py-3"><Link href={`/product/${o.productId}`} className="hover:text-primary">{o.product}</Link></td>
                     <td className="px-6 py-3 text-muted-foreground">{o.license}</td>
                     <td className="px-6 py-3 font-medium">{o.amount === 0 ? 'Free' : `$${o.amount}`}</td>
-                    <td className="px-6 py-3"><Badge variant={statusVariant[o.status] ?? 'muted'}>{o.status}</Badge></td>
+                    <td className="px-6 py-3">
+                      <Badge variant={statusVariant[o.status] ?? 'muted'}>{o.status}</Badge>
+                      {o.status === 'disputed' && o.disputeReason && (
+                        <p className="mt-1 text-xs text-muted-foreground">{o.disputeReason}</p>
+                      )}
+                    </td>
                     <td className="px-6 py-3 text-muted-foreground">{o.date}</td>
                     <td className="px-6 py-3 text-right">
-                      {o.downloadable && o.status === 'completed' && (
-                        <Button size="sm" variant="outline" asChild><a href={`/api/orders/${o.id}/download`}><Download className="size-4" /> Download</a></Button>
-                      )}
+                      <div className="flex items-center justify-end gap-2">
+                        {o.downloadable && o.status === 'completed' && (
+                          <Button size="sm" variant="outline" asChild><a href={`/api/orders/${o.id}/download`}><Download className="size-4" /> Download</a></Button>
+                        )}
+                        {o.status === 'completed' && <OrderDisputeAction orderId={o.id} />}
+                        <Button size="sm" variant="outline" asChild>
+                          <Link href={`/buyer/orders/${o.id}/receipt`}><Receipt className="size-4" /> Receipt</Link>
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}

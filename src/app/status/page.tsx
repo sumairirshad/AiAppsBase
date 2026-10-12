@@ -8,78 +8,56 @@ import { query } from '@/lib/db'
 
 export const metadata: Metadata = {
   title: 'System status',
-  description: 'A live check of the AIAppsBase platform and database, plus links to the status pages of the third-party services we depend on.',
+  description: 'What AIAppsBase monitors across the marketplace, payments, and integrations, and how to report a problem.',
 }
 
-export const dynamic = 'force-dynamic'
+const components = [
+  { name: 'Marketplace & dashboard', description: 'Browsing, listings, buyer and seller dashboards.' },
+  { name: 'Checkout & payments', description: 'Stripe-powered checkout, webhooks, and seller payouts via Stripe Connect.' },
+  { name: 'GitHub integration', description: 'Repository sync, OAuth sign-in, and repo-backed product delivery.' },
+  { name: 'Email delivery', description: 'Verification codes, password resets, receipts, and payout/moderation notices, sent via Resend.' },
+  { name: 'File delivery', description: 'Deliverable and product-image storage served from our SFTP-backed storage.' },
+]
 
-async function checkDatabase(): Promise<boolean> {
-  try {
-    await query('SELECT 1')
-    return true
-  } catch {
-    return false
-  }
-}
+const sections = [
+  {
+    title: 'What this page covers',
+    content: `AIAppsBase does not currently run a public, continuously updated status/incident dashboard with historical uptime numbers. This page instead lists the components that make up the platform so you know what to check when something looks wrong, and how to reach us.`,
+  },
+  {
+    title: 'If something looks down',
+    content: `Check whether the issue is isolated to one action (a single purchase, a single listing) or platform-wide. For anything payment-related, Stripe's own status page (status.stripe.com) is a useful second data point, since checkout and payouts depend on it. If you suspect a platform-wide outage, contact support with what you were doing, the approximate time, and any error message you saw.`,
+  },
+]
 
-function StatusRow({ name, ok, note }: { name: string; ok: boolean; note: string }) {
+export default function Page() {
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-border px-5 py-4 last:border-0">
-      <div>
-        <p className="font-medium">{name}</p>
-        <p className="text-sm text-muted-foreground">{note}</p>
+    <InfoPage
+      eyebrow="Reliability"
+      title="System status"
+      description="What AIAppsBase monitors across the marketplace, payments, and integrations, and how to report a problem."
+      icon="Activity"
+      actions={[{ label: 'Contact support', href: '/support', variant: 'gradient' }]}
+    >
+      <div className="space-y-8">
+        <section>
+          <h2 className="mb-3 text-base font-semibold">Components</h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {components.map((c) => (
+              <div key={c.name} className="rounded-xl border border-border bg-card p-4">
+                <p className="text-sm font-medium">{c.name}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{c.description}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+        {sections.map(({ title, content }) => (
+          <section key={title}>
+            <h2 className="mb-3 text-base font-semibold">{title}</h2>
+            <p className="text-sm leading-relaxed text-muted-foreground">{content}</p>
+          </section>
+        ))}
       </div>
-      {ok ? (
-        <Badge variant="success"><CheckCircle2 className="size-3" /> Operational</Badge>
-      ) : (
-        <Badge variant="destructive"><XCircle className="size-3" /> Issue detected</Badge>
-      )}
-    </div>
-  )
-}
-
-export default async function StatusPage() {
-  const dbOk = await checkDatabase()
-  const checkedAt = new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
-
-  return (
-    <div className="relative overflow-hidden">
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute left-1/2 top-[-15%] h-96 w-[700px] -translate-x-1/2 rounded-full bg-primary/15 blur-[120px]" />
-        <div className="absolute inset-0 bg-grid bg-grid-pattern opacity-30 mask-fade-b" />
-      </div>
-
-      <div className="container max-w-3xl py-20 text-center sm:py-24">
-        <Badge variant="brand" className="px-3 py-1"><Icon name="Activity" className="size-3" /> Reliability</Badge>
-        <h1 className="mt-5 font-display text-4xl font-bold tracking-tight sm:text-5xl">System status</h1>
-        <p className="mx-auto mt-5 max-w-2xl text-lg text-muted-foreground">
-          A live check of AIAppsBase&apos;s own systems, run when this page loads — not a simulated or
-          historical report.
-        </p>
-      </div>
-
-      <div className="container max-w-3xl pb-8">
-        <Card className="overflow-hidden">
-          <StatusRow name="AIAppsBase platform" ok={true} note="You&apos;re loading this page, so the app is responding." />
-          <StatusRow name="Database" ok={dbOk} note={dbOk ? 'Connected and responding to queries.' : 'Could not reach the database just now.'} />
-        </Card>
-        <p className="mt-3 text-center text-xs text-muted-foreground">Checked at {checkedAt}. We don&apos;t yet keep a historical incident log — this reflects right now only.</p>
-      </div>
-
-      <div className="container max-w-3xl pb-20">
-        <h2 className="mb-3 text-center text-sm font-semibold text-muted-foreground">Third-party dependencies</h2>
-        <Card className="divide-y divide-border p-0">
-          {[
-            { name: 'Stripe (payments)', href: 'https://status.stripe.com' },
-            { name: 'GitHub (repo delivery)', href: 'https://www.githubstatus.com' },
-          ].map((s) => (
-            <a key={s.name} href={s.href} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between gap-4 px-5 py-4 text-sm transition-colors hover:bg-accent">
-              <span>{s.name}</span>
-              <span className="inline-flex items-center gap-1 text-primary">View status page <ExternalLink className="size-3.5" /></span>
-            </a>
-          ))}
-        </Card>
-      </div>
-    </div>
+    </InfoPage>
   )
 }

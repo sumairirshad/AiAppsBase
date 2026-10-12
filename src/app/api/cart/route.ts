@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
 import { getCart } from '@/lib/cart'
+import { rateLimit } from '@/lib/rate-limit'
 
 export async function GET() {
   const userId = await getSessionUserId()
@@ -11,6 +12,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const limited = await rateLimit(req, 'cart:mutate', 30, 60)
+  if (limited) return limited
+
   const userId = await getSessionUserId()
   if (!userId) return NextResponse.json({ error: 'Please sign in to add items to your cart.' }, { status: 401 })
 
@@ -40,6 +44,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const limited = await rateLimit(req, 'cart:mutate', 30, 60)
+  if (limited) return limited
+
   const userId = await getSessionUserId()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

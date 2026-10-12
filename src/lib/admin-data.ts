@@ -357,6 +357,64 @@ export async function getSellerDetail(id: string) {
 }
 
 /* -------------------------------------------------------------------------- */
+/*                                  Products                                  */
+/* -------------------------------------------------------------------------- */
+
+export async function listAdminProducts(opts: {
+  search?: string; status?: string; page?: number; pageSize?: number
+}) {
+  const conditions: string[] = []
+  const params: unknown[] = []
+  let idx = 1
+
+  if (opts.status && opts.status !== 'all') { conditions.push(`p.status = $${idx++}`); params.push(opts.status) }
+  if (opts.search) {
+    conditions.push(`(p.title ILIKE $${idx} OR u.full_name ILIKE $${idx})`)
+    params.push(`%${opts.search}%`); idx++
+  }
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
+  const { limit, offset } = paginate(opts.page, opts.pageSize)
+
+  try {
+    const [rowsRes, countRes] = await Promise.all([
+      query(
+        `SELECT
+          p.id, p.title, p.description, p.price, p.category,
+          p.ai_tools, p.tech_stack, p.human_mod_level,
+          p.screenshots, p.license_type, p.status, p.tags, p.featured,
+          p.created_at, p.updated_at,
+          u.id AS seller_id, u.full_name AS seller_name, u.email AS seller_email
+         FROM products p
+         LEFT JOIN users u ON p.seller_id = u.id
+         ${where} ORDER BY p.created_at DESC LIMIT $${idx} OFFSET $${idx + 1}`,
+        [...params, limit, offset]
+      ),
+      query(`SELECT COUNT(*)::int AS total FROM products p LEFT JOIN users u ON p.seller_id = u.id ${where}`, params),
+    ])
+
+    const products = rowsRes.rows.map((row: any) => ({
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      price: Number(row.price),
+      category: row.category,
+      aiTools: row.ai_tools,
+      techStack: row.tech_stack,
+      humanModLevel: row.human_mod_level,
+      screenshots: row.screenshots,
+      licenseType: row.license_type,
+      status: row.status,
+      tags: row.tags,
+      featured: Boolean(row.featured),
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      seller: { id: row.seller_id, name: row.seller_name, email: row.seller_email },
+    }))
+    return { products, total: (countRes.rows[0] as any).total }
+  } catch { return { products: [], total: 0 } }
+}
+
+/* -------------------------------------------------------------------------- */
 /*                              Orders (Bookings)                             */
 /* -------------------------------------------------------------------------- */
 
@@ -405,6 +463,7 @@ export async function getAdminOrderDetail(id: string) {
   try {
     const res = await query(
       `SELECT o.id, o.amount::float AS amount, o.status, o.license_type, o.license_key, o.created_at,
+              o.refund_reason, o.refunded_at, o.dispute_reason, o.disputed_at, o.commission_rate_snapshot,
               p.id AS product_id, p.title AS product, p.category,
               b.id AS buyer_id, b.full_name AS buyer, b.email AS buyer_email,
               s.id AS seller_id, s.full_name AS seller, s.email AS seller_email
@@ -419,6 +478,40 @@ export async function getAdminOrderDetail(id: string) {
     const r = res.rows[0] as any
     return { ...r, amount: Math.round(Number(r.amount)), date: new Date(r.created_at).toLocaleString() }
   } catch { return null }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                               Product Reports                              */
+/* -------------------------------------------------------------------------- */
+
+export async function listProductReports(opts: {
+  status?: string; page?: number; pageSize?: number
+}) {
+  const conditions: string[] = []
+  const params: unknown[] = []
+  let idx = 1
+
+  if (opts.status && opts.status !== 'all') { conditions.push(`pr.status = $${idx++}`); params.push(opts.status) }
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
+  const { limit, offset } = paginate(opts.page, opts.pageSize)
+
+  try {
+    const [rowsRes, countRes] = await Promise.all([
+      query(
+        `SELECT pr.id, pr.reason, pr.status, pr.created_at, pr.resolved_at,
+                p.id AS product_id, p.title AS product_title,
+                u.id AS reporter_id, u.full_name AS reporter_name
+         FROM product_reports pr
+         JOIN products p ON pr.product_id = p.id
+         JOIN users u ON pr.reporter_id = u.id
+         ${where} ORDER BY pr.created_at DESC LIMIT $${idx} OFFSET $${idx + 1}`,
+        [...params, limit, offset]
+      ),
+      query(`SELECT COUNT(*)::int AS total FROM product_reports pr ${where}`, params),
+    ])
+    const reports = rowsRes.rows.map((r: any) => ({ ...r, date: new Date(r.created_at).toISOString().slice(0, 10) }))
+    return { reports, total: (countRes.rows[0] as any).total }
+  } catch { return { reports: [], total: 0 } }
 }
 
 /* -------------------------------------------------------------------------- */

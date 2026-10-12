@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'crypto'
 import { query } from '@/lib/db'
-import { hashPassword } from '@/lib/auth'
+import { hashPassword, validatePasswordStrength } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
@@ -14,8 +14,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Token and password are required' }, { status: 400 })
   }
 
-  if (password.length < 8) {
-    return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 })
+  const passwordError = validatePasswordStrength(password)
+  if (passwordError) {
+    return NextResponse.json({ error: passwordError }, { status: 400 })
   }
 
   const tokenHash = createHash('sha256').update(token).digest('hex')
@@ -32,13 +33,17 @@ export async function POST(req: NextRequest) {
   const userId = userRes.rows[0].id
   const passwordHash = await hashPassword(password)
 
+  // Bumping session_version invalidates every signed-in session for this
+  // user — important here since anyone who reset the password this way may
+  // be recovering the account from someone else's unwanted access.
   await query(
     `UPDATE users
      SET password_hash = $1,
          password_reset_token_hash = NULL,
          password_reset_expires_at = NULL,
          login_failed_attempts = 0,
-         login_locked_until = NULL
+         login_locked_until = NULL,
+         session_version = session_version + 1
      WHERE id = $2`,
     [passwordHash, userId]
   )

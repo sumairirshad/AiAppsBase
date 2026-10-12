@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
-import { hashPassword, generateOtpCode, getOtpExpiry } from '@/lib/auth'
+import { hashPassword, generateOtpCode, getOtpExpiry, validatePasswordStrength } from '@/lib/auth'
 import { sendOtpEmail, EmailSendError } from '@/lib/email'
 
 export async function POST(req: NextRequest) {
@@ -22,6 +22,11 @@ export async function POST(req: NextRequest) {
 
   if (!['buyer', 'seller'].includes(role)) {
     return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
+  }
+
+  const passwordError = validatePasswordStrength(password)
+  if (passwordError) {
+    return NextResponse.json({ error: passwordError }, { status: 400 })
   }
 
   const existing = await query('SELECT id FROM users WHERE email = $1', [email.trim().toLowerCase()])
