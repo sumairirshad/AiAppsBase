@@ -3,7 +3,7 @@ import { randomUUID } from 'crypto'
 
 import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
-import { ImageUploadError, MAX_PRODUCT_IMAGES, readValidatedImage, writeProductImage } from '@/lib/product-images'
+import { ImageUploadError, MAX_PRODUCT_IMAGES, readValidatedImage, writeProductImages } from '@/lib/product-images'
 
 /**
  * Uploads new images for a product being edited into
@@ -37,13 +37,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const validated: { buf: Buffer; name: string }[] = []
     for (const file of files) validated.push({ buf: await readValidatedImage(file), name: file.name })
 
-    // One at a time, not Promise.all: concurrent uploads for the same
-    // product race to create the same new {sellerId}/{productId} SFTP
-    // folder (ssh2-sftp-client's recursive mkdir isn't atomic), which can
-    // fail one of them with a spurious "already exists" error. See the
-    // longer note in src/app/api/products/route.ts.
-    const paths: string[] = []
-    for (const img of validated) paths.push(await writeProductImage(img.buf, img.name, sellerId, productId, correlationId))
+    // All uploaded over one shared SFTP connection, not one per image — see
+    // the note on writeProductImages / uploadProductImages in src/lib for why.
+    const paths = await writeProductImages(validated, sellerId, productId, correlationId)
     return NextResponse.json({ paths })
   } catch (err) {
     if (err instanceof ImageUploadError) return NextResponse.json({ error: err.message }, { status: 400 })

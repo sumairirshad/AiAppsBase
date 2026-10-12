@@ -83,23 +83,111 @@ function productImageRemoteDir(remoteDir: string, userId: string, productId: str
 }
 
 /**
- * Uploads a product screenshot to the same SFTP storage deliverables use —
- * product images were previously written to local disk, which is lost on
- * every redeploy/restart on serverless hosting. fileName is expected to
- * already be unique (timestamp + random suffix), so unlike local writes this
- * doesn't use an exclusive/no-clobber flag; a same-millisecond, same-random
- * collision is astronomically unlikely, matching how uploadDeliverable
- * already behaves.
+ * Races `op` against this connection's underlying transport dying.
  *
- * Callers MUST upload a product's images one at a time (not via
- * Promise.all/concurrently): ssh2-sftp-client's recursive mkdir does a
- * non-atomic "does this exist? no -> create it" check (see its _mkdir), so
- * two calls racing to create the same new {userId}/{productId} folder at
- * once can have one of them fail with a server-side "already exists" error
- * that the library does not treat as success. The catch below is a second,
- * defensive layer on top of that — it only protects against that one race
- * on mkdir itself, not against concurrent callers in general.
+ * ssh2-sftp-client's constructor wires its OWN "error"/"end"/"close"
+ * listeners onto the raw ssh2 Client first (they just log, e.g. "Global
+ * error listener: ..."), and marks the event handled before any
+ * operation-specific listener added later (by connect/mkdir/put internally)
+ * gets a chance to run — so when the connection drops mid-operation (e.g. a
+ * "read ECONNRESET" from a flaky SFTP server), the library's own
+ * operation-specific rejection can be skipped and the pending promise is
+ * left neither resolved nor rejected. It just hangs until something else
+ * times it out.
+ *
+ * This attaches an independent "error" listener that isn't part of that
+ * internal handshake, so it still fires and fails `op` immediately and with
+ * the real error, however the library's own bookkeeping behaves.
  */
+function guardAgainstDroppedConnection(client: SftpClient) {
+  let activeReject: ((err: Error) => void) | null = null
+
+  client.on('error', (err: Error) => {
+    activeReject?.(err instanceof Error ? err : new Error(String(err)))
+  })
+
+  return function guard<T>(op: Promise<T>): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      activeReject = reject
+      op.then(
+        (v) => { activeReject = null; resolve(v) },
+        (e) => { activeReject = null; reject(e) }
+      )
+    })
+  }
+}
+
+async function mkdirTolerant(client: SftpClient, dir: string, fields: Record<string, unknown>): Promise<void> {
+  try {
+    await client.mkdir(dir, true)
+    logUploadEvent('mkdir-ok', fields)
+  } catch (err) {
+    // A previous upload (or, before uploads were serialized onto one
+    // connection per product, a concurrent one) may have created the
+    // directory a moment ago — that's success, not a failure to surface.
+    if (err instanceof Error && /already exists/i.test(err.message)) {
+      logUploadEvent('mkdir-already-exists', fields)
+    } else {
+      logUploadError('mkdir-failed', fields, err)
+      throw err
+    }
+  }
+}
+
+/**
+ * Uploads every screenshot for one product over a SINGLE SFTP connection.
+ *
+ * This used to open one connection per image. Reconnecting — a fresh TCP +
+ * SSH handshake — several times back to back for one product request is
+ * what triggered repeated "read ECONNRESET" drops against a real Windows
+ * OpenSSH SFTP server: each drop silently stranded that image's upload
+ * (see guardAgainstDroppedConnection above) instead of failing it cleanly,
+ * and the handshake overhead of N reconnects is also just slow. Uploading a
+ * product's images over one connection removes the repeated-handshake
+ * trigger, and also removes the mkdir race from N connections independently
+ * creating the same new directory — there's only one connection now, and
+ * uploads happen on it in order.
+ *
+ * fileName is expected to already be unique per file (timestamp + random
+ * suffix), so this doesn't use an exclusive/no-clobber flag; a
+ * same-millisecond, same-random collision is astronomically unlikely,
+ * matching how uploadDeliverable already behaves.
+ */
+export async function uploadProductImages(
+  userId: string,
+  productId: string,
+  files: { buffer: Buffer; fileName: string }[],
+  correlationId?: string
+): Promise<void> {
+  const { remoteDir, ...connectConfig } = sftpConfig()
+  const client = new SftpClient()
+  const dir = productImageRemoteDir(remoteDir, userId, productId)
+  const baseFields = { correlationId, userId, productId, remotePath: dir, fileCount: files.length }
+  const guard = guardAgainstDroppedConnection(client)
+
+  logUploadEvent('batch-start', baseFields)
+
+  try {
+    await guard(client.connect(connectConfig))
+    await guard((async () => {
+      await mkdirTolerant(client, dir, baseFields)
+      for (const { buffer, fileName } of files) {
+        const fields = { ...baseFields, fileName, size: buffer.length, remotePath: `${dir}/${fileName}` }
+        logUploadEvent('start', fields)
+        await client.put(buffer, fields.remotePath)
+        logUploadEvent('put-ok', fields)
+      }
+    })())
+    logUploadEvent('batch-ok', baseFields)
+  } catch (err) {
+    logUploadError('batch-failed', baseFields, err)
+    throw err
+  } finally {
+    await client.end().catch(() => {})
+  }
+}
+
+/** Single-image convenience wrapper around {@link uploadProductImages}. */
 export async function uploadProductImage(
   buffer: Buffer,
   userId: string,
@@ -107,39 +195,7 @@ export async function uploadProductImage(
   fileName: string,
   correlationId?: string
 ): Promise<void> {
-  const { remoteDir, ...connectConfig } = sftpConfig()
-  const client = new SftpClient()
-  const dir = productImageRemoteDir(remoteDir, userId, productId)
-  const remotePath = `${dir}/${fileName}`
-  const fields = { correlationId, userId, productId, fileName, size: buffer.length, remotePath }
-
-  logUploadEvent('start', fields)
-
-  try {
-    await client.connect(connectConfig)
-
-    try {
-      await client.mkdir(dir, true)
-      logUploadEvent('mkdir-ok', fields)
-    } catch (err) {
-      // Another upload for this same product may have created the
-      // directory a moment ago — that's success, not a failure to surface.
-      if (err instanceof Error && /already exists/i.test(err.message)) {
-        logUploadEvent('mkdir-already-exists', fields)
-      } else {
-        logUploadError('mkdir-failed', fields, err)
-        throw err
-      }
-    }
-
-    await client.put(buffer, remotePath)
-    logUploadEvent('put-ok', fields)
-  } catch (err) {
-    logUploadError('upload-failed', fields, err)
-    throw err
-  } finally {
-    await client.end().catch(() => {})
-  }
+  await uploadProductImages(userId, productId, [{ buffer, fileName }], correlationId)
 }
 
 export async function deleteProductImage(userId: string, productId: string, fileName: string): Promise<void> {

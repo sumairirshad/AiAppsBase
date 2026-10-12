@@ -18,6 +18,7 @@ const remoteFiles = new Map<string, Buffer>()
 
 vi.mock('ssh2-sftp-client', () => ({
   default: class FakeSftpClient {
+    on() { return this }
     async connect() {}
     async end() {}
     async mkdir() {}

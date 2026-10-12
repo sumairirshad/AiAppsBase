@@ -5,7 +5,7 @@ import { getSessionUserId } from '@/lib/session'
 import { uploadDeliverable } from '@/lib/sftp'
 import { isAllowedDeliverableUpload } from '@/lib/upload-safety'
 import {
-  ImageUploadError, MAX_PRODUCT_IMAGES, deleteProductImageDir, readValidatedImage, writeProductImage,
+  ImageUploadError, MAX_PRODUCT_IMAGES, deleteProductImageDir, readValidatedImage, writeProductImages,
 } from '@/lib/product-images'
 import { syncProductGithubStats } from '@/lib/github-stats'
 
@@ -107,28 +107,20 @@ export async function POST(req: NextRequest) {
     // Writes the images and inserts the product; if the insert fails, the
     // product's image folder is removed so nothing is left behind.
     //
-    // Images are uploaded one at a time, not via Promise.all: each upload
-    // opens its own SFTP connection and recursively creates the same new
-    // {userId}/{productId} folder (see uploadProductImage in src/lib/sftp.ts).
-    // That directory check-then-create isn't atomic, so firing them
-    // concurrently raced multiple connections to create the same folder —
-    // intermittently failing with "already exists" from the real server,
-    // which aborted the whole batch and (via the cleanup below) deleted
-    // whatever had already been uploaded, leaving only the parent userId
-    // folder behind.
+    // All of a product's images go up over one shared SFTP connection (see
+    // writeProductImages / uploadProductImages) rather than one connection
+    // per image — reconnecting repeatedly for one request was what
+    // triggered real connection drops against at least one SFTP server
+    // we've seen this run against.
     const storeImagesAndInsert = async (insert: (screenshots: string[]) => Promise<string>) => {
-      const screenshots: string[] = []
       try {
-        for (const img of validatedImages) {
-          screenshots.push(await writeProductImage(img.buf, img.name, userId, productId, uploadCorrelationId))
-        }
+        const screenshots = await writeProductImages(validatedImages, userId, productId, uploadCorrelationId)
         return await insert(screenshots)
       } catch (err) {
         console.error('[products/create] image upload or insert failed, removing partial image folder:', {
           correlationId: uploadCorrelationId,
           userId,
           productId,
-          imagesUploadedBeforeFailure: screenshots.length,
           imagesRequested: validatedImages.length,
         }, err)
         await deleteProductImageDir(userId, productId)

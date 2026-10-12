@@ -8,6 +8,7 @@ import {
   deleteProductImage as sftpDeleteProductImage,
   deleteProductImageDir as sftpDeleteProductImageDir,
   uploadProductImage,
+  uploadProductImages,
 } from '@/lib/sftp'
 
 /**
@@ -171,6 +172,34 @@ export async function writeProductImage(
 /** Validate + store in one step. */
 export async function saveProductImage(file: File, userId: string, productId: string): Promise<string> {
   return writeProductImage(await readValidatedImage(file), file.name, userId, productId)
+}
+
+/**
+ * Stores a whole batch of a product's images in one go. Each buffer is
+ * downscaled locally first (CPU-only, so safe to do concurrently); the
+ * actual uploads then all go out over one shared SFTP connection via
+ * uploadProductImages — see the note there on why one connection per image
+ * caused real failures. Returns each image's public URL, in input order.
+ */
+export async function writeProductImages(
+  images: { buf: Buffer; name: string }[],
+  userId: string,
+  productId: string,
+  correlationId?: string
+): Promise<string[]> {
+  const prepared = await Promise.all(images.map(async (img) => ({
+    name: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeFileName(img.name)}`.toLowerCase(),
+    stored: await downscaleForStorage(img.buf),
+  })))
+
+  await uploadProductImages(
+    userId.toLowerCase(),
+    productId.toLowerCase(),
+    prepared.map(({ name, stored }) => ({ buffer: stored, fileName: name })),
+    correlationId
+  )
+
+  return prepared.map(({ name }) => `${PRODUCT_IMAGE_URL_PREFIX}${userId.toLowerCase()}/${productId.toLowerCase()}/${name}`)
 }
 
 /**
