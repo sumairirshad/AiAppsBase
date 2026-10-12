@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { InfoPage } from '@/components/layout/info-page'
 
 export const metadata: Metadata = {
-  title: 'The AIAppsBase API',
+  title: 'API',
   description: 'A REST API for listings, orders, payouts, and webhooks so you can build on top of the marketplace. Public endpoints and API keys are launching alongside our developer platform.',
 }
 

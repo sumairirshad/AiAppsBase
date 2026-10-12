@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 
-import { Navbar } from '@/components/layout/navbar'
+import { Navbar, type Me } from '@/components/layout/navbar'
 import { Footer } from '@/components/layout/footer'
 
 /**
@@ -16,8 +16,8 @@ function useHideChrome() {
   return HIDDEN_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))
 }
 
-export function SiteNavbar() {
-  return useHideChrome() ? null : <Navbar />
+export function SiteNavbar({ initialUser }: { initialUser: Me | null }) {
+  return useHideChrome() ? null : <Navbar initialUser={initialUser} />
 }
 
 export function SiteFooter() {

@@ -108,7 +108,7 @@ export function HeaderSearch({ className }: { className?: string }) {
           aria-controls={listId}
           aria-autocomplete="list"
           aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
-          className="h-9 w-full rounded-lg border border-border bg-muted/40 pl-9 pr-16 text-sm outline-none transition-colors placeholder:text-muted-foreground hover:bg-muted focus:border-primary/50 focus:bg-background [&::-webkit-search-cancel-button]:hidden"
+          className="h-9 w-full rounded-lg border border-border bg-muted/40 pl-9 pr-16 text-base outline-none transition-colors placeholder:text-muted-foreground hover:bg-muted focus:border-primary/50 focus:bg-background sm:text-sm [&::-webkit-search-cancel-button]:hidden"
         />
         <span className="pointer-events-none absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center gap-1.5">
           {loading && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}

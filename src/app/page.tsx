@@ -17,8 +17,8 @@ import { HeroSearch } from '@/components/landing/hero-search'
 import { NewsletterForm } from '@/components/landing/newsletter-form'
 import { FaqSection } from '@/components/landing/faq-section'
 import { CATEGORIES, TECHS, LANGUAGES, gradientFor } from '@/lib/marketplace-config'
-import { trustedBy, features, workflow, plans, faqs } from '@/lib/landing-data'
-import { getFeaturedProducts, getTopSellers, getPlatformStats, type PlatformStats } from '@/lib/products'
+import { builtWithTools, features, workflow, plans, faqs } from '@/lib/landing-data'
+import { getFeaturedProducts, getTopSellers, getPlatformStats, isPlatformEstablished, type PlatformStats } from '@/lib/products'
 import { JsonLd } from '@/components/seo/json-ld'
 import { faqSchema, sellerPath } from '@/lib/seo'
 import type { Repo, Seller } from '@/lib/marketplace-config'
@@ -86,7 +86,10 @@ function Hero({ stats, sellers }: { stats: PlatformStats; sellers: Seller[] }) {
         </Link>
 
         <h1 className="max-w-4xl font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-6xl md:text-7xl">
-          The marketplace for<br />
+          {/* The manual break reads well once there's room for "The marketplace
+              for" on one line; on a narrow phone it forces a second wrap and
+              leaves "for" stranded alone, so let it wrap naturally there. */}
+          The marketplace for<br className="hidden sm:block" />{' '}
           <span className="text-gradient-brand">the best AI apps</span> &amp; projects
         </h1>
 
@@ -102,7 +105,7 @@ function Hero({ stats, sellers }: { stats: PlatformStats; sellers: Seller[] }) {
           <Button size="xl" variant="outline" asChild><Link href="/auth/register"><Github className="size-4" /> Start selling</Link></Button>
         </div>
 
-        {sellers.length > 0 && (
+        {isPlatformEstablished(stats) && sellers.length > 0 && (
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3 pt-2 text-sm text-muted-foreground">
             <div className="flex items-center -space-x-2">
               {sellers.map((s) => (
@@ -117,18 +120,20 @@ function Hero({ stats, sellers }: { stats: PlatformStats; sellers: Seller[] }) {
   )
 }
 
-/* ---------------------------- TRUSTED BY --------------------------- */
+/* ---------------------------- BUILT WITH --------------------------- */
 function TrustedBy() {
-  const row = [...trustedBy, ...trustedBy]
   return (
     <section className="border-y border-border/60 bg-muted/20 py-10">
       <div className="container">
-        <p className="text-center text-xs font-medium uppercase tracking-widest text-muted-foreground">Trusted by developers building at</p>
+        <p className="text-center text-xs font-medium uppercase tracking-widest text-muted-foreground">Listings built with tools like</p>
       </div>
       <div className="relative mt-6 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
-        <div className="flex w-max animate-marquee items-center gap-14">
-          {row.map((name, i) => <span key={i} className="whitespace-nowrap font-display text-xl font-semibold text-muted-foreground/70">{name}</span>)}
+        <div className="flex w-max animate-marquee items-center gap-14" aria-hidden="true">
+          {[...builtWithTools, ...builtWithTools].map((name, i) => (
+            <span key={i} className="whitespace-nowrap font-display text-xl font-semibold text-muted-foreground/70">{name}</span>
+          ))}
         </div>
+        <span className="sr-only">{builtWithTools.join(', ')}</span>
       </div>
     </section>
   )
@@ -136,15 +141,21 @@ function TrustedBy() {
 
 /* ------------------------------ STATS ----------------------------- */
 function Stats({ stats }: { stats: PlatformStats }) {
-  const items = [
-    { label: 'Projects listed', value: stats.products.toLocaleString(), icon: Package },
-    { label: 'Active sellers', value: stats.sellers.toLocaleString(), icon: Users },
-    { label: 'Completed sales', value: stats.sales.toLocaleString(), icon: BadgeCheck },
-    { label: 'Paid to creators', value: `$${formatNumber(stats.paidOut)}`, icon: Wallet },
-  ]
+  // Sellers/sales/payouts are only shown once they're large enough to read
+  // as traction rather than an empty-looking marketplace — see
+  // isPlatformEstablished(). The listing count alone is never embarrassing.
+  const items = isPlatformEstablished(stats)
+    ? [
+        { label: 'Projects listed', value: stats.products.toLocaleString(), icon: Package },
+        { label: 'Active sellers', value: stats.sellers.toLocaleString(), icon: Users },
+        { label: 'Completed sales', value: stats.sales.toLocaleString(), icon: BadgeCheck },
+        { label: 'Paid to creators', value: `$${formatNumber(stats.paidOut)}`, icon: Wallet },
+      ]
+    : [{ label: 'Projects listed', value: stats.products.toLocaleString(), icon: Package }]
+
   return (
     <section className="container py-16">
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border lg:grid-cols-4">
+      <div className={cn('grid gap-px overflow-hidden rounded-2xl border border-border bg-border', items.length > 1 ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 sm:grid-cols-[auto_1fr] sm:items-center')}>
         {items.map((s) => (
           <div key={s.label} className="bg-card p-8 text-center">
             <div className="mx-auto mb-4 grid size-11 place-items-center rounded-xl bg-primary/10 text-primary"><s.icon className="size-5" /></div>
@@ -152,6 +163,12 @@ function Stats({ stats }: { stats: PlatformStats }) {
             <div className="mt-1 text-sm font-medium">{s.label}</div>
           </div>
         ))}
+        {items.length === 1 && (
+          <div className="bg-card p-8 text-center sm:text-left">
+            <p className="font-display text-xl font-semibold">We&apos;re just getting started</p>
+            <p className="mt-1 text-sm text-muted-foreground">Be one of our first sellers and help shape the marketplace.</p>
+          </div>
+        )}
       </div>
     </section>
   )
@@ -233,10 +250,15 @@ function GithubIntegration() {
               <Badge variant="success"><RefreshCw className="size-3" /> Synced</Badge>
             </div>
             <div className="grid grid-cols-3 gap-3">
-              {[{ icon: Star, label: 'Stars' }, { icon: GitBranch, label: 'Branches' }, { icon: GitCommitHorizontal, label: 'Commits' }].map((m) => (
+              {[
+                { icon: Star, label: 'Stars', value: '2.4k' },
+                { icon: GitBranch, label: 'Branches', value: '12' },
+                { icon: GitCommitHorizontal, label: 'Commits', value: '860' },
+              ].map((m) => (
                 <div key={m.label} className="rounded-lg border border-border bg-background/50 p-3 text-center">
                   <m.icon className="mx-auto mb-1 size-4 text-muted-foreground" />
-                  <div className="text-[11px] text-muted-foreground">{m.label}</div>
+                  <div className="text-sm font-semibold">{m.value}</div>
+                  <div className="text-xs text-muted-foreground">{m.label}</div>
                 </div>
               ))}
             </div>
@@ -384,9 +406,9 @@ function Pricing() {
 /* ---------------------------- SECURITY ---------------------------- */
 function Security() {
   const items = [
-    { icon: ShieldCheck, title: 'Malware & secret scanning', desc: 'Every upload is scanned automatically before it can go live.' },
+    { icon: BadgeCheck, title: 'Human review', desc: 'A real person checks quality and licensing on every listing before it goes live.' },
     { icon: Lock, title: 'Encrypted delivery', desc: 'Signed, expiring download links and private-repo invites only.' },
-    { icon: BadgeCheck, title: 'Human review', desc: 'A real person checks quality and licensing on every listing.' },
+    { icon: ShieldCheck, title: 'Secure payments', desc: 'All payments are processed by Stripe — we never store your card details.' },
     { icon: Wallet, title: 'Buyer protection', desc: '14-day protection window with fair, mediated dispute resolution.' },
   ]
   return (
@@ -396,7 +418,7 @@ function Security() {
           <div className="space-y-4">
             <Badge variant="brand" className="px-3 py-1"><ShieldCheck className="size-3" /> Trust & security</Badge>
             <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">Safe for buyers.<br />Fair for sellers.</h2>
-            <p className="text-muted-foreground">We treat security as a feature, not an afterthought. Payments run on Stripe, code is scanned and reviewed, and every transaction is backed by our protection guarantee.</p>
+            <p className="text-muted-foreground">We treat security as a feature, not an afterthought. Payments run on Stripe, every listing is reviewed before it goes live, and every transaction is backed by our protection guarantee.</p>
             <Button variant="outline" asChild><Link href="/trust">Read our trust center <ArrowUpRight className="size-4" /></Link></Button>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -461,11 +483,14 @@ export default async function HomePage() {
   return (
     <>
       <Hero stats={stats} sellers={sellers} />
-      <TrustedBy />
+      {/* Decorative/duplicative sections trimmed on mobile — the homepage
+          runs to ~24 screens on a phone otherwise. Both are still shown in
+          full on larger screens. */}
+      <div className="hidden sm:block"><TrustedBy /></div>
       <Stats stats={stats} />
       <Categories />
       <Features />
-      <GithubIntegration />
+      <div className="hidden sm:block"><GithubIntegration /></div>
       <Workflow />
       <FeaturedRepos products={featured} />
       <Technologies />

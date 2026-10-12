@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { InfoPage } from '@/components/layout/info-page'
 
 export const metadata: Metadata = {
-  title: 'Partner with AIAppsBase',
+  title: 'Partners',
   description: 'Agencies, tool-makers, and platforms — integrate with us or co-market to millions of developers. Our partner program is now accepting applications.',
 }
 

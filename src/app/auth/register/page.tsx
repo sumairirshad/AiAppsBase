@@ -119,7 +119,7 @@ export default function RegisterPage() {
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input id="password" type={showPw ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Create" className="px-9" required />
-              <button type="button" onClick={() => setShowPw((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label="Toggle password">
+              <button type="button" onClick={() => setShowPw((s) => !s)} className="absolute right-0 top-0 flex h-full w-11 items-center justify-center text-muted-foreground hover:text-foreground" aria-label="Toggle password">
                 {showPw ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
             </div>

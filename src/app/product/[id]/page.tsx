@@ -3,6 +3,8 @@ import { notFound, permanentRedirect } from 'next/navigation'
 
 import { ProductDetail } from '@/components/marketplace/product-detail'
 import { getProductById, getRelatedProducts } from '@/lib/products'
+import { hasUserPurchased } from '@/lib/orders'
+import { getSessionUserId } from '@/lib/session'
 import { JsonLd } from '@/components/seo/json-ld'
 import {
   breadcrumbSchema, softwareApplicationSchema, extractProductId, productPath,
@@ -58,6 +60,8 @@ export default async function ProductPage({ params }: { params: { id: string } }
   }
 
   const related = await getRelatedProducts(repo, 3)
+  const userId = await getSessionUserId()
+  const isOwned = repo.price === 0 || (await hasUserPurchased(userId, repo.id))
 
   return (
     <>
@@ -89,7 +93,7 @@ export default async function ProductPage({ params }: { params: { id: string } }
           }),
         ]}
       />
-      <ProductDetail repo={repo} seller={found.seller ?? undefined} related={related} />
+      <ProductDetail repo={repo} seller={found.seller ?? undefined} related={related} isOwned={isOwned} />
     </>
   )
 }

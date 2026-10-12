@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import { normalizeImageSrc } from '@/lib/image-src'
 
-/** The AiAppsBase logo mark, shown wherever a product has no image (or its image fails to load). */
+/** The AIAppsBase logo mark, shown wherever a product has no image (or its image fails to load). */
 export const PRODUCT_IMAGE_FALLBACK = '/images/logo-mark.png'
 
 
@@ -40,7 +40,7 @@ export const mediaChipClass =
 
 /**
  * A product's image, filling its (relatively positioned, sized) parent.
- * Falls back to the AiAppsBase logo on a neutral background when `src` is
+ * Falls back to the AIAppsBase logo on a neutral background when `src` is
  * empty or broken. `logoClassName` sizes the fallback logo.
  *
  * Runs through Next's image optimizer (resized, re-encoded to AVIF/WebP,

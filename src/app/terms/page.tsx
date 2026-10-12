@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { InfoPage } from '@/components/layout/info-page'
 
 export const metadata: Metadata = {
-  title: 'Terms of Service | AIAppsBase',
+  title: 'Terms of Service',
   description: 'Read the AIAppsBase Terms of Service — rules for using the marketplace, buying products, selling products, and account obligations.',
   robots: { index: true, follow: true },
 }
@@ -22,7 +22,7 @@ const sections = [
   },
   {
     title: '4. Buyer Terms',
-    content: `When you purchase a product on AIAppsBase, you receive a non-exclusive, non-transferable license to use the source code as specified in the product's listed license type (Personal, Commercial, or Extended Commercial). You may not resell, redistribute, or sublicense purchased products without explicit permission from the Seller. Purchases are generally final. Refunds may be granted at our discretion if a product materially misrepresents its description.`,
+    content: `When you purchase a product on AIAppsBase, you receive a non-exclusive, non-transferable license to use the source code as specified in the product's listed license type (Personal, Commercial, or Extended Commercial). You may not resell, redistribute, or sublicense purchased products without explicit permission from the Seller. Every purchase is covered by our 14-day buyer-protection window: funds are held in escrow for 14 days after a completed order, during which you may open a dispute if a product is materially misrepresented or broken, and our team will mediate. See our Refund Policy for the full process.`,
   },
   {
     title: '5. Seller Terms',
@@ -58,7 +58,7 @@ const sections = [
   },
   {
     title: '13. Governing Law',
-    content: `These Terms are governed by and construed in accordance with applicable law. Any disputes arising from these Terms or your use of the Platform shall be subject to binding arbitration, except where prohibited by law.`,
+    content: `These Terms are governed by and construed in accordance with the laws of the State of Delaware, United States, without regard to its conflict-of-law provisions. Any disputes arising from these Terms or your use of the Platform shall be subject to binding arbitration in Delaware, except where prohibited by law.`,
   },
   {
     title: '14. Contact',
@@ -71,7 +71,7 @@ export default function TermsPage() {
     <InfoPage
       eyebrow="Legal"
       title="Terms of Service"
-      description="Last updated: June 1, 2025"
+      description="Last updated: October 9, 2026"
       icon="BookOpen"
     >
       <div className="space-y-8">

@@ -2,6 +2,18 @@ import { query } from '@/lib/db'
 import { sendOrderReceiptEmail } from '@/lib/email'
 import { getPlatformFeePercent } from '@/lib/payouts'
 
+/** True if this buyer has a completed order for this product. Used to gate
+ * direct-repository access so a paid listing's source isn't reachable
+ * pre-purchase just because the seller's GitHub repo happens to be public. */
+export async function hasUserPurchased(userId: string | null | undefined, productId: string): Promise<boolean> {
+  if (!userId) return false
+  const res = await query(
+    `SELECT 1 FROM orders WHERE buyer_id = $1 AND product_id = $2 AND status = 'completed' LIMIT 1`,
+    [userId, productId]
+  )
+  return (res.rowCount ?? 0) > 0
+}
+
 /**
  * Idempotently finalizes a paid checkout session: creates an order for each
  * product in it (if one doesn't already exist for this buyer/product),

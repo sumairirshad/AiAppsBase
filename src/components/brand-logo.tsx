@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { cn } from '@/lib/utils'
 
 /**
- * The AiAppsBase logo mark + wordmark, used everywhere the brand appears
+ * The AIAppsBase logo mark + wordmark, used everywhere the brand appears
  * (header, footer, auth screens, dashboard sidebars). The mark is the
  * provided logo artwork; the wordmark renders as real text (not baked into
  * the image) so it stays crisp at any size and recolors correctly on both
@@ -30,14 +30,14 @@ export function BrandLogo({
     <Link href={href} onClick={onClick} className={cn('flex items-center gap-2', className)}>
       <Image
         src="/images/logo-mark.png"
-        alt="AiAppsBase"
+        alt="AIAppsBase"
         width={154}
         height={164}
         priority
         className={cn('shrink-0 object-contain', markSize)}
       />
       <span className={cn('font-display font-bold tracking-tight', textSize, textClassName)}>
-        AiAppsBase
+        AIAppsBase
       </span>
     </Link>
   )

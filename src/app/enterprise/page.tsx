@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { InfoPage } from '@/components/layout/info-page'
 
 export const metadata: Metadata = {
-  title: 'AIAppsBase for teams',
+  title: 'Enterprise',
   description: 'Volume pricing, team seats, SSO, audit logs, and a dedicated account manager for organizations sourcing or selling code at scale. Let us tailor a plan for you.',
 }
 

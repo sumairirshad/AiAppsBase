@@ -59,7 +59,7 @@ export function AuthShell({
       </div>
 
       {/* Form panel */}
-      <div className="relative flex items-center justify-center px-4 py-12">
+      <div className="relative flex items-center justify-center overflow-x-hidden px-4 py-12">
         <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 lg:hidden">
           <div className="absolute left-1/2 top-1/4 h-72 w-[500px] -translate-x-1/2 rounded-full bg-primary/15 blur-[100px]" />
         </div>

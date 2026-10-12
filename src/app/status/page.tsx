@@ -1,5 +1,10 @@
 import type { Metadata } from 'next'
-import { InfoPage } from '@/components/layout/info-page'
+import { CheckCircle2, XCircle, ExternalLink } from 'lucide-react'
+
+import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
+import { Icon } from '@/components/icon'
+import { query } from '@/lib/db'
 
 export const metadata: Metadata = {
   title: 'System status',

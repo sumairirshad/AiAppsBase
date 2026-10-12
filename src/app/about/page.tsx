@@ -9,7 +9,7 @@ import { formatNumber } from '@/lib/utils'
 import { getPlatformStats } from '@/lib/products'
 
 export const metadata: Metadata = {
-  title: 'About AIAppsBase — The AI-Built App Marketplace',
+  title: 'About',
   description:
     'AIAppsBase is the leading marketplace for buying and selling websites, apps, and UI components created with AI tools. Learn about our mission and how it works.',
   openGraph: {
@@ -92,7 +92,7 @@ export default async function AboutPage() {
 
       {/* Stats */}
       <section className="container py-16">
-        <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+        <div className={cn('grid gap-6', stats.length > 1 ? 'grid-cols-2 md:grid-cols-4' : 'mx-auto max-w-xs')}>
           {stats.map(({ label, value }) => (
             <Card key={label} className="p-6 text-center">
               <p className="mb-1 font-display text-3xl font-bold text-gradient-brand">{value}</p>
