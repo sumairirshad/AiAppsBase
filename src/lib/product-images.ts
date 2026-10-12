@@ -19,6 +19,8 @@ import {
  * at the public URL /assets/products/{userId}/{productId}/{file}, which is
  * the path stored in products.screenshots. Local disk is never used for new
  * uploads — it's lost on every redeploy/restart on serverless hosting.
+ * Images saved before this moved to SFTP are still on local disk and were
+ * never copied over, so the route falls back to reading them from there.
  *
  * `productImageDir`/`productImageFilePath` below only build and validate
  * that URL's path segments (UUID/UUID/safe-filename) against path traversal
