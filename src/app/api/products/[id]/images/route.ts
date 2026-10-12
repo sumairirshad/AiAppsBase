@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { randomUUID } from 'crypto'
 
 import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
-import { ImageUploadError, MAX_PRODUCT_IMAGES, readValidatedImage, writeProductImage } from '@/lib/product-images'
+import { ImageUploadError, MAX_PRODUCT_IMAGES, readValidatedImage, writeProductImages } from '@/lib/product-images'
 
 /**
  * Uploads new images for a product being edited into
@@ -29,15 +30,22 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: `You can upload at most ${MAX_PRODUCT_IMAGES} images` }, { status: 400 })
   }
 
+  const correlationId = randomUUID()
+
   try {
     // Validate all files first so one bad file doesn't leave the others half-stored.
     const validated: { buf: Buffer; name: string }[] = []
     for (const file of files) validated.push({ buf: await readValidatedImage(file), name: file.name })
-    const paths = await Promise.all(validated.map((img) => writeProductImage(img.buf, img.name, sellerId, productId)))
+
+    // All uploaded over one shared SFTP connection, not one per image — see
+    // the note on writeProductImages / uploadProductImages in src/lib for why.
+    const paths = await writeProductImages(validated, sellerId, productId, correlationId)
     return NextResponse.json({ paths })
   } catch (err) {
     if (err instanceof ImageUploadError) return NextResponse.json({ error: err.message }, { status: 400 })
-    console.error('[product images] upload failed:', (err as Error).message)
-    return NextResponse.json({ error: 'Failed to upload images' }, { status: 500 })
+    const error = err instanceof Error ? err : new Error(String(err))
+    console.error('[product images] upload failed:', { correlationId, sellerId, productId, errorName: error.name, errorMessage: error.message }, error)
+    const detail = process.env.NODE_ENV !== 'production' ? error.message : undefined
+    return NextResponse.json({ error: 'Failed to upload images', ...(detail ? { detail } : {}) }, { status: 500 })
   }
 }

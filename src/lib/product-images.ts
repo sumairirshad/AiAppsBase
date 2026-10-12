@@ -8,6 +8,7 @@ import {
   deleteProductImage as sftpDeleteProductImage,
   deleteProductImageDir as sftpDeleteProductImageDir,
   uploadProductImage,
+  uploadProductImages,
 } from '@/lib/sftp'
 
 /**
@@ -19,6 +20,8 @@ import {
  * at the public URL /assets/products/{userId}/{productId}/{file}, which is
  * the path stored in products.screenshots. Local disk is never used for new
  * uploads — it's lost on every redeploy/restart on serverless hosting.
+ * Images saved before this moved to SFTP are still on local disk and were
+ * never copied over, so the route falls back to reading them from there.
  *
  * `productImageDir`/`productImageFilePath` below only build and validate
  * that URL's path segments (UUID/UUID/safe-filename) against path traversal
@@ -153,16 +156,50 @@ async function downscaleForStorage(buf: Buffer): Promise<Buffer> {
  * returns its public URL. Names are timestamped + random, so collisions
  * are effectively impossible even without an atomic no-overwrite write.
  */
-export async function writeProductImage(buf: Buffer, originalName: string, userId: string, productId: string): Promise<string> {
+export async function writeProductImage(
+  buf: Buffer,
+  originalName: string,
+  userId: string,
+  productId: string,
+  correlationId?: string
+): Promise<string> {
   const name = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeFileName(originalName)}`.toLowerCase()
   const stored = await downscaleForStorage(buf)
-  await uploadProductImage(stored, userId.toLowerCase(), productId.toLowerCase(), name)
+  await uploadProductImage(stored, userId.toLowerCase(), productId.toLowerCase(), name, correlationId)
   return `${PRODUCT_IMAGE_URL_PREFIX}${userId.toLowerCase()}/${productId.toLowerCase()}/${name}`
 }
 
 /** Validate + store in one step. */
 export async function saveProductImage(file: File, userId: string, productId: string): Promise<string> {
   return writeProductImage(await readValidatedImage(file), file.name, userId, productId)
+}
+
+/**
+ * Stores a whole batch of a product's images in one go. Each buffer is
+ * downscaled locally first (CPU-only, so safe to do concurrently); the
+ * actual uploads then all go out over one shared SFTP connection via
+ * uploadProductImages — see the note there on why one connection per image
+ * caused real failures. Returns each image's public URL, in input order.
+ */
+export async function writeProductImages(
+  images: { buf: Buffer; name: string }[],
+  userId: string,
+  productId: string,
+  correlationId?: string
+): Promise<string[]> {
+  const prepared = await Promise.all(images.map(async (img) => ({
+    name: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeFileName(img.name)}`.toLowerCase(),
+    stored: await downscaleForStorage(img.buf),
+  })))
+
+  await uploadProductImages(
+    userId.toLowerCase(),
+    productId.toLowerCase(),
+    prepared.map(({ name, stored }) => ({ buffer: stored, fileName: name })),
+    correlationId
+  )
+
+  return prepared.map(({ name }) => `${PRODUCT_IMAGE_URL_PREFIX}${userId.toLowerCase()}/${productId.toLowerCase()}/${name}`)
 }
 
 /**

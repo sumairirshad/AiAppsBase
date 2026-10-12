@@ -36,7 +36,9 @@ export function ProductImagesEditor({
     files.forEach((f) => fd.append('images', f))
     const res = await fetch(`/api/products/${productId}/images`, { method: 'POST', body: fd })
     const data = await res.json().catch(() => ({}))
-    if (!res.ok) throw new Error(data.error || 'Failed to upload images')
+    // `detail` carries the real server-side error in local dev (see
+    // src/app/api/products/[id]/images/route.ts).
+    if (!res.ok) throw new Error(data.detail ? `${data.error || 'Failed to upload images'}: ${data.detail}` : data.error || 'Failed to upload images')
     return data.paths as string[]
   }
 
