@@ -215,7 +215,7 @@ function AddProductContent() {
           }
         }
         xhr.onload = () => {
-          let body: { id?: string; error?: string } | null = null
+          let body: { id?: string; error?: string; detail?: string } | null = null
           try {
             body = JSON.parse(xhr.responseText)
           } catch {
@@ -224,7 +224,13 @@ function AddProductContent() {
           if (xhr.status >= 200 && xhr.status < 300 && body) {
             resolve()
           } else {
-            reject(new Error(body?.error || 'Failed to add product'))
+            // `detail` carries the real server-side error in local dev (see
+            // src/app/api/products/route.ts) — without reading it here, the
+            // toast only ever shows the generic "Failed to create product",
+            // hiding the one piece of information needed to debug an upload
+            // failure.
+            const message = body?.detail ? `${body.error || 'Failed to add product'}: ${body.detail}` : body?.error || 'Failed to add product'
+            reject(new Error(message))
           }
         }
         xhr.onerror = () => reject(new Error('Failed to add product'))
@@ -268,7 +274,7 @@ function AddProductContent() {
 
       const res = await fetch('/api/products', { method: 'POST', body: formData })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to list product')
+      if (!res.ok) throw new Error(data.detail ? `${data.error || 'Failed to list product'}: ${data.detail}` : data.error || 'Failed to list product')
 
       toast.success('Repo listed! It will go live after admin approval.')
       router.push('/panel/seller/products')

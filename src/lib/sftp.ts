@@ -38,7 +38,23 @@ function sftpConfig() {
     username,
     password,
     remoteDir,
+    // Without a keepalive, a connection that sits idle for even a few
+    // seconds (e.g. while sharp downscales the next image before it's
+    // uploaded) can get silently dropped by a NAT/firewall hop between here
+    // and the SFTP server, surfacing later as an unexplained ECONNRESET on
+    // the next read/write. readyTimeout bounds how long the initial
+    // handshake itself is allowed to take.
+    keepaliveInterval: 10_000,
+    keepaliveCountMax: 3,
+    readyTimeout: 20_000,
   }
+}
+
+/** Connection-level failures worth retrying a fresh connection for — never validation/permission errors. */
+const CONNECTION_ERROR_PATTERN = /ECONNRESET|ECONNREFUSED|EPIPE|Unexpected end event|Unexpected close event|Timed out while waiting for handshake/i
+function isConnectionError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false
+  return CONNECTION_ERROR_PATTERN.test(err.message) || (err as NodeJS.ErrnoException).code === 'ECONNRESET'
 }
 
 export async function uploadDeliverable(
@@ -134,6 +150,33 @@ async function mkdirTolerant(client: SftpClient, dir: string, fields: Record<str
   }
 }
 
+async function uploadProductImagesAttempt(
+  userId: string,
+  productId: string,
+  files: { buffer: Buffer; fileName: string }[],
+  baseFields: Record<string, unknown>
+): Promise<void> {
+  const { remoteDir, ...connectConfig } = sftpConfig()
+  const client = new SftpClient()
+  const dir = productImageRemoteDir(remoteDir, userId, productId)
+  const guard = guardAgainstDroppedConnection(client)
+
+  try {
+    await guard(client.connect(connectConfig))
+    await guard((async () => {
+      await mkdirTolerant(client, dir, { ...baseFields, remotePath: dir })
+      for (const { buffer, fileName } of files) {
+        const fields = { ...baseFields, fileName, size: buffer.length, remotePath: `${dir}/${fileName}` }
+        logUploadEvent('start', fields)
+        await client.put(buffer, fields.remotePath)
+        logUploadEvent('put-ok', fields)
+      }
+    })())
+  } finally {
+    await client.end().catch(() => {})
+  }
+}
+
 /**
  * Uploads every screenshot for one product over a SINGLE SFTP connection.
  *
@@ -152,6 +195,11 @@ async function mkdirTolerant(client: SftpClient, dir: string, fields: Record<str
  * suffix), so this doesn't use an exclusive/no-clobber flag; a
  * same-millisecond, same-random collision is astronomically unlikely,
  * matching how uploadDeliverable already behaves.
+ *
+ * If the connection itself drops (ECONNRESET and similar — never a
+ * validation or permission error), the whole batch is retried once more
+ * from a fresh connection before giving up: a flaky link to the SFTP server
+ * is exactly the kind of transient failure a clean retry is for.
  */
 export async function uploadProductImages(
   userId: string,
@@ -159,31 +207,29 @@ export async function uploadProductImages(
   files: { buffer: Buffer; fileName: string }[],
   correlationId?: string
 ): Promise<void> {
-  const { remoteDir, ...connectConfig } = sftpConfig()
-  const client = new SftpClient()
-  const dir = productImageRemoteDir(remoteDir, userId, productId)
-  const baseFields = { correlationId, userId, productId, remotePath: dir, fileCount: files.length }
-  const guard = guardAgainstDroppedConnection(client)
+  // Nothing to upload — e.g. a GitHub-sourced listing with no screenshots —
+  // so don't open a connection (and risk failing the whole request) for no
+  // reason.
+  if (files.length === 0) return
 
-  logUploadEvent('batch-start', baseFields)
+  const baseFields = { correlationId, userId, productId, fileCount: files.length }
+  const maxAttempts = 2
 
-  try {
-    await guard(client.connect(connectConfig))
-    await guard((async () => {
-      await mkdirTolerant(client, dir, baseFields)
-      for (const { buffer, fileName } of files) {
-        const fields = { ...baseFields, fileName, size: buffer.length, remotePath: `${dir}/${fileName}` }
-        logUploadEvent('start', fields)
-        await client.put(buffer, fields.remotePath)
-        logUploadEvent('put-ok', fields)
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const fields = { ...baseFields, attempt, maxAttempts }
+    logUploadEvent('batch-start', fields)
+    try {
+      await uploadProductImagesAttempt(userId, productId, files, fields)
+      logUploadEvent('batch-ok', fields)
+      return
+    } catch (err) {
+      logUploadError('batch-failed', fields, err)
+      if (attempt < maxAttempts && isConnectionError(err)) {
+        logUploadEvent('batch-retrying-on-fresh-connection', fields)
+        continue
       }
-    })())
-    logUploadEvent('batch-ok', baseFields)
-  } catch (err) {
-    logUploadError('batch-failed', baseFields, err)
-    throw err
-  } finally {
-    await client.end().catch(() => {})
+      throw err
+    }
   }
 }
 
