@@ -13,7 +13,8 @@ describe.skipIf(!isDatabaseConfigured())('platform commission rate persistence',
 
   it('falls back to the env/default rate when nothing is persisted', async () => {
     const percent = await getPlatformFeePercent()
-    expect(percent).toBe(Number(process.env.PLATFORM_FEE_PERCENT))
+    const envRate = Number(process.env.PLATFORM_FEE_PERCENT)
+    expect(percent).toBe(Number.isFinite(envRate) ? envRate : 10)
   })
 
   it('persists an admin-set rate and uses it afterward', async () => {

@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Icon } from '@/components/icon'
 import { query } from '@/lib/db'
+import { InfoPage } from '@/components/layout/info-page'
 
 export const metadata: Metadata = {
   title: 'System status',

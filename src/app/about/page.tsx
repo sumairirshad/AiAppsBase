@@ -5,7 +5,7 @@ import { ArrowRight, Code, Shield, ShoppingBag, TrendingUp, Users, Zap } from 'l
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { formatNumber } from '@/lib/utils'
+import { cn, formatNumber } from '@/lib/utils'
 import { getPlatformStats } from '@/lib/products'
 
 export const metadata: Metadata = {
