@@ -1,7 +1,13 @@
 // Hardcoded sample entries used when USE_MOCK_DATA=true, so the UI can be
 // tested without touching the local JSON store.
+//
+// Stored on globalThis rather than a plain module-level variable: Next.js
+// compiles route handlers and page server components into separate bundles,
+// so a plain `let` here can end up as two independent copies that don't see
+// each other's writes. globalThis is the one thing guaranteed to be shared
+// across all of them within the same server process.
 
-let mockDb = {
+const SEED = {
   "channel-profile": [
     {
       id: "1",
@@ -75,6 +81,11 @@ let mockDb = {
     },
   ],
 };
+
+if (!globalThis.__mockDb) {
+  globalThis.__mockDb = SEED;
+}
+const mockDb = globalThis.__mockDb;
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
