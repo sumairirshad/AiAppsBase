@@ -18,6 +18,7 @@ export async function DELETE() {
     'UPDATE users SET github_username = NULL, github_access_token = NULL WHERE id = $1',
     [userId]
   )
+  await query('DELETE FROM user_selected_github_repos WHERE user_id = $1', [userId])
 
   return NextResponse.json({ ok: true })
 }
