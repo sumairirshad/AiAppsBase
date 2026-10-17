@@ -15,7 +15,9 @@ export async function DELETE() {
   }
 
   await query(
-    'UPDATE users SET github_username = NULL, github_access_token = NULL WHERE id = $1',
+    `UPDATE users SET github_username = NULL, github_access_token = NULL,
+            selected_github_repo = NULL, selected_github_repo_branch = NULL
+     WHERE id = $1`,
     [userId]
   )
 
