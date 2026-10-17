@@ -1,0 +1,42 @@
+[
+  {
+    "id": "sched-3001",
+    "type": "Text",
+    "text": "Monday motivation: ship something small today, even if nobody notices yet.",
+    "imageUrls": [],
+    "scheduledFor": "2026-10-20T13:00:00+00:00",
+    "status": "Scheduled",
+    "publishedPostId": null,
+    "createdAt": "2026-10-15T10:00:00+00:00"
+  },
+  {
+    "id": "sched-3002",
+    "type": "Image",
+    "text": "Sneak peek of next week's feature drop.",
+    "imageUrls": [ "/mock-assets/posts/post-1004-a.svg" ],
+    "scheduledFor": "2026-10-22T17:30:00+00:00",
+    "status": "Scheduled",
+    "publishedPostId": null,
+    "createdAt": "2026-10-16T09:00:00+00:00"
+  },
+  {
+    "id": "sched-3003",
+    "type": "Text",
+    "text": "Reminder: office hours tomorrow at noon. Bring your toughest product questions.",
+    "imageUrls": [],
+    "scheduledFor": "2026-10-24T12:00:00+00:00",
+    "status": "Scheduled",
+    "publishedPostId": null,
+    "createdAt": "2026-10-16T11:30:00+00:00"
+  },
+  {
+    "id": "sched-3004",
+    "type": "Text",
+    "text": "Office hours this Friday. Drop your product questions below and I will answer the best ones live.",
+    "imageUrls": [],
+    "scheduledFor": "2026-10-14T08:00:00+00:00",
+    "status": "Published",
+    "publishedPostId": "post-1005",
+    "createdAt": "2026-10-10T08:00:00+00:00"
+  }
+]

@@ -1,0 +1,80 @@
+[
+  {
+    "id": "post-1001",
+    "authorHandle": "novaOnX",
+    "type": "Text",
+    "text": "Shipped a redesign of our onboarding flow this week. Conversion is up 23% already. Small UX fixes compound fast.",
+    "imageUrls": [],
+    "createdAt": "2026-09-28T14:12:00+00:00",
+    "likes": 482,
+    "reposts": 56,
+    "replies": 31,
+    "views": 18420,
+    "isPinned": true
+  },
+  {
+    "id": "post-1002",
+    "authorHandle": "novaOnX",
+    "type": "Image",
+    "text": "New component library preview. Dark mode included from day one.",
+    "imageUrls": [ "/mock-assets/posts/post-1002-a.svg", "/mock-assets/posts/post-1002-b.svg" ],
+    "createdAt": "2026-10-02T09:45:00+00:00",
+    "likes": 915,
+    "reposts": 142,
+    "replies": 88,
+    "views": 42310,
+    "isPinned": false
+  },
+  {
+    "id": "post-1003",
+    "authorHandle": "novaOnX",
+    "type": "Text",
+    "text": "Hot take: most dashboards fail because they show data, not decisions. Design for the next action, not the chart.",
+    "imageUrls": [],
+    "createdAt": "2026-10-06T17:30:00+00:00",
+    "likes": 1204,
+    "reposts": 310,
+    "replies": 167,
+    "views": 76500,
+    "isPinned": false
+  },
+  {
+    "id": "post-1004",
+    "authorHandle": "novaOnX",
+    "type": "Image",
+    "text": "Behind the scenes of our latest shoot for the product launch campaign.",
+    "imageUrls": [ "/mock-assets/posts/post-1004-a.svg" ],
+    "createdAt": "2026-10-10T11:05:00+00:00",
+    "likes": 356,
+    "reposts": 41,
+    "replies": 22,
+    "views": 15230,
+    "isPinned": false
+  },
+  {
+    "id": "post-1005",
+    "authorHandle": "novaOnX",
+    "type": "Text",
+    "text": "Office hours this Friday. Drop your product questions below and I will answer the best ones live.",
+    "imageUrls": [],
+    "createdAt": "2026-10-14T08:00:00+00:00",
+    "likes": 198,
+    "reposts": 19,
+    "replies": 54,
+    "views": 9870,
+    "isPinned": false
+  },
+  {
+    "id": "post-1006",
+    "authorHandle": "novaOnX",
+    "type": "Text",
+    "text": "Three things every solo founder should automate before hiring: support replies, invoicing, and onboarding emails.",
+    "imageUrls": [],
+    "createdAt": "2026-10-16T19:20:00+00:00",
+    "likes": 643,
+    "reposts": 97,
+    "replies": 45,
+    "views": 28900,
+    "isPinned": false
+  }
+]
