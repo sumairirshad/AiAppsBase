@@ -10,27 +10,28 @@ export async function GET() {
   }
 
   const userRes = await query(
-    `SELECT role, github_access_token, github_username,
-            selected_github_repo, selected_github_repo_branch
-     FROM users WHERE id = $1`,
+    'SELECT role, github_access_token, github_username FROM users WHERE id = $1',
     [userId]
   )
 
   if ((userRes.rowCount ?? 0) === 0) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }
-  const {
-    role, github_access_token, github_username,
-    selected_github_repo, selected_github_repo_branch,
-  } = userRes.rows[0]
+  const { role, github_access_token, github_username } = userRes.rows[0]
   if (role !== 'seller' && role !== 'admin') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
+  const selectionRes = await query(
+    'SELECT repo_full_name, default_branch FROM user_selected_github_repos WHERE user_id = $1 ORDER BY created_at ASC',
+    [userId]
+  )
+  const selections: { repo_full_name: string; default_branch: string }[] = selectionRes.rows
+
   const accessToken = decryptToken(github_access_token)
 
   if (!accessToken || !github_username) {
-    return NextResponse.json({ connected: false, repos: [], listedRepoNames: [], selectedRepo: null })
+    return NextResponse.json({ connected: false, repos: [], listedRepoNames: [], selectedRepos: [] })
   }
 
   // visibility=all (rather than type=public) surfaces private repos too, now
@@ -47,7 +48,7 @@ export async function GET() {
   )
 
   if (!reposRes.ok) {
-    return NextResponse.json({ connected: false, repos: [], listedRepoNames: [], selectedRepo: null, error: 'Failed to fetch repos from GitHub' })
+    return NextResponse.json({ connected: false, repos: [], listedRepoNames: [], selectedRepos: [], error: 'Failed to fetch repos from GitHub' })
   }
 
   const rawRepos = await reposRes.json()
@@ -73,23 +74,28 @@ export async function GET() {
     private: r.private ?? false,
   }))
 
-  const selectedRepo = selected_github_repo
-    ? (repos.find((r) => r.fullName === selected_github_repo) ?? {
-        id: selected_github_repo,
-        name: selected_github_repo.split('/').pop() ?? selected_github_repo,
-        fullName: selected_github_repo,
-        description: null,
-        language: null,
-        stars: 0,
-        forks: 0,
-        updatedAt: null,
-        defaultBranch: selected_github_repo_branch ?? 'main',
-        htmlUrl: `https://github.com/${selected_github_repo}`,
-        topics: [],
-        private: false,
-        unavailable: true,
-      })
-    : null
+  const selectedRepos = selections.map((s) => {
+    const live = repos.find((r) => r.fullName === s.repo_full_name)
+    if (live) return live
+    // Selected earlier, but no longer in the live GitHub list — likely
+    // renamed, deleted, or access was lost. Still show it, flagged, so the
+    // seller can see it and remove it instead of it just silently vanishing.
+    return {
+      id: s.repo_full_name,
+      name: s.repo_full_name.split('/').pop() ?? s.repo_full_name,
+      fullName: s.repo_full_name,
+      description: null,
+      language: null,
+      stars: 0,
+      forks: 0,
+      updatedAt: null,
+      defaultBranch: s.default_branch,
+      htmlUrl: `https://github.com/${s.repo_full_name}`,
+      topics: [],
+      private: false,
+      unavailable: true,
+    }
+  })
 
-  return NextResponse.json({ connected: true, githubUsername: github_username, repos, listedRepoNames, selectedRepo })
+  return NextResponse.json({ connected: true, githubUsername: github_username, repos, listedRepoNames, selectedRepos })
 }

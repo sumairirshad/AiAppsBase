@@ -3,28 +3,32 @@ import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
 import { decryptToken } from '@/lib/token-crypto'
 
+async function requireSellerWithToken(userId: string) {
+  const userRes = await query(
+    'SELECT role, github_access_token FROM users WHERE id = $1',
+    [userId]
+  )
+  if ((userRes.rowCount ?? 0) === 0) return { error: NextResponse.json({ error: 'User not found' }, { status: 404 }) }
+  const { role, github_access_token } = userRes.rows[0]
+  if (role !== 'seller' && role !== 'admin') {
+    return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) }
+  }
+  const accessToken = decryptToken(github_access_token)
+  if (!accessToken) {
+    return { error: NextResponse.json({ error: 'GitHub is not connected' }, { status: 400 }) }
+  }
+  return { accessToken }
+}
+
 export async function PUT(req: Request) {
   const userId = await getSessionUserId()
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const userRes = await query(
-    'SELECT role, github_access_token FROM users WHERE id = $1',
-    [userId]
-  )
-  if ((userRes.rowCount ?? 0) === 0) {
-    return NextResponse.json({ error: 'User not found' }, { status: 404 })
-  }
-  const { role, github_access_token } = userRes.rows[0]
-  if (role !== 'seller' && role !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
-
-  const accessToken = decryptToken(github_access_token)
-  if (!accessToken) {
-    return NextResponse.json({ error: 'GitHub is not connected' }, { status: 400 })
-  }
+  const auth = await requireSellerWithToken(userId)
+  if (auth.error) return auth.error
+  const { accessToken } = auth
 
   let fullName: unknown, defaultBranch: unknown
   try {
@@ -57,23 +61,33 @@ export async function PUT(req: Request) {
   const branch = typeof defaultBranch === 'string' && defaultBranch ? defaultBranch : repo.default_branch
 
   await query(
-    'UPDATE users SET selected_github_repo = $1, selected_github_repo_branch = $2 WHERE id = $3',
-    [repo.full_name, branch, userId]
+    `INSERT INTO user_selected_github_repos (user_id, repo_full_name, default_branch)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (user_id, repo_full_name) DO UPDATE SET default_branch = EXCLUDED.default_branch`,
+    [userId, repo.full_name, branch]
   )
 
   return NextResponse.json({ ok: true, fullName: repo.full_name, defaultBranch: branch })
 }
 
-export async function DELETE() {
+export async function DELETE(req: Request) {
   const userId = await getSessionUserId()
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  await query(
-    'UPDATE users SET selected_github_repo = NULL, selected_github_repo_branch = NULL WHERE id = $1',
-    [userId]
-  )
+  const { searchParams } = new URL(req.url)
+  const fullName = searchParams.get('fullName')
 
+  if (!fullName) {
+    // No specific repo named: clear every selection for this seller.
+    await query('DELETE FROM user_selected_github_repos WHERE user_id = $1', [userId])
+    return NextResponse.json({ ok: true })
+  }
+
+  await query(
+    'DELETE FROM user_selected_github_repos WHERE user_id = $1 AND repo_full_name = $2',
+    [userId, fullName]
+  )
   return NextResponse.json({ ok: true })
 }
