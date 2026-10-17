@@ -21,6 +21,7 @@ import { EmptyState } from '@/components/dashboard/empty-state'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 const LANG_COLORS: Record<string, string> = {
   JavaScript: '#f1e05a', TypeScript: '#3178c6', Python: '#3572A5',
@@ -75,6 +76,7 @@ function GithubReposContent() {
   const [selectedRepos, setSelectedRepos] = useState<GithubRepo[]>([])
   const [search, setSearch] = useState('')
   const [disconnecting, setDisconnecting] = useState(false)
+  const [disconnectConfirmOpen, setDisconnectConfirmOpen] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pendingFullName, setPendingFullName] = useState<string | null>(null)
   const [removingFullName, setRemovingFullName] = useState<string | null>(null)
@@ -112,7 +114,6 @@ function GithubReposContent() {
   }, [loading, connected, selectedRepos.length, searchParams])
 
   const handleDisconnect = async () => {
-    if (!confirm('Disconnect GitHub? Your listed products will remain, but you won\'t be able to list new repos.')) return
     setDisconnecting(true)
     try {
       await fetch('/api/seller/github/disconnect', { method: 'DELETE' })
@@ -120,6 +121,7 @@ function GithubReposContent() {
       setGithubUsername(null)
       setRepos([])
       setSelectedRepos([])
+      setDisconnectConfirmOpen(false)
       toast.success('GitHub disconnected')
     } catch {
       toast.error('Failed to disconnect')
@@ -240,7 +242,7 @@ function GithubReposContent() {
               </Button>
               <Button
                 variant="outline"
-                onClick={handleDisconnect}
+                onClick={() => setDisconnectConfirmOpen(true)}
                 disabled={disconnecting}
                 className="text-destructive hover:bg-destructive/10"
               >
@@ -435,6 +437,17 @@ function GithubReposContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={disconnectConfirmOpen}
+        onOpenChange={setDisconnectConfirmOpen}
+        title="Disconnect GitHub?"
+        description="Your listed products will remain, but you won't be able to list new repos until you reconnect."
+        confirmLabel="Disconnect"
+        destructive
+        loading={disconnecting}
+        onConfirm={handleDisconnect}
+      />
     </div>
   )
 }
