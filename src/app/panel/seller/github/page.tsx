@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   Github, Star, GitFork, ExternalLink, RefreshCw,
-  AlertCircle, Unlink, Clock, Lock,
+  AlertCircle, Unlink, Clock, Lock, Unlock,
   Check, DollarSign, PlusCircle, Trash2,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -303,8 +303,10 @@ function GithubReposContent() {
                     <p className="mt-0.5 text-xs text-muted-foreground">{repo.fullName}</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    {repo.private && (
+                    {repo.private ? (
                       <Badge variant="outline"><Lock className="size-3" /> Private</Badge>
+                    ) : (
+                      <Badge variant="outline"><Unlock className="size-3" /> Public</Badge>
                     )}
                     {listedRepoNames.has(repo.fullName) && (
                       <Badge variant="success"><Check className="size-3" /> Listed</Badge>
@@ -411,7 +413,11 @@ function GithubReposContent() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="truncate text-sm font-semibold">{repo.name}</span>
-                        {repo.private && <Lock className="size-3 shrink-0 text-muted-foreground" />}
+                        {repo.private ? (
+                          <Lock className="size-3 shrink-0 text-muted-foreground" aria-label="Private" />
+                        ) : (
+                          <Unlock className="size-3 shrink-0 text-muted-foreground" aria-label="Public" />
+                        )}
                         {isSelected && <Badge variant="success" className="shrink-0">Selected</Badge>}
                       </div>
                       {repo.description && (
