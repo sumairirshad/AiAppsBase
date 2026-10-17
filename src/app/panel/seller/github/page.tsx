@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, Suspense } from 'react'
+import { useEffect, useState, useCallback, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -86,19 +86,27 @@ function GithubReposContent() {
     try {
       const res = await fetch('/api/seller/github/repos')
       const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Failed to load GitHub data')
       setConnected(data.connected ?? false)
       setGithubUsername(data.githubUsername ?? null)
       setRepos(data.repos ?? [])
       setListedRepoNames(new Set(data.listedRepoNames ?? []))
       setSelectedRepos(data.selectedRepos ?? [])
-    } catch {
-      toast.error('Failed to load GitHub data')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to load GitHub data')
     } finally {
       setLoading(false)
     }
   }, [])
 
+  // React runs effects twice on mount in dev (StrictMode) to surface
+  // side-effect bugs; that's harmless for the fetch itself but would fire
+  // the connected/error toast below twice. This ref makes the one-time
+  // "just loaded this page" work actually run once, in dev and prod alike.
+  const didInitRef = useRef(false)
   useEffect(() => {
+    if (didInitRef.current) return
+    didInitRef.current = true
     fetchRepos()
     if (searchParams.get('connected') === '1') toast.success('GitHub connected successfully!')
     if (searchParams.get('error')) toast.error('GitHub connection failed. Please try again.')

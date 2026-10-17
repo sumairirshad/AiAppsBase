@@ -9,6 +9,24 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  try {
+    return await handleGet(userId)
+  } catch (err) {
+    // A thrown error here (e.g. a DB query failing) would otherwise bubble
+    // up as Next's generic HTML error page, which breaks the frontend's
+    // res.json() parse and surfaces as an opaque "Failed to load GitHub
+    // data" with no indication of what actually went wrong. Keep the
+    // response JSON so the failure is at least diagnosable, and so it
+    // doesn't get confused with a real "not connected" state.
+    console.error('GET /api/seller/github/repos failed:', err)
+    return NextResponse.json(
+      { error: 'Failed to load GitHub data', connected: false, repos: [], listedRepoNames: [], selectedRepos: [] },
+      { status: 500 }
+    )
+  }
+}
+
+async function handleGet(userId: string) {
   const userRes = await query(
     'SELECT role, github_access_token, github_username FROM users WHERE id = $1',
     [userId]
