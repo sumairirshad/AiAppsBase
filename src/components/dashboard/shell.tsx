@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { BrandLogo } from '@/components/brand-logo'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
+import { NotificationBell } from '@/components/dashboard/notification-bell'
 
 type Item = { label: string; href: string; icon: any; badge?: string }
 
@@ -159,6 +160,7 @@ export function DashboardShell({ role, children }: { role: PortalRole; children:
           </div>
 
           <div className="ml-auto flex items-center gap-2">
+            {role === 'buyer' && <NotificationBell />}
             <ThemeToggle />
             <Avatar className="size-8">
               <AvatarFallback>{role === 'admin' ? 'A' : role === 'seller' ? 'S' : 'B'}</AvatarFallback>

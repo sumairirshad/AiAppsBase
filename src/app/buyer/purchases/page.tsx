@@ -38,6 +38,19 @@ export default async function PurchasesPage() {
                     <p className="text-xs text-muted-foreground">
                       Order {String(order.id).slice(0, 12)} · {order.date} · {order.license} license
                     </p>
+                    {order.purchasedVersion && (
+                      <p className="text-xs text-muted-foreground">
+                        Your version: <span className="font-mono font-medium text-foreground">v{order.purchasedVersion}</span>
+                        {order.hasNewerVersion && order.currentVersion && (
+                          <>
+                            {' · '}
+                            <Link href={`/product/${order.productId}`} className="font-medium text-primary hover:underline">
+                              v{order.currentVersion} available
+                            </Link>
+                          </>
+                        )}
+                      </p>
+                    )}
                     <LicenseKey value={order.licenseKey} />
                   </div>
                 </div>

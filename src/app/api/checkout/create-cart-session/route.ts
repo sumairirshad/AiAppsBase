@@ -16,7 +16,12 @@ export async function POST(req: NextRequest) {
 
   const cartRes = await query(
     `SELECT c.product_id, c.license_type, p.title, p.price::float AS price, p.seller_id, p.status,
-            EXISTS (SELECT 1 FROM orders o WHERE o.product_id = p.id AND o.buyer_id = $1) AS owned
+            p.current_version_id,
+            EXISTS (
+              SELECT 1 FROM orders o
+              WHERE o.product_id = p.id AND o.buyer_id = $1 AND o.status = 'completed'
+                AND o.product_version_id = p.current_version_id
+            ) AS owns_current_version
      FROM cart_items c
      JOIN products p ON c.product_id = p.id
      WHERE c.user_id = $1`,
@@ -24,10 +29,13 @@ export async function POST(req: NextRequest) {
   )
 
   // Free items are claimed instantly elsewhere (POST /api/orders), and a
-  // product the buyer already owns, or lists themselves, has no business in
-  // a paid checkout — only what's left after filtering those out goes to Stripe.
+  // product the buyer already owns at its current version, or lists
+  // themselves, has no business in a paid checkout — only what's left after
+  // filtering those out goes to Stripe. A buyer who owns an older version is
+  // still allowed through, to deliberately repurchase and pick up the
+  // newer one (see completeCheckoutSession in lib/orders.ts).
   const payable = cartRes.rows.filter(
-    (r: any) => r.status === 'approved' && !r.owned && r.seller_id !== userId && Number(r.price) > 0
+    (r: any) => r.status === 'approved' && !r.owns_current_version && r.seller_id !== userId && Number(r.price) > 0
   )
 
   if (payable.length === 0) {
@@ -36,7 +44,10 @@ export async function POST(req: NextRequest) {
 
   const lineItems = payable.map((r: any) => {
     const amount = computeLicensePrice(Number(r.price), r.license_type)
-    return { productId: r.product_id, licenseType: r.license_type, title: r.title, amount, unitAmount: Math.round(amount * 100) }
+    return {
+      productId: r.product_id, licenseType: r.license_type, title: r.title, amount,
+      unitAmount: Math.round(amount * 100), versionId: r.current_version_id ?? null,
+    }
   })
 
   const tooCheap = lineItems.find((i) => i.unitAmount < 50)
@@ -68,12 +79,14 @@ export async function POST(req: NextRequest) {
     })
 
     // One checkout_sessions row per product in the session — see the comment
-    // on completeCheckoutSession in src/lib/orders.ts for why.
+    // on completeCheckoutSession in src/lib/orders.ts for why. Each row
+    // snapshots the version being purchased at checkout-creation time (see
+    // create-session/route.ts for why that matters).
     for (const item of lineItems) {
       await query(
-        `INSERT INTO checkout_sessions (stripe_session_id, user_id, product_id, license_type, amount, expires_at)
-         VALUES ($1, $2, $3, $4, $5, to_timestamp($6))`,
-        [session.id, userId, item.productId, item.licenseType, item.amount, session.expires_at]
+        `INSERT INTO checkout_sessions (stripe_session_id, user_id, product_id, license_type, amount, expires_at, product_version_id)
+         VALUES ($1, $2, $3, $4, $5, to_timestamp($6), $7)`,
+        [session.id, userId, item.productId, item.licenseType, item.amount, session.expires_at, item.versionId]
       )
     }
 

@@ -232,8 +232,13 @@ export async function getBuyerOrders(userId: string, limit = 50) {
     const res = await query(
       `SELECT o.id, o.amount::float AS amount, o.status, o.license_type, o.license_key, o.created_at,
               o.dispute_reason,
-              p.id AS product_id, p.title AS product, p.screenshots[1] AS image, p.github_repo_name, p.deliverable_remote_path
-       FROM orders o JOIN products p ON o.product_id=p.id
+              p.id AS product_id, p.title AS product, p.screenshots[1] AS image, p.github_repo_name, p.deliverable_remote_path,
+              ov.version AS purchased_version, cv.version AS current_version,
+              (p.current_version_id IS NOT NULL AND p.current_version_id IS DISTINCT FROM o.product_version_id) AS has_newer_version
+       FROM orders o
+       JOIN products p ON o.product_id=p.id
+       LEFT JOIN product_versions ov ON ov.id = o.product_version_id
+       LEFT JOIN product_versions cv ON cv.id = p.current_version_id
        WHERE o.buyer_id=$1 ORDER BY o.created_at DESC LIMIT $2`, [userId, limit]
     )
     return res.rows.map((r: any) => ({
@@ -242,6 +247,9 @@ export async function getBuyerOrders(userId: string, limit = 50) {
       licenseKey: r.license_key, downloadable: Boolean(r.github_repo_name || r.deliverable_remote_path),
       disputeReason: r.dispute_reason as string | null,
       date: new Date(r.created_at).toISOString().slice(0, 10),
+      purchasedVersion: r.purchased_version as string | null,
+      currentVersion: r.current_version as string | null,
+      hasNewerVersion: Boolean(r.has_newer_version),
     }))
   } catch { return [] }
 }

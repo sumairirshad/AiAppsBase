@@ -8,6 +8,33 @@ import {
   ImageUploadError, MAX_PRODUCT_IMAGES, deleteProductImageDir, readValidatedImage, writeProductImages,
 } from '@/lib/product-images'
 import { syncProductGithubStats } from '@/lib/github-stats'
+import { verifyGithubRepoOwnership, GithubApiError } from '@/lib/github-ownership'
+import { decryptToken } from '@/lib/token-crypto'
+
+/**
+ * Creates the "version 1.0.0" product_versions row for a product whose
+ * deliverable was just uploaded as part of product creation, and points
+ * products.current_version_id at it — so a brand new upload-type product
+ * has real version history and purchase-specific entitlement from the
+ * start, the same way every later "publish new version" call does.
+ */
+async function createInitialPublishedVersion(
+  productId: string,
+  sellerId: string,
+  deliveryType: 'upload',
+  deliverable: { deliverableRemotePath: string | null; deliverableOriginalName: string | null; deliverableSizeBytes: number | null }
+): Promise<void> {
+  if (!deliverable.deliverableRemotePath) return
+  const inserted = await query<{ id: string }>(
+    `INSERT INTO product_versions (
+       product_id, seller_id, version, delivery_type, status, published_at,
+       deliverable_remote_path, deliverable_original_name, deliverable_size_bytes
+     ) VALUES ($1, $2, '1.0.0', $3, 'published', NOW(), $4, $5, $6)
+     RETURNING id`,
+    [productId, sellerId, deliveryType, deliverable.deliverableRemotePath, deliverable.deliverableOriginalName, deliverable.deliverableSizeBytes]
+  )
+  await query('UPDATE products SET current_version_id = $1 WHERE id = $2', [inserted.rows[0].id, productId])
+}
 
 export async function GET() {
   const userId = await getSessionUserId()
@@ -83,10 +110,45 @@ export async function POST(req: NextRequest) {
     const licenseType = formData.get('licenseType') as string
     const tags = JSON.parse(formData.get('tags') as string || '[]')
     const githubRepoName = (formData.get('githubRepoName') as string) || null
-    const githubDefaultBranch = (formData.get('githubDefaultBranch') as string) || null
+    // Overwritten below with the server-verified value once ownership is
+    // checked — never trust the client's claim about which branch is default.
+    let githubDefaultBranch = (formData.get('githubDefaultBranch') as string) || null
 
     if (!title || !description || !category || !humanModLevel || !licenseType) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+
+    // AUD finding: githubRepoName was previously accepted straight from
+    // client-submitted form data with no check that the seller has any
+    // real relationship to that repository — anyone could list someone
+    // else's public repo as their own paid product. Verify push access
+    // with the seller's own connected GitHub token before trusting it.
+    if (githubRepoName) {
+      const userTokenRes = await query('SELECT github_access_token FROM users WHERE id = $1', [userId])
+      const accessToken = decryptToken(userTokenRes.rows[0]?.github_access_token ?? null)
+      if (!accessToken) {
+        return NextResponse.json({ error: 'Connect your GitHub account before listing a GitHub-sourced product.' }, { status: 400 })
+      }
+      try {
+        const ownership = await verifyGithubRepoOwnership(accessToken, githubRepoName)
+        if (!ownership.ok) {
+          return NextResponse.json(
+            {
+              error:
+                ownership.reason === 'not_found'
+                  ? `Repository "${githubRepoName}" was not found or is not accessible with your connected GitHub account.`
+                  : `You don't have write access to "${githubRepoName}". Only a repo you own or collaborate on can be listed.`,
+            },
+            { status: 403 }
+          )
+        }
+        githubDefaultBranch = ownership.defaultBranch
+      } catch (err) {
+        if (err instanceof GithubApiError) {
+          return NextResponse.json({ error: err.message }, { status: err.status === 404 ? 404 : 502 })
+        }
+        throw err
+      }
     }
 
     // Validate every image (type, size, real content) before storing anything.
@@ -205,6 +267,14 @@ export async function POST(req: NextRequest) {
           deliverableSizeBytes,
         ]
       )).rows[0].id)
+
+      // The uploaded file is already this product's "version 1.0.0" — wire
+      // it into the version system from the start so it has real history
+      // and every future "publish new version" has something to diff
+      // against, instead of only existing as a bare products.* column.
+      await createInitialPublishedVersion(id, userId, 'upload', {
+        deliverableRemotePath, deliverableOriginalName, deliverableSizeBytes,
+      })
 
       return NextResponse.json({ ok: true, id })
     }

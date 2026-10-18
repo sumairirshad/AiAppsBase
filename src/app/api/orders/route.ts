@@ -95,10 +95,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    const productRes = await query('SELECT id, title, price, seller_id FROM products WHERE id = $1 AND status = $2', [
-      productId,
-      'approved',
-    ])
+    const productRes = await query(
+      'SELECT id, title, price, seller_id, current_version_id FROM products WHERE id = $1 AND status = $2',
+      [productId, 'approved']
+    )
     if ((productRes.rowCount ?? 0) === 0) {
       return NextResponse.json({ error: 'Product not found or not available' }, { status: 404 })
     }
@@ -119,20 +119,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Cannot claim your own product' }, { status: 403 })
     }
 
-    const existing = await query('SELECT id FROM orders WHERE product_id = $1 AND buyer_id = $2', [
-      productId,
-      userId,
-    ])
-    if ((existing.rowCount ?? 0) > 0) {
-      return NextResponse.json({ error: 'You already own this product' }, { status: 409 })
-    }
-
-    const res = await query(
-      `INSERT INTO orders (product_id, buyer_id, amount, license_type, commission_rate_snapshot)
-       VALUES ($1, $2, $3, $4, $5)
+    // Atomic claim: ON CONFLICT DO NOTHING against
+    // idx_orders_buyer_product_version (buyer_id, product_id,
+    // product_version_id) replaces a separate SELECT-then-INSERT, which
+    // raced under concurrent double-submission (two requests could both pass
+    // the check before either had written a row). A buyer who already
+    // claimed an older version of this free product is still allowed to
+    // claim a newer one — only the exact (buyer, product, version) triple is
+    // deduplicated.
+    const res = await query<{ id: string; license_key: string }>(
+      `INSERT INTO orders (product_id, buyer_id, amount, license_type, commission_rate_snapshot, product_version_id)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT DO NOTHING
        RETURNING id, license_key`,
-      [productId, userId, amount, licenseType, await getPlatformFeePercent()]
+      [productId, userId, amount, licenseType, await getPlatformFeePercent(), product.current_version_id ?? null]
     )
+    if ((res.rowCount ?? 0) === 0) {
+      return NextResponse.json({ error: 'You already own this version of this product' }, { status: 409 })
+    }
 
     await query('DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2', [userId, productId])
 
