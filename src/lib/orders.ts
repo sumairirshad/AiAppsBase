@@ -28,7 +28,7 @@ export async function completeCheckoutSession(
   paymentIntentId?: string | null
 ): Promise<void> {
   const res = await query(
-    `SELECT user_id, product_id, license_type, amount, status
+    `SELECT user_id, product_id, license_type, amount, status, product_version_id
      FROM checkout_sessions WHERE stripe_session_id = $1`,
     [stripeSessionId]
   )
@@ -39,12 +39,45 @@ export async function completeCheckoutSession(
   for (const row of res.rows) {
     if (row.status === 'completed') continue
 
+    // The session snapshots the version being purchased at checkout-creation
+    // time (see create-session / create-cart-session); a session created
+    // before this existed, or a sold-out/removed product, falls back to
+    // whatever is currently published so the order still binds to *some*
+    // concrete, resolvable version rather than nothing.
+    const versionId =
+      row.product_version_id ??
+      (
+        await query<{ current_version_id: string | null }>(
+          'SELECT current_version_id FROM products WHERE id = $1',
+          [row.product_id]
+        )
+      ).rows[0]?.current_version_id ??
+      null
+
+    // Two independent unique indexes guard this insert (see migration 030):
+    //  - (stripe_checkout_session_id, product_id): this exact session has
+    //    already fulfilled this product — covers webhook redelivery and the
+    //    client-redirect verify path racing the webhook.
+    //  - (buyer_id, product_id, product_version_id): the buyer can't end up
+    //    with two orders entitling them to the identical version, even via
+    //    two different sessions — but a *different* version (a deliberate
+    //    repurchase after an update) is allowed, which is the whole point of
+    //    no longer having a blanket (product_id, buyer_id) unique constraint.
+    // ON CONFLICT DO NOTHING with no explicit target catches either one: in
+    // both cases "an equivalent order already exists" is the right outcome,
+    // not an error the webhook handler should 500 and make Stripe retry on.
     const inserted = await query<{ id: string }>(
-      `INSERT INTO orders (product_id, buyer_id, amount, license_type, stripe_payment_intent_id, commission_rate_snapshot)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       ON CONFLICT (product_id, buyer_id) DO NOTHING
+      `INSERT INTO orders (
+         product_id, buyer_id, amount, license_type, stripe_payment_intent_id,
+         commission_rate_snapshot, stripe_checkout_session_id, product_version_id
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       ON CONFLICT DO NOTHING
        RETURNING id`,
-      [row.product_id, row.user_id, Number(row.amount), row.license_type, paymentIntentId ?? null, feePercent]
+      [
+        row.product_id, row.user_id, Number(row.amount), row.license_type, paymentIntentId ?? null,
+        feePercent, stripeSessionId, versionId,
+      ]
     )
 
     await query(`DELETE FROM cart_items WHERE user_id = $1 AND product_id = $2`, [row.user_id, row.product_id])

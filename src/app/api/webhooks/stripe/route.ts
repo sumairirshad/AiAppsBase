@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 
+import { query } from '@/lib/db'
 import { stripe } from '@/lib/stripe'
 import { completeCheckoutSession, expireCheckoutSession } from '@/lib/orders'
+import { handleStripeDisputeClosed, handleStripeDisputeCreated } from '@/lib/disputes'
 
 /**
  * Fulfillment must not depend on the buyer's browser making it back to
@@ -35,6 +37,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
+  // Stripe explicitly documents that any event may be delivered more than
+  // once. completeCheckoutSession has its own idempotent DB logic, but the
+  // dispute handlers below don't inherently — this makes every event type
+  // processed at most once, uniformly, rather than relying on each handler
+  // to separately get idempotency right.
+  const alreadyProcessed = await query(
+    `INSERT INTO stripe_webhook_events (event_id, event_type) VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING event_id`,
+    [event.id, event.type]
+  )
+  if ((alreadyProcessed.rowCount ?? 0) === 0) {
+    return NextResponse.json({ received: true, deduped: true })
+  }
+
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
@@ -51,11 +66,29 @@ export async function POST(req: NextRequest) {
         await expireCheckoutSession(session.id)
         break
       }
+      // See src/lib/disputes.ts for the documented access policy these follow.
+      case 'charge.dispute.created': {
+        const dispute = event.data.object as Stripe.Dispute
+        const paymentIntentId = typeof dispute.payment_intent === 'string' ? dispute.payment_intent : dispute.payment_intent?.id ?? null
+        await handleStripeDisputeCreated(paymentIntentId, dispute.reason ?? null)
+        break
+      }
+      case 'charge.dispute.closed': {
+        const dispute = event.data.object as Stripe.Dispute
+        const paymentIntentId = typeof dispute.payment_intent === 'string' ? dispute.payment_intent : dispute.payment_intent?.id ?? null
+        if (dispute.status === 'won' || dispute.status === 'lost') {
+          await handleStripeDisputeClosed(paymentIntentId, dispute.status)
+        }
+        break
+      }
       default:
         break
     }
   } catch (err) {
     console.error('[webhooks/stripe] handler failed for event', event.type, err)
+    // Let Stripe retry: remove our own "already processed" marker so a
+    // transient failure (DB blip, etc.) doesn't permanently swallow the event.
+    await query('DELETE FROM stripe_webhook_events WHERE event_id = $1', [event.id]).catch(() => {})
     return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 })
   }
 
