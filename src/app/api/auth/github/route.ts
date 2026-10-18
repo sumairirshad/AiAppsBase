@@ -36,7 +36,10 @@ export async function GET(req: Request) {
 
   const params = new URLSearchParams({
     client_id: clientId,
-    scope: intent === 'link' ? 'read:user,public_repo' : 'read:user user:email',
+    // 'repo' (not 'public_repo') is required so sellers can list and sell
+    // private repos too — classic GitHub OAuth apps have no read-only scope
+    // for private repo contents, 'repo' is the only option that covers it.
+    scope: intent === 'link' ? 'read:user,repo' : 'read:user user:email',
     state,
   })
 
