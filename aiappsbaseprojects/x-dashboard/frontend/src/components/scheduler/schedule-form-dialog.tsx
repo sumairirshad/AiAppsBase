@@ -86,14 +86,14 @@ export function ScheduleFormDialog({
             id: scheduledPost.id,
             payload: {
               text,
-              imageUrls: scheduledPost.imageUrls,
+              mediaIds: scheduledPost.mediaIds,
               scheduledFor: scheduledFor.toISOString(),
             },
           })
         : createScheduledPost.mutateAsync({
             type: "Text",
             text,
-            imageUrls: [],
+            mediaIds: [],
             scheduledFor: scheduledFor.toISOString(),
           });
 

@@ -14,15 +14,16 @@ import { useDashboardSummary } from "@/hooks/use-dashboard-summary";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { EngagementChart } from "@/components/dashboard/engagement-chart";
 import { PostCard } from "@/components/posts/post-card";
+import { ApiErrorState } from "@/components/common/api-error-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { formatCompactNumber, formatDateTime } from "@/lib/format";
 
 export default function DashboardPage() {
-  const { data, isLoading } = useDashboardSummary();
+  const { data, isLoading, isError, error, refetch } = useDashboardSummary();
 
-  if (isLoading || !data) {
+  if (isLoading) {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
@@ -33,6 +34,10 @@ export default function DashboardPage() {
         <Skeleton className="h-64 w-full" />
       </div>
     );
+  }
+
+  if (isError || !data) {
+    return <ApiErrorState error={error} onRetry={refetch} />;
   }
 
   return (

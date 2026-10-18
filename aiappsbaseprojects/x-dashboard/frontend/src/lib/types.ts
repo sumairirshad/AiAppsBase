@@ -8,25 +8,29 @@ export interface Profile {
   bio: string;
   profilePictureUrl: string;
   coverImageUrl: string;
+  /** Best-effort derived from X's verification type; X does not expose a direct "account type"
+   * field over the API. Not editable -- see UpdateProfileRequest. */
   accountType: AccountType;
+  /** Always empty: professional account category is not exposed by the X API. */
   category: string;
+  /** Always empty: contact info is not exposed by the X API. */
   phone: string;
+  /** Always empty: contact info is not exposed by the X API. */
   email: string;
   location: string;
   website: string;
   pinnedPostId: string | null;
   joinedAt: string;
+  followersCount: number;
+  followingCount: number;
 }
 
+/** Only the fields the X API actually supports updating (legacy v1.1 account/update_profile +
+ * the pinned-post endpoint). Profile picture/cover use dedicated upload endpoints
+ * (profileApi.uploadPicture/uploadBanner) since X requires raw image bytes, not a URL. */
 export interface UpdateProfileRequest {
   displayName: string;
   bio: string;
-  profilePictureUrl: string;
-  coverImageUrl: string;
-  accountType: AccountType;
-  category: string;
-  phone: string;
-  email: string;
   location: string;
   website: string;
   pinnedPostId: string | null;
@@ -49,12 +53,8 @@ export interface Post {
 export interface CreatePostRequest {
   type: PostType;
   text: string;
-  imageUrls: string[];
-}
-
-export interface UpdatePostRequest {
-  text: string;
-  imageUrls: string[];
+  /** Media ids from mediaApi.upload(file, "image"); required and non-empty when type is Image. */
+  mediaIds: string[];
 }
 
 export interface Short {
@@ -71,7 +71,8 @@ export interface Short {
 }
 
 export interface CreateShortRequest {
-  fileName: string;
+  /** Media id from mediaApi.upload(file, "video"). */
+  mediaId: string;
   caption: string;
   description: string;
   hashtags: string[];
@@ -81,33 +82,34 @@ export interface ScheduledPost {
   id: string;
   type: PostType;
   text: string;
-  imageUrls: string[];
+  mediaIds: string[];
   scheduledFor: string;
   status: ScheduleStatus;
   publishedPostId: string | null;
+  failureReason: string | null;
   createdAt: string;
 }
 
 export interface CreateScheduledPostRequest {
   type: PostType;
   text: string;
-  imageUrls: string[];
+  mediaIds: string[];
   scheduledFor: string;
 }
 
 export interface UpdateScheduledPostRequest {
   text: string;
-  imageUrls: string[];
+  mediaIds: string[];
   scheduledFor: string;
 }
 
+/** Derived from the X API's subscription_type / verified_type user fields. X does not expose a
+ * subscription start date, renewal date, or benefits list over the API. */
 export interface PremiumStatus {
   isSubscribed: boolean;
   tier: string;
   hasVerifiedBadge: boolean;
-  subscribedSince: string | null;
-  renewsOn: string | null;
-  benefits: string[];
+  verifiedType: string;
 }
 
 export interface EngagementPoint {
@@ -131,4 +133,17 @@ export interface DashboardSummary {
   recentPosts: Post[];
   upcomingScheduled: ScheduledPost[];
   engagementOverTime: EngagementPoint[];
+}
+
+export interface ConnectionStatus {
+  connected: boolean;
+  handle?: string;
+  displayName?: string;
+  profileImageUrl?: string;
+  error?: string;
+  rateLimited?: boolean;
+}
+
+export interface MediaUploadResult {
+  mediaId: string;
 }

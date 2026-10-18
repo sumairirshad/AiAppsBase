@@ -10,5 +10,5 @@ public interface IPostStore
     Task<Post?> UpdatePostAsync(string id, UpdatePostRequest request, CancellationToken cancellationToken = default);
     Task<bool> DeletePostAsync(string id, CancellationToken cancellationToken = default);
     Task<Post?> SetPinnedAsync(string id, CancellationToken cancellationToken = default);
-    Task<Post> AddPublishedPostAsync(PostType type, string text, List<string> imageUrls, CancellationToken cancellationToken = default);
+    Task<Post> AddPublishedPostAsync(PostType type, string text, List<string> mediaIds, CancellationToken cancellationToken = default);
 }

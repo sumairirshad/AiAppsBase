@@ -32,7 +32,7 @@ public class SchedulerController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateScheduledPostRequest request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.Text) && request.ImageUrls.Count == 0)
+        if (string.IsNullOrWhiteSpace(request.Text) && request.MediaIds.Count == 0)
         {
             return BadRequest(new { message = "Post content is required." });
         }

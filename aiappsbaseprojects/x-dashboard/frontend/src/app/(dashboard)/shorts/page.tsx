@@ -9,11 +9,12 @@ import type { Short } from "@/lib/types";
 import { ShortCard } from "@/components/shorts/short-card";
 import { ShortUploadDialog } from "@/components/shorts/short-upload-dialog";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
+import { ApiErrorState } from "@/components/common/api-error-state";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ShortsPage() {
-  const { data: shorts, isLoading } = useShorts();
+  const { data: shorts, isLoading, isError, error, refetch } = useShorts();
   const deleteShort = useDeleteShort();
 
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -43,18 +44,22 @@ export default function ShortsPage() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {isLoading &&
-          Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton key={index} className="aspect-[9/16] w-full" />
+      {isError && <ApiErrorState error={error} onRetry={refetch} />}
+
+      {!isError && (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {isLoading &&
+            Array.from({ length: 4 }).map((_, index) => (
+              <Skeleton key={index} className="aspect-[9/16] w-full" />
+            ))}
+
+          {shorts?.map((short) => (
+            <ShortCard key={short.id} short={short} onDelete={setDeletingShort} />
           ))}
+        </div>
+      )}
 
-        {shorts?.map((short) => (
-          <ShortCard key={short.id} short={short} onDelete={setDeletingShort} />
-        ))}
-      </div>
-
-      {shorts?.length === 0 && (
+      {!isError && shorts?.length === 0 && (
         <p className="py-12 text-center text-sm text-muted-foreground">
           No shorts yet. Upload your first clip.
         </p>

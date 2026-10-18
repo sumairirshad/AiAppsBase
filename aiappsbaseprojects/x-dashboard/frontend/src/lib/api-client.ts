@@ -1,25 +1,30 @@
 import { API_BASE_URL } from "@/lib/api-config";
 import type {
+  ConnectionStatus,
   CreatePostRequest,
   CreateScheduledPostRequest,
   CreateShortRequest,
   DashboardSummary,
+  MediaUploadResult,
   PremiumStatus,
   Post,
   Profile,
   ScheduledPost,
   Short,
-  UpdatePostRequest,
   UpdateProfileRequest,
   UpdateScheduledPostRequest,
 } from "@/lib/types";
 
 class ApiError extends Error {
   status: number;
+  code?: string;
+  retryAfterSeconds?: number | null;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, code?: string, retryAfterSeconds?: number | null) {
     super(message);
     this.status = status;
+    this.code = code;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 
@@ -27,7 +32,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers: {
-      "Content-Type": "application/json",
+      ...(init?.body && !(init.body instanceof FormData) ? { "Content-Type": "application/json" } : {}),
       ...init?.headers,
     },
     cache: "no-store",
@@ -35,7 +40,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);
-    throw new ApiError(response.status, body?.message ?? response.statusText);
+    throw new ApiError(
+      response.status,
+      body?.message ?? response.statusText,
+      body?.code,
+      body?.retryAfterSeconds
+    );
   }
 
   if (response.status === 204) {
@@ -44,6 +54,21 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   return response.json() as Promise<T>;
 }
+
+export const connectionApi = {
+  getStatus: () => request<ConnectionStatus>("/api/auth/x/status"),
+  loginUrl: () => `${API_BASE_URL}/api/auth/x/login`,
+  logout: () => request<void>("/api/auth/x/logout", { method: "POST" }),
+};
+
+export const mediaApi = {
+  upload: (file: File, kind: "image" | "video") => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("kind", kind);
+    return request<MediaUploadResult>("/api/media", { method: "POST", body: form });
+  },
+};
 
 export const dashboardApi = {
   getSummary: () => request<DashboardSummary>("/api/dashboard/summary"),
@@ -56,6 +81,16 @@ export const profileApi = {
       method: "PUT",
       body: JSON.stringify(payload),
     }),
+  uploadPicture: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return request<{ profilePictureUrl: string }>("/api/profile/picture", { method: "POST", body: form });
+  },
+  uploadBanner: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return request<{ coverImageUrl: string }>("/api/profile/banner", { method: "POST", body: form });
+  },
 };
 
 export const postsApi = {
@@ -64,11 +99,6 @@ export const postsApi = {
   create: (payload: CreatePostRequest) =>
     request<Post>("/api/posts", {
       method: "POST",
-      body: JSON.stringify(payload),
-    }),
-  update: (id: string, payload: UpdatePostRequest) =>
-    request<Post>(`/api/posts/${id}`, {
-      method: "PUT",
       body: JSON.stringify(payload),
     }),
   remove: (id: string) =>
