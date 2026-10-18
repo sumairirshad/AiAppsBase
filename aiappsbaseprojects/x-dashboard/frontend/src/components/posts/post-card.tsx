@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Heart, MessageCircle, Pin, Repeat2, BarChart3, Pencil, Trash2 } from "lucide-react";
+import { Heart, MessageCircle, Pin, Repeat2, BarChart3, Trash2 } from "lucide-react";
 
 import type { Post } from "@/lib/types";
 import { formatCompactNumber, formatDateTime } from "@/lib/format";
@@ -11,12 +11,13 @@ import { Button } from "@/components/ui/button";
 
 interface PostCardProps {
   post: Post;
-  onEdit?: (post: Post) => void;
   onDelete?: (post: Post) => void;
   onTogglePin?: (post: Post) => void;
 }
 
-export function PostCard({ post, onEdit, onDelete, onTogglePin }: PostCardProps) {
+// The X API has no endpoint to edit a published post's text or media (see README), so there is
+// intentionally no edit action here -- only pin and delete, which are both real operations.
+export function PostCard({ post, onDelete, onTogglePin }: PostCardProps) {
   return (
     <Card>
       <CardContent className="space-y-3 p-5">
@@ -36,11 +37,6 @@ export function PostCard({ post, onEdit, onDelete, onTogglePin }: PostCardProps)
             {onTogglePin && (
               <Button variant="ghost" size="icon" onClick={() => onTogglePin(post)}>
                 <Pin className="h-4 w-4" />
-              </Button>
-            )}
-            {onEdit && (
-              <Button variant="ghost" size="icon" onClick={() => onEdit(post)}>
-                <Pencil className="h-4 w-4" />
               </Button>
             )}
             {onDelete && (

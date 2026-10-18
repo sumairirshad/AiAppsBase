@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { ImagePlus, X } from "lucide-react";
+import { ImagePlus, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 
-import type { Post, PostType } from "@/lib/types";
-import { useCreatePost, useUpdatePost } from "@/hooks/use-posts";
+import type { PostType } from "@/lib/types";
+import { useCreatePost } from "@/hooks/use-posts";
+import { mediaApi, ApiError } from "@/lib/api-client";
 import {
   Dialog,
   DialogContent,
@@ -23,40 +24,54 @@ import { Input } from "@/components/ui/input";
 interface PostFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  post?: Post;
+}
+
+interface UploadedImage {
+  mediaId: string;
+  previewUrl: string;
 }
 
 const MAX_POST_LENGTH = 280;
 
-export function PostFormDialog({ open, onOpenChange, post }: PostFormDialogProps) {
+export function PostFormDialog({ open, onOpenChange }: PostFormDialogProps) {
   const [type, setType] = useState<PostType>("Text");
   const [text, setText] = useState("");
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [images, setImages] = useState<UploadedImage[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   const createPost = useCreatePost();
-  const updatePost = useUpdatePost();
-  const isPending = createPost.isPending || updatePost.isPending;
-  const isEditing = Boolean(post);
+  const isPending = createPost.isPending || isUploading;
 
   useEffect(() => {
     if (!open) {
       return;
     }
-    setType(post?.type ?? "Text");
-    setText(post?.text ?? "");
-    setImageUrls(post?.imageUrls ?? []);
-  }, [open, post]);
+    setType("Text");
+    setText("");
+    setImages([]);
+  }, [open]);
 
-  function handleFiles(files: FileList | null) {
-    if (!files) {
+  async function handleFiles(files: FileList | null) {
+    if (!files || files.length === 0) {
       return;
     }
-    const urls = Array.from(files).map((file) => URL.createObjectURL(file));
-    setImageUrls((current) => [...current, ...urls]);
+
+    setIsUploading(true);
+    try {
+      for (const file of Array.from(files)) {
+        const previewUrl = URL.createObjectURL(file);
+        const { mediaId } = await mediaApi.upload(file, "image");
+        setImages((current) => [...current, { mediaId, previewUrl }]);
+      }
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Could not upload image.");
+    } finally {
+      setIsUploading(false);
+    }
   }
 
-  function removeImage(url: string) {
-    setImageUrls((current) => current.filter((item) => item !== url));
+  function removeImage(mediaId: string) {
+    setImages((current) => current.filter((item) => item.mediaId !== mediaId));
   }
 
   function handleSubmit() {
@@ -65,44 +80,39 @@ export function PostFormDialog({ open, onOpenChange, post }: PostFormDialogProps
       return;
     }
 
-    if (type === "Image" && imageUrls.length === 0) {
+    if (type === "Image" && images.length === 0) {
       toast.error("Add at least one image.");
       return;
     }
 
-    const action =
-      isEditing && post
-        ? updatePost.mutateAsync({ id: post.id, payload: { text, imageUrls } })
-        : createPost.mutateAsync({ type, text, imageUrls });
-
-    action
+    createPost
+      .mutateAsync({ type, text, mediaIds: images.map((image) => image.mediaId) })
       .then(() => {
-        toast.success(isEditing ? "Post updated" : "Post created");
+        toast.success("Post created");
         onOpenChange(false);
       })
-      .catch(() => toast.error("Something went wrong. Please try again."));
+      .catch((error) =>
+        toast.error(error instanceof ApiError ? error.message : "Something went wrong. Please try again.")
+      );
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit post" : "New post"}</DialogTitle>
+          <DialogTitle>New post</DialogTitle>
           <DialogDescription>
-            {isEditing
-              ? "Update your post content below."
-              : "Share a text update or attach images."}
+            Share a text update or attach images. This publishes immediately to your connected
+            X account.
           </DialogDescription>
         </DialogHeader>
 
-        {!isEditing && (
-          <Tabs value={type} onValueChange={(value) => setType(value as PostType)}>
-            <TabsList>
-              <TabsTrigger value="Text">Text</TabsTrigger>
-              <TabsTrigger value="Image">Image</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        )}
+        <Tabs value={type} onValueChange={(value) => setType(value as PostType)}>
+          <TabsList>
+            <TabsTrigger value="Text">Text</TabsTrigger>
+            <TabsTrigger value="Image">Image</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         <div className="space-y-2">
           <Textarea
@@ -116,29 +126,34 @@ export function PostFormDialog({ open, onOpenChange, post }: PostFormDialogProps
           </p>
         </div>
 
-        {(type === "Image" || imageUrls.length > 0) && (
+        {(type === "Image" || images.length > 0) && (
           <div className="space-y-3">
             <div className="grid grid-cols-3 gap-2">
-              {imageUrls.map((url) => (
-                <div key={url} className="relative aspect-square overflow-hidden rounded-lg">
-                  <Image src={url} alt="" fill className="object-cover" unoptimized />
+              {images.map((image) => (
+                <div key={image.mediaId} className="relative aspect-square overflow-hidden rounded-lg">
+                  <Image src={image.previewUrl} alt="" fill className="object-cover" unoptimized />
                   <Button
                     variant="secondary"
                     size="icon"
                     className="absolute right-1 top-1 h-6 w-6"
-                    onClick={() => removeImage(url)}
+                    onClick={() => removeImage(image.mediaId)}
                   >
                     <X className="h-3 w-3" />
                   </Button>
                 </div>
               ))}
               <label className="flex aspect-square cursor-pointer items-center justify-center rounded-lg border border-dashed text-muted-foreground hover:bg-accent">
-                <ImagePlus className="h-5 w-5" />
+                {isUploading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <ImagePlus className="h-5 w-5" />
+                )}
                 <Input
                   type="file"
                   accept="image/*"
                   multiple
                   className="hidden"
+                  disabled={isUploading}
                   onChange={(event) => handleFiles(event.target.files)}
                 />
               </label>
@@ -151,7 +166,8 @@ export function PostFormDialog({ open, onOpenChange, post }: PostFormDialogProps
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={isPending}>
-            {isEditing ? "Save changes" : "Post"}
+            {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            Post
           </Button>
         </DialogFooter>
       </DialogContent>

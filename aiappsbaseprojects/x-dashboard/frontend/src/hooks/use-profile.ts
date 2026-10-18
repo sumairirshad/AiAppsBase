@@ -23,3 +23,26 @@ export function useUpdateProfile() {
     },
   });
 }
+
+export function useUploadProfilePicture() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (file: File) => profileApi.uploadPicture(file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: profileQueryKey });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+    },
+  });
+}
+
+export function useUploadProfileBanner() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (file: File) => profileApi.uploadBanner(file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: profileQueryKey });
+    },
+  });
+}

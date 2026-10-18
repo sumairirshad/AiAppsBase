@@ -1,17 +1,24 @@
 using XDashboard.Api.Models;
 using XDashboard.Api.Services.Abstractions;
 
-namespace XDashboard.Api.Services.Mock;
+namespace XDashboard.Api.Services.Scheduling;
 
+/// <summary>
+/// Scheduled-post bookkeeping. This is NOT a mock of X -- the X API has no post-scheduling
+/// endpoint at all (see README), so "scheduling" is necessarily an app-level feature: this store
+/// holds the user's intent, and SchedulerPublishingService calls the real X API to actually
+/// publish each post once its time arrives. Held in-memory for the same reason as the rest of
+/// this phase's state (see README); a production deployment should back this with a real
+/// database so scheduled posts survive a restart.
+/// </summary>
 public class InMemorySchedulerStore : ISchedulerStore
 {
     private readonly object _lock = new();
-    private readonly List<ScheduledPost> _scheduledPosts;
+    private readonly List<ScheduledPost> _scheduledPosts = new();
     private readonly IPostStore _postStore;
 
-    public InMemorySchedulerStore(SeedDataLoader seedDataLoader, IPostStore postStore)
+    public InMemorySchedulerStore(IPostStore postStore)
     {
-        _scheduledPosts = seedDataLoader.Load<List<ScheduledPost>>("scheduled-posts.json");
         _postStore = postStore;
     }
 
@@ -41,11 +48,11 @@ public class InMemorySchedulerStore : ISchedulerStore
                 Id = $"sched-{Guid.NewGuid():N}"[..14],
                 Type = request.Type,
                 Text = request.Text,
-                ImageUrls = request.ImageUrls,
+                MediaIds = request.MediaIds,
                 ScheduledFor = request.ScheduledFor,
                 Status = ScheduleStatus.Scheduled,
                 PublishedPostId = null,
-                CreatedAt = DateTimeOffset.UtcNow
+                CreatedAt = DateTimeOffset.UtcNow,
             };
             _scheduledPosts.Add(scheduled);
             return Task.FromResult(scheduled);
@@ -63,7 +70,7 @@ public class InMemorySchedulerStore : ISchedulerStore
             }
 
             scheduled.Text = request.Text;
-            scheduled.ImageUrls = request.ImageUrls;
+            scheduled.MediaIds = request.MediaIds;
             scheduled.ScheduledFor = request.ScheduledFor;
             return Task.FromResult<ScheduledPost?>(scheduled);
         }
@@ -96,13 +103,36 @@ public class InMemorySchedulerStore : ISchedulerStore
             }
         }
 
-        var published = await _postStore.AddPublishedPostAsync(scheduled.Type, scheduled.Text, scheduled.ImageUrls, cancellationToken);
+        try
+        {
+            var published = await _postStore.AddPublishedPostAsync(scheduled.Type, scheduled.Text, scheduled.MediaIds, cancellationToken);
+            lock (_lock)
+            {
+                scheduled.Status = ScheduleStatus.Published;
+                scheduled.PublishedPostId = published.Id;
+                scheduled.FailureReason = null;
+                return scheduled;
+            }
+        }
+        catch (Exception ex)
+        {
+            lock (_lock)
+            {
+                scheduled.Status = ScheduleStatus.Failed;
+                scheduled.FailureReason = ex.Message;
+                return scheduled;
+            }
+        }
+    }
 
+    /// <summary>Used by SchedulerPublishingService to find posts whose time has arrived.</summary>
+    public IReadOnlyList<ScheduledPost> GetDuePosts(DateTimeOffset asOf)
+    {
         lock (_lock)
         {
-            scheduled.Status = ScheduleStatus.Published;
-            scheduled.PublishedPostId = published.Id;
-            return scheduled;
+            return _scheduledPosts
+                .Where(s => s.Status == ScheduleStatus.Scheduled && s.ScheduledFor <= asOf)
+                .ToList();
         }
     }
 }

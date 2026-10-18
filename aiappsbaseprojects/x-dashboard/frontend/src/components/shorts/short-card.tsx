@@ -4,7 +4,6 @@ import { Eye, Heart, Trash2 } from "lucide-react";
 
 import type { Short } from "@/lib/types";
 import { formatCompactNumber } from "@/lib/format";
-import { getLocalMediaUrl } from "@/lib/local-media-cache";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,7 @@ interface ShortCardProps {
 }
 
 export function ShortCard({ short, onDelete }: ShortCardProps) {
-  const videoUrl = getLocalMediaUrl(short.id) ?? short.videoUrl;
+  const videoUrl = short.videoUrl;
 
   return (
     <Card className="overflow-hidden">

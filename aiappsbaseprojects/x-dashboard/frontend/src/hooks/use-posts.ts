@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { postsApi } from "@/lib/api-client";
-import type { CreatePostRequest, UpdatePostRequest } from "@/lib/types";
+import type { CreatePostRequest } from "@/lib/types";
 import { dashboardSummaryQueryKey } from "@/hooks/use-dashboard-summary";
 
 export const postsQueryKey = ["posts"];
@@ -25,15 +25,6 @@ export function useCreatePost() {
   const invalidate = useInvalidatePosts();
   return useMutation({
     mutationFn: (payload: CreatePostRequest) => postsApi.create(payload),
-    onSuccess: invalidate,
-  });
-}
-
-export function useUpdatePost() {
-  const invalidate = useInvalidatePosts();
-  return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: UpdatePostRequest }) =>
-      postsApi.update(id, payload),
     onSuccess: invalidate,
   });
 }

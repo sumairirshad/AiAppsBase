@@ -11,9 +11,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Update="Seed\**\*.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <!-- The test project lives in a subfolder; exclude it from this project's default globs. -->
+    <Compile Remove="XDashboard.Api.Tests/**/*.cs" />
+    <Content Remove="XDashboard.Api.Tests/**/*" />
+    <None Remove="XDashboard.Api.Tests/**/*" />
   </ItemGroup>
 
 </Project>

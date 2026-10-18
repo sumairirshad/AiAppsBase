@@ -32,9 +32,9 @@ public class ShortsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateShortRequest request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.FileName))
+        if (string.IsNullOrWhiteSpace(request.MediaId))
         {
-            return BadRequest(new { message = "A video file is required." });
+            return BadRequest(new { message = "An uploaded video is required." });
         }
 
         if (string.IsNullOrWhiteSpace(request.Caption))

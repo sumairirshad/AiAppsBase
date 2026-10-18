@@ -37,9 +37,9 @@ public class PostsController : ControllerBase
             return BadRequest(new { message = "Post text is required." });
         }
 
-        if (request.Type == PostType.Image && request.ImageUrls.Count == 0)
+        if (request.Type == PostType.Image && request.MediaIds.Count == 0)
         {
-            return BadRequest(new { message = "At least one image is required." });
+            return BadRequest(new { message = "At least one uploaded image is required." });
         }
 
         var created = await _postStore.CreatePostAsync(request, cancellationToken);

@@ -13,6 +13,8 @@ import type { ScheduledPost } from "@/lib/types";
 import { ScheduleItemCard } from "@/components/scheduler/schedule-item-card";
 import { ScheduleFormDialog } from "@/components/scheduler/schedule-form-dialog";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
+import { ApiErrorState } from "@/components/common/api-error-state";
+import { ApiError } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,7 +30,7 @@ function isSameDay(a: Date, b: Date) {
 }
 
 export default function SchedulerPage() {
-  const { data: items, isLoading } = useScheduledPosts();
+  const { data: items, isLoading, isError, error, refetch } = useScheduledPosts();
   const cancelScheduledPost = useCancelScheduledPost();
   const publishNow = usePublishScheduledPostNow();
 
@@ -83,7 +85,14 @@ export default function SchedulerPage() {
 
   function handlePublishNow(item: ScheduledPost) {
     publishNow.mutate(item.id, {
-      onSuccess: () => toast.success("Post published now"),
+      onSuccess: (result) => {
+        if (result.status === "Failed") {
+          toast.error(result.failureReason ?? "Could not publish this post to X.");
+        } else {
+          toast.success("Post published now");
+        }
+      },
+      onError: (err) => toast.error(err instanceof ApiError ? err.message : "Could not publish this post."),
     });
   }
 
@@ -99,6 +108,9 @@ export default function SchedulerPage() {
         </Button>
       </div>
 
+      {isError && <ApiErrorState error={error} onRetry={refetch} />}
+
+      {!isError && (
       <Tabs defaultValue="list">
         <TabsList>
           <TabsTrigger value="list">List</TabsTrigger>
@@ -188,6 +200,7 @@ export default function SchedulerPage() {
           </div>
         </TabsContent>
       </Tabs>
+      )}
 
       <ScheduleFormDialog
         open={formOpen}

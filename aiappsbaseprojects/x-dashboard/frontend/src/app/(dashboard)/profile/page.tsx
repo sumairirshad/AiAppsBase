@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Camera, Pin } from "lucide-react";
+import { Camera, Loader2, Pin } from "lucide-react";
 import { toast } from "sonner";
 
-import { useProfile, useUpdateProfile } from "@/hooks/use-profile";
+import { useProfile, useUpdateProfile, useUploadProfilePicture, useUploadProfileBanner } from "@/hooks/use-profile";
 import { usePosts } from "@/hooks/use-posts";
-import type { AccountType } from "@/lib/types";
+import { useConnectionStatus } from "@/hooks/use-connection";
+import { ApiError } from "@/lib/api-client";
+import { ApiErrorState } from "@/components/common/api-error-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,19 +27,37 @@ import {
 
 const BIO_LIMIT = 160;
 
+/// Reads the x_connected/x_error query params the OAuth callback redirect adds and shows a
+/// toast once. Split out so only this small piece needs the Suspense boundary useSearchParams
+/// requires for static rendering, instead of the whole page.
+function OAuthCallbackToast() {
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const connected = searchParams.get("x_connected");
+    const xError = searchParams.get("x_error");
+    if (connected === "1") {
+      toast.success("X account connected");
+    } else if (connected === "0") {
+      toast.error(xError ? `Could not connect X account: ${xError}` : "Could not connect X account.");
+    }
+    // Only meant to run once per redirect back from the OAuth callback.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return null;
+}
+
 export default function ProfilePage() {
-  const { data: profile, isLoading } = useProfile();
+  const { data: profile, isLoading, isError, error, refetch } = useProfile();
   const { data: posts } = usePosts();
+  const { data: connection } = useConnectionStatus();
   const updateProfile = useUpdateProfile();
+  const uploadPicture = useUploadProfilePicture();
+  const uploadBanner = useUploadProfileBanner();
 
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
-  const [profilePictureUrl, setProfilePictureUrl] = useState("");
-  const [coverImageUrl, setCoverImageUrl] = useState("");
-  const [accountType, setAccountType] = useState<AccountType>("Personal");
-  const [category, setCategory] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
   const [location, setLocation] = useState("");
   const [website, setWebsite] = useState("");
   const [pinnedPostId, setPinnedPostId] = useState<string | null>(null);
@@ -47,26 +68,31 @@ export default function ProfilePage() {
     }
     setDisplayName(profile.displayName);
     setBio(profile.bio);
-    setProfilePictureUrl(profile.profilePictureUrl);
-    setCoverImageUrl(profile.coverImageUrl);
-    setAccountType(profile.accountType);
-    setCategory(profile.category);
-    setPhone(profile.phone);
-    setEmail(profile.email);
     setLocation(profile.location);
     setWebsite(profile.website);
     setPinnedPostId(profile.pinnedPostId);
   }, [profile]);
 
-  function handleImagePick(
-    event: React.ChangeEvent<HTMLInputElement>,
-    setter: (url: string) => void
-  ) {
+  function handlePictureChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) {
       return;
     }
-    setter(URL.createObjectURL(file));
+    uploadPicture.mutate(file, {
+      onSuccess: () => toast.success("Profile picture updated"),
+      onError: (err) => toast.error(err instanceof ApiError ? err.message : "Could not update profile picture."),
+    });
+  }
+
+  function handleBannerChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+    uploadBanner.mutate(file, {
+      onSuccess: () => toast.success("Cover image updated"),
+      onError: (err) => toast.error(err instanceof ApiError ? err.message : "Could not update cover image."),
+    });
   }
 
   function handleSave() {
@@ -76,29 +102,17 @@ export default function ProfilePage() {
     }
 
     updateProfile.mutate(
-      {
-        displayName,
-        bio,
-        profilePictureUrl,
-        coverImageUrl,
-        accountType,
-        category,
-        phone,
-        email,
-        location,
-        website,
-        pinnedPostId,
-      },
+      { displayName, bio, location, website, pinnedPostId },
       {
         onSuccess: () => toast.success("Profile updated"),
-        onError: () => toast.error("Could not update profile."),
+        onError: (err) => toast.error(err instanceof ApiError ? err.message : "Could not update profile."),
       }
     );
   }
 
   const pinnedPost = posts?.find((post) => post.id === pinnedPostId);
 
-  if (isLoading || !profile) {
+  if (isLoading) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-40 w-full" />
@@ -107,43 +121,60 @@ export default function ProfilePage() {
     );
   }
 
+  if (isError || !profile) {
+    return <ApiErrorState error={error} onRetry={refetch} />;
+  }
+
   return (
     <div className="space-y-6">
+      <Suspense fallback={null}>
+        <OAuthCallbackToast />
+      </Suspense>
+
+      {connection && connection.connected && (
+        <p className="text-sm text-muted-foreground">
+          Connected to X as @{connection.handle}. {profile.followersCount.toLocaleString()} followers
+          &middot; {profile.followingCount.toLocaleString()} following.
+        </p>
+      )}
+
       <Card className="overflow-hidden">
         <div className="relative h-40 w-full bg-muted sm:h-56">
-          <Image
-            src={coverImageUrl}
-            alt="Cover"
-            fill
-            className="object-cover"
-            unoptimized
-          />
+          {profile.coverImageUrl && (
+            <Image src={profile.coverImageUrl} alt="Cover" fill className="object-cover" unoptimized />
+          )}
           <label className="absolute right-3 top-3 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-background/80 text-foreground hover:bg-background">
-            <Camera className="h-4 w-4" />
+            {uploadBanner.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Camera className="h-4 w-4" />
+            )}
             <input
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={(event) => handleImagePick(event, setCoverImageUrl)}
+              disabled={uploadBanner.isPending}
+              onChange={handleBannerChange}
             />
           </label>
         </div>
         <CardContent className="relative pt-16">
-          <div className="absolute -top-12 left-6 h-24 w-24 overflow-hidden rounded-full border-4 border-background">
-            <Image
-              src={profilePictureUrl}
-              alt={displayName}
-              fill
-              className="object-cover"
-              unoptimized
-            />
+          <div className="absolute -top-12 left-6 h-24 w-24 overflow-hidden rounded-full border-4 border-background bg-muted">
+            {profile.profilePictureUrl && (
+              <Image src={profile.profilePictureUrl} alt={displayName} fill className="object-cover" unoptimized />
+            )}
             <label className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/0 text-transparent hover:bg-black/40 hover:text-white">
-              <Camera className="h-5 w-5" />
+              {uploadPicture.isPending ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Camera className="h-5 w-5" />
+              )}
               <input
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={(event) => handleImagePick(event, setProfilePictureUrl)}
+                disabled={uploadPicture.isPending}
+                onChange={handlePictureChange}
               />
             </label>
           </div>
@@ -200,10 +231,7 @@ export default function ProfilePage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Account type</Label>
-              <Select
-                value={accountType}
-                onValueChange={(value) => setAccountType(value as AccountType)}
-              >
+              <Select value={profile.accountType} disabled>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -212,34 +240,24 @@ export default function ProfilePage() {
                   <SelectItem value="Business">Business</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Derived from X&apos;s verification type; not editable via the X API.
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="category">Category</Label>
-              <Input
-                id="category"
-                value={category}
-                onChange={(event) => setCategory(event.target.value)}
-              />
+              <Input id="category" value="Not available via X API" disabled />
             </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                value={phone}
-                onChange={(event) => setPhone(event.target.value)}
-              />
+              <Input id="phone" value="Not exposed by X API" disabled />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-              />
+              <Input id="email" value="Not exposed by X API" disabled />
             </div>
           </div>
 
@@ -286,6 +304,7 @@ export default function ProfilePage() {
 
           <div className="flex justify-end">
             <Button onClick={handleSave} disabled={updateProfile.isPending}>
+              {updateProfile.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               Save changes
             </Button>
           </div>

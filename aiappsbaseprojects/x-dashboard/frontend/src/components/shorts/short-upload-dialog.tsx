@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { UploadCloud } from "lucide-react";
+import { Loader2, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 
 import { useCreateShort } from "@/hooks/use-shorts";
-import { setLocalMediaUrl } from "@/lib/local-media-cache";
+import { mediaApi, ApiError } from "@/lib/api-client";
 import {
   Dialog,
   DialogContent,
@@ -29,8 +29,10 @@ export function ShortUploadDialog({ open, onOpenChange }: ShortUploadDialogProps
   const [caption, setCaption] = useState("");
   const [description, setDescription] = useState("");
   const [hashtags, setHashtags] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
 
   const createShort = useCreateShort();
+  const isPending = isUploading || createShort.isPending;
 
   function reset() {
     setFile(null);
@@ -39,7 +41,7 @@ export function ShortUploadDialog({ open, onOpenChange }: ShortUploadDialogProps
     setHashtags("");
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!file) {
       toast.error("Choose a video file first.");
       return;
@@ -54,29 +56,25 @@ export function ShortUploadDialog({ open, onOpenChange }: ShortUploadDialogProps
       .map((tag) => tag.replace(/^#/, "").trim())
       .filter(Boolean);
 
-    const objectUrl = URL.createObjectURL(file);
-
-    createShort
-      .mutateAsync({
-        fileName: file.name,
-        caption,
-        description,
-        hashtags: parsedHashtags,
-      })
-      .then((created) => {
-        setLocalMediaUrl(created.id, objectUrl);
-        toast.success("Short uploaded");
-        reset();
-        onOpenChange(false);
-      })
-      .catch(() => toast.error("Could not upload short."));
+    setIsUploading(true);
+    try {
+      const { mediaId } = await mediaApi.upload(file, "video");
+      await createShort.mutateAsync({ mediaId, caption, description, hashtags: parsedHashtags });
+      toast.success("Short published to X");
+      reset();
+      onOpenChange(false);
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Could not upload short.");
+    } finally {
+      setIsUploading(false);
+    }
   }
 
   return (
     <Dialog
       open={open}
       onOpenChange={(value) => {
-        if (!value) {
+        if (!value && !isPending) {
           reset();
         }
         onOpenChange(value);
@@ -86,7 +84,9 @@ export function ShortUploadDialog({ open, onOpenChange }: ShortUploadDialogProps
         <DialogHeader>
           <DialogTitle>Upload a short</DialogTitle>
           <DialogDescription>
-            Add a vertical video clip with a caption, description, and hashtags.
+            Add a vertical video clip with a caption, description, and hashtags. Videos are
+            uploaded to X and processed before the post goes live, which can take a little while
+            for longer clips.
           </DialogDescription>
         </DialogHeader>
 
@@ -100,6 +100,7 @@ export function ShortUploadDialog({ open, onOpenChange }: ShortUploadDialogProps
               type="file"
               accept="video/*"
               className="hidden"
+              disabled={isPending}
               onChange={(event) => setFile(event.target.files?.[0] ?? null)}
             />
           </label>
@@ -111,6 +112,7 @@ export function ShortUploadDialog({ open, onOpenChange }: ShortUploadDialogProps
               value={caption}
               onChange={(event) => setCaption(event.target.value)}
               placeholder="A catchy one-liner"
+              disabled={isPending}
             />
           </div>
 
@@ -121,6 +123,7 @@ export function ShortUploadDialog({ open, onOpenChange }: ShortUploadDialogProps
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               rows={3}
+              disabled={isPending}
             />
           </div>
 
@@ -131,16 +134,18 @@ export function ShortUploadDialog({ open, onOpenChange }: ShortUploadDialogProps
               value={hashtags}
               onChange={(event) => setHashtags(event.target.value)}
               placeholder="design, productivity, startup"
+              disabled={isPending}
             />
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={createShort.isPending}>
-            Upload
+          <Button onClick={handleSubmit} disabled={isPending}>
+            {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            {isUploading ? "Uploading..." : "Upload"}
           </Button>
         </DialogFooter>
       </DialogContent>
