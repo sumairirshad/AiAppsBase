@@ -76,10 +76,45 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       }
     }
 
-    // Fallback: a direct public-archive link. Only works for public repos, but
-    // matches the previous behavior when we don't have a usable seller token.
-    const downloadUrl = `https://github.com/${order.github_repo_name}/archive/refs/heads/${branch}.zip`
-    return NextResponse.redirect(downloadUrl)
+    // Fallback for genuinely public repos: fetch server-side (not a browser
+    // redirect — we want to control the response if this also fails) and
+    // stream it the same way as the authenticated path above.
+    try {
+      const publicRes = await fetch(
+        `https://github.com/${order.github_repo_name}/archive/refs/heads/${branch}.zip`
+      )
+
+      if (publicRes.ok && publicRes.body) {
+        const repoSlug = order.github_repo_name.split('/').pop() || 'repo'
+        return new NextResponse(publicRes.body as unknown as ReadableStream, {
+          headers: {
+            'Content-Disposition': `attachment; filename="${repoSlug}-${branch}.zip"`,
+            'Content-Type': 'application/zip',
+          },
+        })
+      }
+    } catch (err) {
+      console.error('[orders/download] public archive fetch error:', err)
+    }
+
+    // Both the authenticated and public paths failed: the repo is private
+    // and the seller's stored GitHub token is missing, invalid, lacks the
+    // 'repo' scope, or no longer has access (e.g. revoked, repo renamed).
+    // This is never fixable by the buyer — don't send them to a raw GitHub
+    // 404 page, surface a clear in-app error instead.
+    console.error(
+      '[orders/download] Unable to fetch deliverable for repo',
+      order.github_repo_name,
+      'branch', branch,
+      '- seller GitHub token missing/invalid or repo/branch inaccessible'
+    )
+    return NextResponse.json(
+      {
+        error:
+          "This product's files couldn't be retrieved. The seller's GitHub connection needs to be reconnected — please contact support or the seller.",
+      },
+      { status: 502 }
+    )
   }
 
   if (order.deliverable_remote_path) {
