@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getClientIp, isAdminGuardError, logAdminAction, requireAdmin } from '@/lib/admin'
 import { sendModerationDecisionEmail } from '@/lib/email'
+import { snapshotGithubRepo } from '@/lib/github-snapshot'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const guard = await requireAdmin()
@@ -22,7 +23,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   try {
     const existing = await query(
-      `SELECT p.id, p.title, p.status, u.email AS seller_email, u.email_notifications_enabled
+      `SELECT p.id, p.title, p.status, p.seller_id, p.github_repo_name, p.github_default_branch,
+              u.email AS seller_email, u.email_notifications_enabled
        FROM products p JOIN users u ON p.seller_id = u.id
        WHERE p.id = $1`,
       [params.id]
@@ -31,6 +33,30 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       return NextResponse.json({ error: 'Product not found' }, { status: 404 })
     }
     const before = existing.rows[0] as any
+
+    // A GitHub-sourced listing is only approved once its repo archive has
+    // actually been fetched and stored — never on trust that it still will
+    // be. This re-verifies seller authorization, repo existence, and the
+    // selected branch (not just whatever was true at submission time, which
+    // may have changed), then snapshots the archive into the same storage
+    // manual-upload products use. If any of that fails, approval is refused
+    // outright and the product's status is left untouched.
+    if (status === 'approved' && before.github_repo_name) {
+      const snapshot = await snapshotGithubRepo(
+        params.id,
+        before.seller_id,
+        before.github_repo_name,
+        before.github_default_branch || 'main'
+      )
+      if (!snapshot.ok) {
+        return NextResponse.json(
+          {
+            error: `Could not approve: the repository archive could not be fetched and stored. ${snapshot.error}`,
+          },
+          { status: 502 }
+        )
+      }
+    }
 
     // Surface the reason to the seller for a rejection; clear any stale
     // reason once the product moves to any other status.

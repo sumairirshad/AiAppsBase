@@ -5,6 +5,15 @@ import { getSessionUserId } from '@/lib/session'
 import { downloadDeliverableStream } from '@/lib/sftp'
 import { decryptToken } from '@/lib/token-crypto'
 
+function streamDeliverable(webStream: ReadableStream, fileName: string, size?: number, contentType = 'application/octet-stream') {
+  const headers: Record<string, string> = {
+    'Content-Disposition': `attachment; filename="${fileName.replace(/"/g, '')}"`,
+    'Content-Type': contentType,
+  }
+  if (size) headers['Content-Length'] = String(size)
+  return new NextResponse(webStream, { headers })
+}
+
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const userId = await getSessionUserId()
   if (!userId) {
@@ -36,13 +45,37 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: 'This order is not eligible for download' }, { status: 400 })
   }
 
+  // Primary path, for every manual-upload product and every GitHub-sourced
+  // product that has been through admin-approval snapshotting (see
+  // @/lib/github-snapshot): the deliverable already sits in our own SFTP
+  // storage, so this never depends on GitHub, the seller's token, or
+  // anything the buyer does or doesn't have — identical code path for
+  // public and private repos, and for buyers with or without a GitHub
+  // account. The remote path itself is never sent to the client; only the
+  // streamed bytes are.
+  if (order.deliverable_remote_path) {
+    try {
+      const { stream, size } = await downloadDeliverableStream(order.deliverable_remote_path)
+      const webStream = Readable.toWeb(stream as Readable) as ReadableStream
+      return streamDeliverable(webStream, order.deliverable_original_name || 'download', size)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      console.error('[orders/download] SFTP fetch failed:', message, err)
+      return NextResponse.json({ error: 'Could not reach file storage server' }, { status: 502 })
+    }
+  }
+
+  // Legacy fallback: a GitHub-sourced product approved before snapshotting
+  // existed has github_repo_name set but no stored deliverable yet. Rather
+  // than breaking downloads for buyers who already paid for one of these,
+  // fetch it live the same way the old code path did. New approvals always
+  // populate deliverable_remote_path above instead, so this branch should
+  // only ever fire for pre-migration listings (and will stop firing for a
+  // given product the moment a seller syncs or an admin re-approves it).
   if (order.github_repo_name) {
     const branch = order.github_default_branch || 'main'
     const accessToken = decryptToken(order.seller_github_access_token)
 
-    // Private repos need an authenticated request — a plain redirect can't carry
-    // an Authorization header through the browser. Fetch server-side and stream
-    // the archive back to the buyer instead.
     if (accessToken) {
       try {
         const ghRes = await fetch(
@@ -58,27 +91,19 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
         if (ghRes.ok && ghRes.body) {
           const repoSlug = order.github_repo_name.split('/').pop() || 'repo'
-          return new NextResponse(ghRes.body as unknown as ReadableStream, {
-            headers: {
-              'Content-Disposition': `attachment; filename="${repoSlug}-${branch}.zip"`,
-              'Content-Type': 'application/zip',
-            },
-          })
+          return streamDeliverable(ghRes.body as unknown as ReadableStream, `${repoSlug}-${branch}.zip`, undefined, 'application/zip')
         }
 
         console.error(
-          '[orders/download] GitHub zipball fetch failed:',
+          '[orders/download] legacy GitHub zipball fetch failed:',
           ghRes.status,
           await ghRes.text().catch(() => '')
         )
       } catch (err) {
-        console.error('[orders/download] GitHub zipball fetch error:', err)
+        console.error('[orders/download] legacy GitHub zipball fetch error:', err)
       }
     }
 
-    // Fallback for genuinely public repos: fetch server-side (not a browser
-    // redirect — we want to control the response if this also fails) and
-    // stream it the same way as the authenticated path above.
     try {
       const publicRes = await fetch(
         `https://github.com/${order.github_repo_name}/archive/refs/heads/${branch}.zip`
@@ -86,27 +111,16 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
       if (publicRes.ok && publicRes.body) {
         const repoSlug = order.github_repo_name.split('/').pop() || 'repo'
-        return new NextResponse(publicRes.body as unknown as ReadableStream, {
-          headers: {
-            'Content-Disposition': `attachment; filename="${repoSlug}-${branch}.zip"`,
-            'Content-Type': 'application/zip',
-          },
-        })
+        return streamDeliverable(publicRes.body as unknown as ReadableStream, `${repoSlug}-${branch}.zip`, undefined, 'application/zip')
       }
     } catch (err) {
-      console.error('[orders/download] public archive fetch error:', err)
+      console.error('[orders/download] legacy public archive fetch error:', err)
     }
 
-    // Both the authenticated and public paths failed: the repo is private
-    // and the seller's stored GitHub token is missing, invalid, lacks the
-    // 'repo' scope, or no longer has access (e.g. revoked, repo renamed).
-    // This is never fixable by the buyer — don't send them to a raw GitHub
-    // 404 page, surface a clear in-app error instead.
     console.error(
-      '[orders/download] Unable to fetch deliverable for repo',
+      '[orders/download] Unable to fetch legacy (pre-snapshot) deliverable for repo',
       order.github_repo_name,
-      'branch', branch,
-      '- seller GitHub token missing/invalid or repo/branch inaccessible'
+      'branch', branch
     )
     return NextResponse.json(
       {
@@ -115,26 +129,6 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       },
       { status: 502 }
     )
-  }
-
-  if (order.deliverable_remote_path) {
-    try {
-      const { stream, size } = await downloadDeliverableStream(order.deliverable_remote_path)
-      const webStream = Readable.toWeb(stream as Readable) as ReadableStream
-
-      const fileName = order.deliverable_original_name || 'download'
-      const headers: Record<string, string> = {
-        'Content-Disposition': `attachment; filename="${fileName.replace(/"/g, '')}"`,
-        'Content-Type': 'application/octet-stream',
-      }
-      if (size) headers['Content-Length'] = String(size)
-
-      return new NextResponse(webStream, { headers })
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error'
-      console.error('[orders/download] SFTP fetch failed:', message, err)
-      return NextResponse.json({ error: 'Could not reach file storage server' }, { status: 502 })
-    }
   }
 
   return NextResponse.json({ error: 'No downloadable file for this product' }, { status: 404 })

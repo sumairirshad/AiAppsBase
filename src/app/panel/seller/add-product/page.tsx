@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import {
   ArrowLeft, ArrowRight, Check, Upload, Tag, Cpu, Image as ImageIcon, DollarSign,
   ClipboardList, Github, Star, Search, Loader2, ExternalLink,
-  RefreshCw, AlertCircle, Zap, FileArchive, X,
+  RefreshCw, AlertCircle, Zap, FileArchive, X, Lock, Globe,
 } from 'lucide-react'
 import type { AITool, Category, TechStack, HumanModLevel, LicenseType } from '@/types'
 import toast from 'react-hot-toast'
@@ -23,6 +23,9 @@ import { Progress } from '@/components/ui/progress'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
+import {
+  Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription,
+} from '@/components/ui/dialog'
 
 const MANUAL_STEPS = [
   { label: 'Basic Info', icon: ClipboardList },
@@ -71,6 +74,7 @@ interface GithubRepo {
   defaultBranch: string
   htmlUrl: string
   topics: string[]
+  private: boolean
 }
 
 /* Reusable chip toggle */
@@ -132,6 +136,7 @@ function AddProductContent() {
   const [ghPrice, setGhPrice] = useState('')
   const [ghLicenseType, setGhLicenseType] = useState<LicenseType | ''>('')
   const [ghSubmitting, setGhSubmitting] = useState(false)
+  const [ghReviewOpen, setGhReviewOpen] = useState(false)
 
   const selectRepo = useCallback((repo: GithubRepo) => {
     setGhSelectedRepo(repo)
@@ -249,11 +254,11 @@ function AddProductContent() {
     }
   }
 
-  const handleGhSubmit = async () => {
-    if (!ghSelectedRepo) { toast.error('Please select a repository'); return }
+  const handleGhSubmit = async (): Promise<boolean> => {
+    if (!ghSelectedRepo) { toast.error('Please select a repository'); return false }
     if (!ghTitle.trim() || !ghCategory || !ghLicenseType) {
       toast.error('Please fill in title, category and license type')
-      return
+      return false
     }
 
     setGhSubmitting(true)
@@ -279,8 +284,10 @@ function AddProductContent() {
       toast.success('Repo listed! It will go live after admin approval.')
       router.push('/panel/seller/products')
       router.refresh()
+      return true
     } catch (err) {
       toast.error((err as Error).message)
+      return false
     } finally {
       setGhSubmitting(false)
     }
@@ -748,7 +755,12 @@ function AddProductContent() {
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Zap className="size-3.5" /> Product goes live after admin approval
                 </div>
-                <Button variant="gradient" onClick={handleGhSubmit} disabled={!ghSelectedRepo} loading={ghSubmitting}>
+                <Button
+                  variant="gradient"
+                  onClick={() => setGhReviewOpen(true)}
+                  disabled={!ghSelectedRepo || !ghTitle.trim() || !ghCategory || !ghLicenseType}
+                  loading={ghSubmitting}
+                >
                   <Check className="size-4" /> Submit for review
                 </Button>
               </div>
@@ -756,6 +768,65 @@ function AddProductContent() {
           )}
         </div>
       )}
+
+      <Dialog open={ghReviewOpen} onOpenChange={setGhReviewOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm repository access for buyers</DialogTitle>
+            <DialogDescription>
+              Review how this listing will be delivered before it goes to admin for approval.
+            </DialogDescription>
+          </DialogHeader>
+
+          {ghSelectedRepo && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 p-3">
+                <Github className="size-4 shrink-0 text-muted-foreground" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{ghSelectedRepo.fullName}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">Branch: {ghSelectedRepo.defaultBranch}</p>
+                </div>
+                <Badge variant={ghSelectedRepo.private ? 'warning' : 'success'} className="shrink-0 gap-1">
+                  {ghSelectedRepo.private ? <Lock className="size-3" /> : <Globe className="size-3" />}
+                  {ghSelectedRepo.private ? 'Private' : 'Public'}
+                </Badge>
+              </div>
+
+              {ghSelectedRepo.private ? (
+                <p className="text-sm text-muted-foreground">
+                  This repository is private. We&apos;ll securely fetch and store a copy of it using your GitHub
+                  connection, and deliver it to each buyer directly from our own storage after purchase. Buyers
+                  never get direct GitHub access to your repository, and you don&apos;t need to invite anyone as a
+                  collaborator. Keep your GitHub connection active (GitHub → Settings → Applications) so we can
+                  keep delivering updates when you publish new changes — if the repo belongs to an organization,
+                  the org owner may also need to approve access for our app.
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  This repository is public. Buyers will be able to download it immediately after purchase — no
+                  further action is needed from you.
+                </p>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setGhReviewOpen(false)} disabled={ghSubmitting}>
+              Cancel
+            </Button>
+            <Button
+              variant="gradient"
+              loading={ghSubmitting}
+              disabled={ghSubmitting}
+              onClick={async () => {
+                if (await handleGhSubmit()) setGhReviewOpen(false)
+              }}
+            >
+              Confirm & submit
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
