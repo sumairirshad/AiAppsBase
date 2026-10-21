@@ -1,0 +1,21 @@
+# Build output
+bin/
+obj/
+
+# Local secrets / environment overrides (never commit real credentials)
+.env
+.env.*
+!.env.example
+appsettings.Local.json
+appsettings.*.Local.json
+
+# Locally uploaded media (runtime storage, not source)
+src/Tisoro.LinkedIn.Api/App_Data/
+
+# IDE / OS
+.vs/
+*.user
+.DS_Store
+
+# Test results
+TestResults/
