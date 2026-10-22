@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
 
   // Fetch product
   const productRes = await query(
-    `SELECT id, title, price, seller_id FROM products WHERE id = $1 AND status = 'approved'`,
+    `SELECT id, title, price, seller_id, current_version_id FROM products WHERE id = $1 AND status = 'approved'`,
     [productId]
   )
   if ((productRes.rowCount ?? 0) === 0) {
@@ -44,13 +44,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Cannot purchase your own product' }, { status: 403 })
   }
 
-  // Prevent duplicate purchase
-  const existing = await query(
-    `SELECT id FROM orders WHERE product_id = $1 AND buyer_id = $2`,
-    [productId, userId]
-  )
-  if ((existing.rowCount ?? 0) > 0) {
-    return NextResponse.json({ error: 'You already own this product' }, { status: 409 })
+  // Block only a duplicate purchase of the exact version currently
+  // published — a buyer who already owns an older version is allowed to buy
+  // again to get a newer one (each purchase binds to its own
+  // product_version_id; see completeCheckoutSession in lib/orders.ts).
+  if (product.current_version_id) {
+    const existing = await query(
+      `SELECT id FROM orders WHERE product_id = $1 AND buyer_id = $2 AND product_version_id = $3 AND status = 'completed'`,
+      [productId, userId, product.current_version_id]
+    )
+    if ((existing.rowCount ?? 0) > 0) {
+      return NextResponse.json({ error: 'You already own the current version of this product' }, { status: 409 })
+    }
   }
 
   // Charge the price for the selected license tier, not the product's flat
@@ -98,12 +103,16 @@ export async function POST(req: NextRequest) {
       expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
     })
 
-    // Persist session in DB for idempotency & expiry tracking
+    // Persist session in DB for idempotency & expiry tracking. The currently
+    // published version is snapshotted now, at checkout-creation time, so
+    // the order this session eventually produces is bound to the version
+    // the buyer actually saw/paid for — even if the seller publishes a
+    // newer one while this Stripe session is still open.
     await query(
       `INSERT INTO checkout_sessions
-         (stripe_session_id, user_id, product_id, license_type, amount, expires_at)
-       VALUES ($1, $2, $3, $4, $5, to_timestamp($6))`,
-      [session.id, userId, productId, licenseType, amount, session.expires_at]
+         (stripe_session_id, user_id, product_id, license_type, amount, expires_at, product_version_id)
+       VALUES ($1, $2, $3, $4, $5, to_timestamp($6), $7)`,
+      [session.id, userId, productId, licenseType, amount, session.expires_at, product.current_version_id ?? null]
     )
 
     return NextResponse.json({ url: session.url })

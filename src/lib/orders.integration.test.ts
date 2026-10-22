@@ -4,7 +4,9 @@ import { isDatabaseConfigured, query } from './db'
 import {
   createTestUser,
   createTestProduct,
+  createTestProductVersion,
   createTestCheckoutSession,
+  createTestOrder,
   cleanupTestUsers,
 } from '@/test/db-test-helpers'
 import { computeLicensePrice } from './license-pricing'
@@ -91,5 +93,65 @@ describe.skipIf(!isDatabaseConfigured())('completeCheckoutSession', () => {
     )
     expect(sessions.rowCount).toBe(2)
     expect(sessions.rows.every((r) => r.status === 'completed')).toBe(true)
+  })
+
+  it('binds the order to the version snapshotted on the checkout session, not the product\'s current version', async () => {
+    const seller = await createTestUser({ role: 'seller' })
+    const buyer = await createTestUser({ role: 'buyer' })
+    createdUserIds.push(seller.id, buyer.id)
+    const productId = await createTestProduct(seller.id, { price: 20 })
+    const v1 = await createTestProductVersion(productId, seller.id, { version: '1.0.0' })
+
+    const stripeSessionId = await createTestCheckoutSession(buyer.id, productId, { amount: 20, productVersionId: v1 })
+
+    // Seller publishes v2 while the buyer's checkout is still in flight.
+    await createTestProductVersion(productId, seller.id, { version: '2.0.0' })
+
+    await completeCheckoutSession(stripeSessionId, 'pi_test_version_snapshot')
+
+    const order = await query<{ product_version_id: string }>(
+      'SELECT product_version_id FROM orders WHERE buyer_id = $1 AND product_id = $2',
+      [buyer.id, productId]
+    )
+    expect(order.rows[0].product_version_id).toBe(v1)
+  })
+
+  it('a buyer can repurchase after a new version ships, and each order resolves to its own version', async () => {
+    const seller = await createTestUser({ role: 'seller' })
+    const buyer = await createTestUser({ role: 'buyer' })
+    createdUserIds.push(seller.id, buyer.id)
+    const productId = await createTestProduct(seller.id, { price: 20 })
+    const v1 = await createTestProductVersion(productId, seller.id, { version: '1.0.0' })
+
+    const firstOrderId = await createTestOrder(buyer.id, productId, { productVersionId: v1, amount: 20 })
+
+    const v2 = await createTestProductVersion(productId, seller.id, { version: '2.0.0' })
+    const secondSession = await createTestCheckoutSession(buyer.id, productId, { amount: 20, productVersionId: v2 })
+    await completeCheckoutSession(secondSession, 'pi_test_repurchase')
+
+    const orders = await query<{ id: string; product_version_id: string }>(
+      'SELECT id, product_version_id FROM orders WHERE buyer_id = $1 AND product_id = $2 ORDER BY created_at',
+      [buyer.id, productId]
+    )
+    expect(orders.rowCount).toBe(2)
+    expect(orders.rows.find((o) => o.id === firstOrderId)?.product_version_id).toBe(v1)
+    expect(orders.rows.find((o) => o.id !== firstOrderId)?.product_version_id).toBe(v2)
+  })
+
+  it('does not create a second order for the exact same (buyer, product, version) even via two different sessions', async () => {
+    const seller = await createTestUser({ role: 'seller' })
+    const buyer = await createTestUser({ role: 'buyer' })
+    createdUserIds.push(seller.id, buyer.id)
+    const productId = await createTestProduct(seller.id, { price: 20 })
+    const v1 = await createTestProductVersion(productId, seller.id, { version: '1.0.0' })
+
+    const sessionA = await createTestCheckoutSession(buyer.id, productId, { amount: 20, productVersionId: v1 })
+    await completeCheckoutSession(sessionA, 'pi_test_dup_version_a')
+
+    const sessionB = await createTestCheckoutSession(buyer.id, productId, { amount: 20, productVersionId: v1 })
+    await completeCheckoutSession(sessionB, 'pi_test_dup_version_b')
+
+    const orders = await query('SELECT id FROM orders WHERE buyer_id = $1 AND product_id = $2', [buyer.id, productId])
+    expect(orders.rowCount).toBe(1)
   })
 })

@@ -82,6 +82,69 @@ export async function uploadDeliverable(
   }
 }
 
+/** The remote path a given product version's deliverable (upload or GitHub snapshot) is stored at. */
+export function buildVersionRemotePath(productId: string, versionId: string, originalFileName: string): string {
+  const { remoteDir } = sftpConfig()
+  return `${remoteDir}/${productId}/versions/${versionId}-${safeFileName(originalFileName)}`
+}
+
+/**
+ * Streams a deliverable of any size straight into SFTP storage without ever
+ * buffering it in server memory — `source` is piped directly into the SFTP
+ * connection's `put`, so memory use stays flat regardless of file size.
+ *
+ * Written to a `.part` temp path first and renamed into place only once the
+ * transfer fully succeeds, so a connection drop or any other failure mid-
+ * transfer can never leave a half-written file visible at the real path
+ * (the "is a product published before its deliverable is safely stored and
+ * verified" requirement). The temp file is removed on any failure.
+ *
+ * Unlike the buffered uploadDeliverable/uploadProductImages above, a
+ * dropped connection here can't be transparently retried from a fresh
+ * connection — the data source is a one-shot stream (ultimately the
+ * buyer's/seller's HTTP request body), not a Buffer still sitting in
+ * memory, so there's nothing to resend without the client restarting the
+ * upload. Callers should surface a clear "please retry the upload" error
+ * rather than attempting an internal retry here.
+ */
+export async function uploadStreamToDeliverablePath(
+  source: NodeJS.ReadableStream,
+  remotePath: string
+): Promise<void> {
+  const { remoteDir: _remoteDir, ...connectConfig } = sftpConfig()
+  const client = new SftpClient()
+  const dir = remotePath.slice(0, remotePath.lastIndexOf('/'))
+  const tempPath = `${remotePath}.part`
+  const guard = guardAgainstDroppedConnection(client)
+
+  try {
+    await guard(client.connect(connectConfig))
+    await guard(mkdirTolerant(client, dir, { remotePath: dir }))
+    await guard(client.put(source as any, tempPath))
+    await guard(client.rename(tempPath, remotePath))
+  } catch (err) {
+    await client.delete(tempPath).catch(() => {})
+    throw err
+  } finally {
+    await client.end().catch(() => {})
+  }
+}
+
+/** Remote file size, or null if it can't be stat'd (e.g. it doesn't exist). */
+export async function statRemoteDeliverable(remotePath: string): Promise<number | null> {
+  const { remoteDir: _remoteDir, ...connectConfig } = sftpConfig()
+  const client = new SftpClient()
+  try {
+    await client.connect(connectConfig)
+    const stat = await client.stat(remotePath)
+    return stat.size
+  } catch {
+    return null
+  } finally {
+    await client.end().catch(() => {})
+  }
+}
+
 export async function deleteDeliverable(remotePath: string): Promise<void> {
   const { remoteDir: _remoteDir, ...connectConfig } = sftpConfig()
   const client = new SftpClient()

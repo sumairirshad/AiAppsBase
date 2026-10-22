@@ -51,19 +51,56 @@ export async function createTestProduct(
   return id
 }
 
+export async function createTestProductVersion(
+  productId: string,
+  sellerId: string,
+  opts: Partial<{
+    version: string
+    status: 'publishing' | 'published' | 'failed'
+    deliveryType: 'upload' | 'github'
+    deliverableRemotePath: string | null
+    setAsCurrent: boolean
+  }> = {}
+): Promise<string> {
+  const status = opts.status ?? 'published'
+  const deliveryType = opts.deliveryType ?? 'upload'
+  const deliverableRemotePath =
+    'deliverableRemotePath' in opts ? opts.deliverableRemotePath : status === 'published' ? '/remote/test-file.zip' : null
+  const res = await query<{ id: string }>(
+    `INSERT INTO product_versions (product_id, seller_id, version, delivery_type, status, deliverable_remote_path, published_at)
+     VALUES ($1, $2, $3, $4, $5, $6, CASE WHEN $5 = 'published' THEN NOW() ELSE NULL END)
+     RETURNING id`,
+    [productId, sellerId, opts.version ?? '1.0.0', deliveryType, status, deliverableRemotePath]
+  )
+  const versionId = res.rows[0].id
+  if (opts.setAsCurrent ?? status === 'published') {
+    await query('UPDATE products SET current_version_id = $1 WHERE id = $2', [versionId, productId])
+  }
+  return versionId
+}
+
 export async function createTestOrder(
   buyerId: string,
   productId: string,
-  opts: Partial<{ amount: number; status: string; stripePaymentIntentId: string | null }> = {}
+  opts: Partial<{
+    amount: number
+    status: string
+    stripePaymentIntentId: string | null
+    productVersionId: string | null
+    stripeCheckoutSessionId: string | null
+  }> = {}
 ): Promise<string> {
   // ?? would treat an explicit null the same as "not provided" and
   // substitute the default — tests need to pass null on purpose to
   // simulate an order with no linked Stripe payment.
   const stripePaymentIntentId = 'stripePaymentIntentId' in opts ? opts.stripePaymentIntentId : 'pi_test_123'
   const res = await query<{ id: string }>(
-    `INSERT INTO orders (product_id, buyer_id, amount, license_type, status, stripe_payment_intent_id)
-     VALUES ($1, $2, $3, 'commercial', $4, $5) RETURNING id`,
-    [productId, buyerId, opts.amount ?? 20, opts.status ?? 'completed', stripePaymentIntentId]
+    `INSERT INTO orders (product_id, buyer_id, amount, license_type, status, stripe_payment_intent_id, product_version_id, stripe_checkout_session_id)
+     VALUES ($1, $2, $3, 'commercial', $4, $5, $6, $7) RETURNING id`,
+    [
+      productId, buyerId, opts.amount ?? 20, opts.status ?? 'completed', stripePaymentIntentId,
+      opts.productVersionId ?? null, opts.stripeCheckoutSessionId ?? null,
+    ]
   )
   return res.rows[0].id
 }
@@ -86,13 +123,13 @@ export async function createTestWithdrawal(
 export async function createTestCheckoutSession(
   userId: string,
   productId: string,
-  opts: Partial<{ amount: number; licenseType: string; status: string; stripeSessionId: string }> = {}
+  opts: Partial<{ amount: number; licenseType: string; status: string; stripeSessionId: string; productVersionId: string | null }> = {}
 ): Promise<string> {
   const stripeSessionId = opts.stripeSessionId ?? `cs_test_${randomUUID()}`
   await query(
-    `INSERT INTO checkout_sessions (stripe_session_id, user_id, product_id, license_type, amount, status, expires_at)
-     VALUES ($1, $2, $3, $4, $5, $6, NOW() + interval '30 minutes')`,
-    [stripeSessionId, userId, productId, opts.licenseType ?? 'commercial', opts.amount ?? 20, opts.status ?? 'pending']
+    `INSERT INTO checkout_sessions (stripe_session_id, user_id, product_id, license_type, amount, status, expires_at, product_version_id)
+     VALUES ($1, $2, $3, $4, $5, $6, NOW() + interval '30 minutes', $7)`,
+    [stripeSessionId, userId, productId, opts.licenseType ?? 'commercial', opts.amount ?? 20, opts.status ?? 'pending', opts.productVersionId ?? null]
   )
   return stripeSessionId
 }

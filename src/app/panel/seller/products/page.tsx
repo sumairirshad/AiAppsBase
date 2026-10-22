@@ -216,6 +216,13 @@ export default function MyProductsPage() {
                       <Edit className="size-4" />
                     </Link>
                     <Link
+                      href={`/panel/seller/products/${product.id}/versions`}
+                      className="grid size-8 place-items-center rounded-lg border border-border bg-muted/40 text-muted-foreground transition-colors hover:text-primary"
+                      title="Publish new version"
+                    >
+                      <Rocket className="size-4" />
+                    </Link>
+                    <Link
                       href={`/panel/seller/products/${product.id}/changelog`}
                       className="grid size-8 place-items-center rounded-lg border border-border bg-muted/40 text-muted-foreground transition-colors hover:text-primary"
                       title="Changelog"

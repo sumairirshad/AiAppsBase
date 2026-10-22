@@ -85,7 +85,9 @@ export async function POST(req: NextRequest) {
     const licenseType = formData.get('licenseType') as string
     const tags = JSON.parse(formData.get('tags') as string || '[]')
     const githubRepoName = (formData.get('githubRepoName') as string) || null
-    const githubDefaultBranch = (formData.get('githubDefaultBranch') as string) || null
+    // Overwritten below with the server-verified value once ownership is
+    // checked — never trust the client's claim about which branch is default.
+    let githubDefaultBranch = (formData.get('githubDefaultBranch') as string) || null
 
     if (!title || !description || !category || !humanModLevel || !licenseType) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -229,6 +231,14 @@ export async function POST(req: NextRequest) {
           deliverableSizeBytes,
         ]
       )).rows[0].id)
+
+      // The uploaded file is already this product's "version 1.0.0" — wire
+      // it into the version system from the start so it has real history
+      // and every future "publish new version" has something to diff
+      // against, instead of only existing as a bare products.* column.
+      await createInitialPublishedVersion(id, userId, 'upload', {
+        deliverableRemotePath, deliverableOriginalName, deliverableSizeBytes,
+      })
 
       return NextResponse.json({ ok: true, id })
     }
