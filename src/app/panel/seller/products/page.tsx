@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { PlusCircle, Edit, Trash2, Eye, History, RefreshCw, Rocket } from 'lucide-react'
+import { PlusCircle, Edit, Trash2, Eye, History, RefreshCw, UploadCloud, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 import { cn } from '@/lib/utils'
@@ -28,6 +28,7 @@ export default function MyProductsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [confirmTarget, setConfirmTarget] = useState<any | null>(null)
   const [refreshingId, setRefreshingId] = useState<string | null>(null)
+  const [syncingId, setSyncingId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchProducts()
@@ -76,6 +77,33 @@ export default function MyProductsPage() {
       toast.error((err as Error).message)
     } finally {
       setRefreshingId(null)
+    }
+  }
+
+  // Re-fetches and re-stores the repo archive buyers actually download —
+  // use this to publish repo updates, or to retry after a failed snapshot
+  // (e.g. once GitHub has been reconnected).
+  const syncGithubSnapshot = async (productId: string) => {
+    setSyncingId(productId)
+    try {
+      const res = await fetch(`/api/products/${productId}/sync-github-snapshot`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to sync repository snapshot')
+      setProducts((prev) => prev.map((p) => (
+        p.id === productId
+          ? { ...p, github_snapshot_status: 'ready', github_snapshot_error: null, status: data.statusReset ? 'pending' : p.status }
+          : p
+      )))
+      toast.success(data.statusReset
+        ? 'Snapshot refreshed — this listing is back in review since its content changed'
+        : 'Snapshot refreshed — buyers will now get the latest version')
+    } catch (err) {
+      setProducts((prev) => prev.map((p) => (
+        p.id === productId ? { ...p, github_snapshot_status: 'failed', github_snapshot_error: (err as Error).message } : p
+      )))
+      toast.error((err as Error).message)
+    } finally {
+      setSyncingId(null)
     }
   }
 
@@ -141,6 +169,18 @@ export default function MyProductsPage() {
                       Rejected: {product.rejection_reason}
                     </p>
                   )}
+                  {product.github_repo_name && product.github_snapshot_status === 'failed' && (
+                    <div className="mt-2 flex items-start gap-2 rounded-md bg-destructive/10 px-2.5 py-1.5 text-xs text-destructive">
+                      <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+                      <span>
+                        {product.deliverable_remote_path
+                          ? 'Buyers still get the last working snapshot, but a newer sync failed: '
+                          : "Buyers can't download this product yet: "}
+                        {product.github_snapshot_error || 'the last snapshot attempt failed.'}{' '}
+                        <Link href="/panel/seller/github" className="underline underline-offset-2">Reconnect GitHub</Link>, then sync again.
+                      </span>
+                    </div>
+                  )}
                   {product.status === 'rejected' && (
                     <Button asChild size="sm" variant="outline" className="mt-2 w-full">
                       <Link href={`/panel/seller/edit-product/${product.id}`}>
@@ -190,14 +230,27 @@ export default function MyProductsPage() {
                       <History className="size-4" />
                     </Link>
                     {product.github_repo_name && (
-                      <button
-                        onClick={() => refreshGithubStats(product.id)}
-                        disabled={refreshingId === product.id}
-                        className="grid size-8 place-items-center rounded-lg border border-border bg-muted/40 text-muted-foreground transition-colors hover:text-primary disabled:opacity-50"
-                        title="Refresh GitHub stats"
-                      >
-                        <RefreshCw className={cn('size-4', refreshingId === product.id && 'animate-spin')} />
-                      </button>
+                      <>
+                        <button
+                          onClick={() => refreshGithubStats(product.id)}
+                          disabled={refreshingId === product.id}
+                          className="grid size-8 place-items-center rounded-lg border border-border bg-muted/40 text-muted-foreground transition-colors hover:text-primary disabled:opacity-50"
+                          title="Refresh GitHub stats"
+                        >
+                          <RefreshCw className={cn('size-4', refreshingId === product.id && 'animate-spin')} />
+                        </button>
+                        <button
+                          onClick={() => syncGithubSnapshot(product.id)}
+                          disabled={syncingId === product.id}
+                          className={cn(
+                            'grid size-8 place-items-center rounded-lg border bg-muted/40 text-muted-foreground transition-colors hover:text-primary disabled:opacity-50',
+                            product.github_snapshot_status === 'failed' ? 'border-destructive/40' : 'border-border'
+                          )}
+                          title="Sync repository snapshot (publish latest changes to buyers)"
+                        >
+                          <UploadCloud className={cn('size-4', syncingId === product.id && 'animate-pulse')} />
+                        </button>
+                      </>
                     )}
                     <button
                       onClick={() => setConfirmTarget(product)}
