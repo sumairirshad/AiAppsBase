@@ -139,3 +139,6 @@ static void ValidateRequiredConfiguration(IServiceProvider services, IWebHostEnv
 
     throw new InvalidOperationException(message);
 }
+
+/// <summary>Exposed so WebApplicationFactory&lt;Program&gt; can host this app in integration tests.</summary>
+public partial class Program { }

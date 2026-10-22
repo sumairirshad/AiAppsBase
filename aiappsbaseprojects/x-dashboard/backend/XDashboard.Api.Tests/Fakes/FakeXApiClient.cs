@@ -12,7 +12,13 @@ public class FakeXApiClient : IXApiClient
 {
     public XUser Me { get; set; } = new();
 
-    public Task<XUser> GetMeAsync(CancellationToken cancellationToken = default) => Task.FromResult(Me);
+    /// <summary>When set, GetMeAsync throws this instead of returning <see cref="Me"/> -- lets a
+    /// test simulate "not connected" or a real X API failure (rate limit, etc) reaching the
+    /// controller/exception-middleware layer without any network access.</summary>
+    public Exception? GetMeException { get; set; }
+
+    public Task<XUser> GetMeAsync(CancellationToken cancellationToken = default) =>
+        GetMeException is null ? Task.FromResult(Me) : Task.FromException<XUser>(GetMeException);
 
     public Task<TweetsPage> GetUserTweetsAsync(string userId, string? paginationToken, int maxResults, CancellationToken cancellationToken = default)
         => throw new NotImplementedException();

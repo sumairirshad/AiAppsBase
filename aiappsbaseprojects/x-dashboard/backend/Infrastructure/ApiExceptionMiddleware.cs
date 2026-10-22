@@ -48,6 +48,19 @@ public class ApiExceptionMiddleware
         {
             await WriteAsync(context, StatusCodes.Status503ServiceUnavailable, ex.Message, "x_not_configured");
         }
+        catch (Exception ex)
+        {
+            // A genuinely unexpected failure (a bug, a dependency throwing something this app
+            // doesn't have a typed exception for, etc). Without this, the response would be a
+            // bare, bodyless 500 that the frontend's ApiErrorState can't parse a message out of,
+            // and the specific failure would only be visible by reading server logs after the
+            // fact instead of the structured error every other failure path already returns.
+            _logger.LogError(ex, "Unhandled exception for {Method} {Path}", context.Request.Method, context.Request.Path);
+            if (!context.Response.HasStarted)
+            {
+                await WriteAsync(context, StatusCodes.Status500InternalServerError, "An unexpected error occurred.", "internal_error");
+            }
+        }
     }
 
     private static async Task WriteAsync(HttpContext context, int statusCode, string message, string code, int? retryAfterSeconds = null)
