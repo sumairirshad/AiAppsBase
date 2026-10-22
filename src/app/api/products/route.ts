@@ -8,6 +8,8 @@ import {
   ImageUploadError, MAX_PRODUCT_IMAGES, deleteProductImageDir, readValidatedImage, writeProductImages,
 } from '@/lib/product-images'
 import { syncProductGithubStats } from '@/lib/github-stats'
+import { verifyGithubRepoAccess } from '@/lib/github-snapshot'
+import { decryptToken } from '@/lib/token-crypto'
 
 export async function GET() {
   const userId = await getSessionUserId()
@@ -87,6 +89,28 @@ export async function POST(req: NextRequest) {
 
     if (!title || !description || !category || !humanModLevel || !licenseType) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+
+    // Fail fast for a GitHub-sourced listing if the seller's connection
+    // can't actually reach the chosen repo/branch — this also detects the
+    // repo's real current visibility (public vs private) rather than
+    // trusting whatever the repo-picker last showed. The full archive isn't
+    // fetched/stored yet here (that only happens once the listing is
+    // actually approved and purchasable, in the admin approval route) —
+    // this is just enough to give the seller immediate feedback instead of
+    // discovering a misconfigured repo only after admin review.
+    let githubRepoPrivate: boolean | null = null
+    if (githubRepoName && githubDefaultBranch) {
+      const userTokenRes = await query<{ github_access_token: string | null }>(
+        'SELECT github_access_token FROM users WHERE id = $1',
+        [userId]
+      )
+      const accessToken = decryptToken(userTokenRes.rows[0]?.github_access_token ?? null)
+      const verification = await verifyGithubRepoAccess(accessToken, githubRepoName, githubDefaultBranch)
+      if (!verification.ok) {
+        return NextResponse.json({ error: verification.reason }, { status: 400 })
+      }
+      githubRepoPrivate = verification.private
     }
 
     // Validate every image (type, size, real content) before storing anything.
@@ -213,8 +237,9 @@ export async function POST(req: NextRequest) {
       `INSERT INTO products (
         id, seller_id, title, description, price, category,
         ai_tools, tech_stack, human_mod_level, screenshots,
-        preview_url, license_type, tags, github_repo_name, github_default_branch
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id`,
+        preview_url, license_type, tags, github_repo_name, github_default_branch,
+        github_repo_private, github_snapshot_status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id`,
       [
         productId,
         userId,
@@ -234,6 +259,10 @@ export async function POST(req: NextRequest) {
         tags,
         githubRepoName,
         githubDefaultBranch,
+        githubRepoPrivate,
+        // Nothing has been snapshotted yet — the archive is fetched and
+        // stored once the listing is approved, not at creation time.
+        'pending',
       ]
     )).rows[0].id)
 
