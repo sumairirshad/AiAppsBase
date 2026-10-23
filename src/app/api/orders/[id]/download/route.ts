@@ -7,13 +7,6 @@ import { decryptToken } from '@/lib/token-crypto'
 import { resolveOrderDeliverable } from '@/lib/product-versions'
 import { rateLimit } from '@/lib/rate-limit'
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  // AUD finding: downloads had no rate limiting at all — a leaked/guessed
-  // order id (or a buyer's own script) could hammer this endpoint, each hit
-  // opening a fresh SFTP connection or GitHub API call.
-  const limited = await rateLimit(req, 'orders:download', 20, 60)
-  if (limited) return limited
-
 function streamDeliverable(webStream: ReadableStream, fileName: string, size?: number, contentType = 'application/octet-stream') {
   const headers: Record<string, string> = {
     'Content-Disposition': `attachment; filename="${fileName.replace(/"/g, '')}"`,
@@ -23,7 +16,13 @@ function streamDeliverable(webStream: ReadableStream, fileName: string, size?: n
   return new NextResponse(webStream, { headers })
 }
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  // AUD finding: downloads had no rate limiting at all — a leaked/guessed
+  // order id (or a buyer's own script) could hammer this endpoint, each hit
+  // opening a fresh SFTP connection or GitHub API call.
+  const limited = await rateLimit(req, 'orders:download', 20, 60)
+  if (limited) return limited
+
   const userId = await getSessionUserId()
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -68,22 +67,18 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   }
 
   if (deliverable.deliverableRemotePath) {
-    // A version with a stored snapshot (every upload-type version, and
-    // every GitHub-type version published through the new flow) is served
-    // from our own storage — reproducible regardless of what happens to the
-    // seller's GitHub connection or repository afterward.
+    // Primary path, for every manual-upload product and every GitHub-sourced
+    // version that has been through snapshotting (see @/lib/github-snapshot
+    // and @/lib/product-versions): the deliverable already sits in our own
+    // SFTP storage, so this never depends on GitHub, the seller's token, or
+    // anything the buyer does or doesn't have — identical code path for
+    // public and private repos, and for buyers with or without a GitHub
+    // account. The remote path itself is never sent to the client; only the
+    // streamed bytes are.
     try {
       const { stream, size } = await downloadDeliverableStream(deliverable.deliverableRemotePath)
       const webStream = Readable.toWeb(stream as Readable) as ReadableStream
-
-      const fileName = deliverable.deliverableOriginalName || 'download'
-      const headers: Record<string, string> = {
-        'Content-Disposition': `attachment; filename="${fileName.replace(/"/g, '')}"`,
-        'Content-Type': 'application/octet-stream',
-      }
-      if (size) headers['Content-Length'] = String(size)
-
-      return new NextResponse(webStream, { headers })
+      return streamDeliverable(webStream, deliverable.deliverableOriginalName || 'download', size)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error'
       console.error('[orders/download] SFTP fetch failed:', message, err)
@@ -91,35 +86,15 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     }
   }
 
-  // Primary path, for every manual-upload product and every GitHub-sourced
-  // product that has been through admin-approval snapshotting (see
-  // @/lib/github-snapshot): the deliverable already sits in our own SFTP
-  // storage, so this never depends on GitHub, the seller's token, or
-  // anything the buyer does or doesn't have — identical code path for
-  // public and private repos, and for buyers with or without a GitHub
-  // account. The remote path itself is never sent to the client; only the
-  // streamed bytes are.
-  if (order.deliverable_remote_path) {
-    try {
-      const { stream, size } = await downloadDeliverableStream(order.deliverable_remote_path)
-      const webStream = Readable.toWeb(stream as Readable) as ReadableStream
-      return streamDeliverable(webStream, order.deliverable_original_name || 'download', size)
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error'
-      console.error('[orders/download] SFTP fetch failed:', message, err)
-      return NextResponse.json({ error: 'Could not reach file storage server' }, { status: 502 })
-    }
-  }
-
-  // Legacy fallback: a GitHub-sourced product approved before snapshotting
-  // existed has github_repo_name set but no stored deliverable yet. Rather
-  // than breaking downloads for buyers who already paid for one of these,
-  // fetch it live the same way the old code path did. New approvals always
-  // populate deliverable_remote_path above instead, so this branch should
-  // only ever fire for pre-migration listings (and will stop firing for a
-  // given product the moment a seller syncs or an admin re-approves it).
-  if (order.github_repo_name) {
-    const branch = order.github_default_branch || 'main'
+  // Legacy fallback: a GitHub-sourced version resolved above (either the
+  // order's own entitled version, or the pre-versioning backfilled "legacy"
+  // row — see migration 030) has no stored snapshot yet. Rather than
+  // breaking downloads for buyers who already paid for one of these, fetch
+  // it live the same way the old pre-snapshot code path did. New approvals
+  // and seller-triggered refreshes always populate deliverableRemotePath
+  // above instead, so this branch only fires for pre-snapshot listings.
+  if (deliverable.githubRepoName) {
+    const branch = deliverable.githubBranch || 'main'
     const accessToken = decryptToken(order.seller_github_access_token)
 
     if (accessToken) {
@@ -133,7 +108,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         })
 
         if (ghRes.ok && ghRes.body) {
-          const repoSlug = order.github_repo_name.split('/').pop() || 'repo'
+          const repoSlug = deliverable.githubRepoName.split('/').pop() || 'repo'
           return streamDeliverable(ghRes.body as unknown as ReadableStream, `${repoSlug}-${branch}.zip`, undefined, 'application/zip')
         }
 
@@ -149,11 +124,11 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
     try {
       const publicRes = await fetch(
-        `https://github.com/${order.github_repo_name}/archive/refs/heads/${branch}.zip`
+        `https://github.com/${deliverable.githubRepoName}/archive/refs/heads/${branch}.zip`
       )
 
       if (publicRes.ok && publicRes.body) {
-        const repoSlug = order.github_repo_name.split('/').pop() || 'repo'
+        const repoSlug = deliverable.githubRepoName.split('/').pop() || 'repo'
         return streamDeliverable(publicRes.body as unknown as ReadableStream, `${repoSlug}-${branch}.zip`, undefined, 'application/zip')
       }
     } catch (err) {
@@ -162,7 +137,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
     console.error(
       '[orders/download] Unable to fetch legacy (pre-snapshot) deliverable for repo',
-      order.github_repo_name,
+      deliverable.githubRepoName,
       'branch', branch
     )
     return NextResponse.json(
