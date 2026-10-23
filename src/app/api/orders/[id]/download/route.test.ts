@@ -16,6 +16,14 @@ vi.mock('@/lib/sftp', () => ({
 const decryptTokenMock = vi.fn()
 vi.mock('@/lib/token-crypto', () => ({ decryptToken: (...args: unknown[]) => decryptTokenMock(...args) }))
 
+const rateLimitMock = vi.fn()
+vi.mock('@/lib/rate-limit', () => ({ rateLimit: (...args: unknown[]) => rateLimitMock(...args) }))
+
+const resolveOrderDeliverableMock = vi.fn()
+vi.mock('@/lib/product-versions', () => ({
+  resolveOrderDeliverable: (...args: unknown[]) => resolveOrderDeliverableMock(...args),
+}))
+
 type Mod = typeof import('./route')
 let GET: Mod['GET']
 beforeAll(async () => {
@@ -28,10 +36,8 @@ const BUYER_ID = 'buyer-1'
 type OrderRow = {
   buyer_id: string
   status: string
-  github_repo_name: string | null
-  github_default_branch: string | null
-  deliverable_remote_path: string | null
-  deliverable_original_name: string | null
+  product_id: string
+  product_version_id: string | null
   seller_github_access_token: string | null
 }
 
@@ -39,10 +45,8 @@ function orderRow(overrides: Partial<OrderRow> = {}): OrderRow {
   return {
     buyer_id: BUYER_ID,
     status: 'completed',
-    github_repo_name: null,
-    github_default_branch: null,
-    deliverable_remote_path: null,
-    deliverable_original_name: null,
+    product_id: 'product-1',
+    product_version_id: 'version-1',
     seller_github_access_token: null,
     ...overrides,
   }
@@ -52,12 +56,29 @@ function mockOrderLookup(row: OrderRow | null) {
   queryMock.mockResolvedValueOnce(row ? { rows: [row], rowCount: 1 } : { rows: [], rowCount: 0 })
 }
 
-function call() {
-  return GET({} as NextRequest, { params: { id: ORDER_ID } })
+type Deliverable = {
+  deliveryType: 'upload' | 'github'
+  deliverableRemotePath: string | null
+  deliverableOriginalName: string | null
+  githubRepoName: string | null
+  githubBranch: string | null
+  githubCommitSha: string | null
 }
 
-function jsonRes(body: unknown, status = 200) {
-  return { ok: status >= 200 && status < 300, status, json: async () => body, text: async () => '' } as unknown as Response
+function deliverable(overrides: Partial<Deliverable> = {}): Deliverable {
+  return {
+    deliveryType: 'upload',
+    deliverableRemotePath: null,
+    deliverableOriginalName: null,
+    githubRepoName: null,
+    githubBranch: null,
+    githubCommitSha: null,
+    ...overrides,
+  }
+}
+
+function call() {
+  return GET({ headers: new Headers() } as NextRequest, { params: { id: ORDER_ID } })
 }
 
 function zipRes(status: number) {
@@ -69,7 +90,22 @@ beforeEach(() => {
   getSessionUserIdMock.mockReset()
   downloadDeliverableStreamMock.mockReset()
   decryptTokenMock.mockReset()
+  rateLimitMock.mockReset()
+  rateLimitMock.mockResolvedValue(null)
+  resolveOrderDeliverableMock.mockReset()
+  resolveOrderDeliverableMock.mockResolvedValue(null)
   vi.unstubAllGlobals()
+})
+
+describe('GET /api/orders/[id]/download — rate limiting', () => {
+  it('returns the rate limiter response as-is once the caller is over the limit, before anything else runs', async () => {
+    const limited = new Response(JSON.stringify({ error: 'Too many requests.' }), { status: 429 })
+    rateLimitMock.mockResolvedValue(limited)
+
+    const res = await call()
+    expect(res.status).toBe(429)
+    expect(getSessionUserIdMock).not.toHaveBeenCalled()
+  })
 })
 
 describe('GET /api/orders/[id]/download — authorization', () => {
@@ -89,28 +125,32 @@ describe('GET /api/orders/[id]/download — authorization', () => {
 
   it('refuses a buyer trying to download an order that is not theirs — never a GitHub detail leaks a different outcome', async () => {
     getSessionUserIdMock.mockResolvedValue('someone-else')
-    mockOrderLookup(orderRow({ deliverable_remote_path: '/deliverables/p1/file.zip' }))
+    mockOrderLookup(orderRow())
     const res = await call()
     expect(res.status).toBe(403)
+    expect(resolveOrderDeliverableMock).not.toHaveBeenCalled()
     expect(downloadDeliverableStreamMock).not.toHaveBeenCalled()
   })
 
   it('refuses a download for an order that never completed', async () => {
     getSessionUserIdMock.mockResolvedValue(BUYER_ID)
-    mockOrderLookup(orderRow({ status: 'pending', deliverable_remote_path: '/deliverables/p1/file.zip' }))
+    mockOrderLookup(orderRow({ status: 'pending' }))
     const res = await call()
     expect(res.status).toBe(400)
+    expect(resolveOrderDeliverableMock).not.toHaveBeenCalled()
   })
 })
 
 describe('GET /api/orders/[id]/download — snapshot-backed deliverable (primary path)', () => {
   it('streams a snapshotted PRIVATE repo product straight from storage — no GitHub call, no buyer GitHub identity involved', async () => {
     getSessionUserIdMock.mockResolvedValue(BUYER_ID)
-    mockOrderLookup(orderRow({
-      github_repo_name: 'seller/private-repo',
-      github_default_branch: 'main',
-      deliverable_remote_path: '/deliverables/p1/private-repo-main.zip',
-      deliverable_original_name: 'private-repo-main.zip',
+    mockOrderLookup(orderRow())
+    resolveOrderDeliverableMock.mockResolvedValue(deliverable({
+      deliveryType: 'github',
+      githubRepoName: 'seller/private-repo',
+      githubBranch: 'main',
+      deliverableRemotePath: '/deliverables/p1/private-repo-main.zip',
+      deliverableOriginalName: 'private-repo-main.zip',
     }))
     downloadDeliverableStreamMock.mockResolvedValue({ stream: Readable.from(Buffer.from('zip-bytes')), size: 9 })
     const fetchMock = vi.fn()
@@ -123,15 +163,19 @@ describe('GET /api/orders/[id]/download — snapshot-backed deliverable (primary
     expect(res.headers.get('Content-Disposition')).toContain('private-repo-main.zip')
     // the whole point of snapshotting: a private-repo download never calls GitHub at request time
     expect(fetchMock).not.toHaveBeenCalled()
+    // the exact version the buyer purchased, never just "the product's current version"
+    expect(resolveOrderDeliverableMock).toHaveBeenCalledWith('product-1', 'version-1')
   })
 
   it('streams a snapshotted PUBLIC repo product identically', async () => {
     getSessionUserIdMock.mockResolvedValue(BUYER_ID)
-    mockOrderLookup(orderRow({
-      github_repo_name: 'seller/public-repo',
-      github_default_branch: 'main',
-      deliverable_remote_path: '/deliverables/p2/public-repo-main.zip',
-      deliverable_original_name: 'public-repo-main.zip',
+    mockOrderLookup(orderRow())
+    resolveOrderDeliverableMock.mockResolvedValue(deliverable({
+      deliveryType: 'github',
+      githubRepoName: 'seller/public-repo',
+      githubBranch: 'main',
+      deliverableRemotePath: '/deliverables/p2/public-repo-main.zip',
+      deliverableOriginalName: 'public-repo-main.zip',
     }))
     downloadDeliverableStreamMock.mockResolvedValue({ stream: Readable.from(Buffer.from('public-zip')), size: 10 })
     vi.stubGlobal('fetch', vi.fn())
@@ -143,9 +187,10 @@ describe('GET /api/orders/[id]/download — snapshot-backed deliverable (primary
 
   it('streams a manual-upload (non-GitHub) product the same way', async () => {
     getSessionUserIdMock.mockResolvedValue(BUYER_ID)
-    mockOrderLookup(orderRow({
-      deliverable_remote_path: '/deliverables/p3/upload.zip',
-      deliverable_original_name: 'upload.zip',
+    mockOrderLookup(orderRow())
+    resolveOrderDeliverableMock.mockResolvedValue(deliverable({
+      deliverableRemotePath: '/deliverables/p3/upload.zip',
+      deliverableOriginalName: 'upload.zip',
     }))
     downloadDeliverableStreamMock.mockResolvedValue({ stream: Readable.from(Buffer.from('manual-zip')), size: 10 })
 
@@ -156,7 +201,8 @@ describe('GET /api/orders/[id]/download — snapshot-backed deliverable (primary
 
   it('returns a clean 502 (not a raw filesystem error) when storage is unreachable', async () => {
     getSessionUserIdMock.mockResolvedValue(BUYER_ID)
-    mockOrderLookup(orderRow({ deliverable_remote_path: '/deliverables/p1/file.zip' }))
+    mockOrderLookup(orderRow())
+    resolveOrderDeliverableMock.mockResolvedValue(deliverable({ deliverableRemotePath: '/deliverables/p1/file.zip' }))
     downloadDeliverableStreamMock.mockRejectedValue(new Error('ECONNREFUSED'))
 
     const res = await call()
@@ -167,10 +213,11 @@ describe('GET /api/orders/[id]/download — snapshot-backed deliverable (primary
 describe('GET /api/orders/[id]/download — legacy pre-snapshot GitHub products', () => {
   it('falls back to a live authenticated fetch when no snapshot exists yet', async () => {
     getSessionUserIdMock.mockResolvedValue(BUYER_ID)
-    mockOrderLookup(orderRow({
-      github_repo_name: 'seller/legacy-private',
-      github_default_branch: 'main',
-      seller_github_access_token: 'encrypted',
+    mockOrderLookup(orderRow({ seller_github_access_token: 'encrypted' }))
+    resolveOrderDeliverableMock.mockResolvedValue(deliverable({
+      deliveryType: 'github',
+      githubRepoName: 'seller/legacy-private',
+      githubBranch: 'main',
     }))
     decryptTokenMock.mockReturnValue('seller-token')
     const fetchMock = vi.fn().mockResolvedValueOnce(zipRes(200))
@@ -184,10 +231,11 @@ describe('GET /api/orders/[id]/download — legacy pre-snapshot GitHub products'
 
   it('falls back to a public fetch when there is no usable seller token', async () => {
     getSessionUserIdMock.mockResolvedValue(BUYER_ID)
-    mockOrderLookup(orderRow({
-      github_repo_name: 'seller/legacy-public',
-      github_default_branch: 'main',
-      seller_github_access_token: null,
+    mockOrderLookup(orderRow({ seller_github_access_token: null }))
+    resolveOrderDeliverableMock.mockResolvedValue(deliverable({
+      deliveryType: 'github',
+      githubRepoName: 'seller/legacy-public',
+      githubBranch: 'main',
     }))
     decryptTokenMock.mockReturnValue(null)
     const fetchMock = vi.fn().mockResolvedValueOnce(zipRes(200))
@@ -201,10 +249,11 @@ describe('GET /api/orders/[id]/download — legacy pre-snapshot GitHub products'
 
   it('never redirects a buyer to a raw GitHub URL when every fetch path fails — returns a clear in-app error instead', async () => {
     getSessionUserIdMock.mockResolvedValue(BUYER_ID)
-    mockOrderLookup(orderRow({
-      github_repo_name: 'seller/broken',
-      github_default_branch: 'main',
-      seller_github_access_token: 'encrypted',
+    mockOrderLookup(orderRow({ seller_github_access_token: 'encrypted' }))
+    resolveOrderDeliverableMock.mockResolvedValue(deliverable({
+      deliveryType: 'github',
+      githubRepoName: 'seller/broken',
+      githubBranch: 'main',
     }))
     decryptTokenMock.mockReturnValue('stale-token')
     const fetchMock = vi.fn()
@@ -221,9 +270,18 @@ describe('GET /api/orders/[id]/download — legacy pre-snapshot GitHub products'
 })
 
 describe('GET /api/orders/[id]/download — nothing to deliver', () => {
-  it('404s when the product has neither a snapshot nor a GitHub repo configured', async () => {
+  it('404s when the resolved version has neither a snapshot nor a GitHub repo', async () => {
     getSessionUserIdMock.mockResolvedValue(BUYER_ID)
     mockOrderLookup(orderRow())
+    resolveOrderDeliverableMock.mockResolvedValue(deliverable())
+    const res = await call()
+    expect(res.status).toBe(404)
+  })
+
+  it('404s when the order has no resolvable deliverable at all (e.g. the product itself was deleted)', async () => {
+    getSessionUserIdMock.mockResolvedValue(BUYER_ID)
+    mockOrderLookup(orderRow())
+    resolveOrderDeliverableMock.mockResolvedValue(null)
     const res = await call()
     expect(res.status).toBe(404)
   })

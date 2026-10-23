@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { PlusCircle, Edit, Trash2, Eye, History, RefreshCw, UploadCloud, AlertTriangle } from 'lucide-react'
+import { PlusCircle, Edit, Trash2, Eye, History, RefreshCw, UploadCloud, AlertTriangle, Rocket } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 import { cn } from '@/lib/utils'

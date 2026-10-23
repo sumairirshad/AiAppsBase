@@ -10,6 +10,7 @@ import {
 import { syncProductGithubStats } from '@/lib/github-stats'
 import { verifyGithubRepoAccess } from '@/lib/github-snapshot'
 import { decryptToken } from '@/lib/token-crypto'
+import { createInitialPublishedVersion } from '@/lib/product-versions'
 
 export async function GET() {
   const userId = await getSessionUserId()
@@ -237,7 +238,10 @@ export async function POST(req: NextRequest) {
       // and every future "publish new version" has something to diff
       // against, instead of only existing as a bare products.* column.
       await createInitialPublishedVersion(id, userId, 'upload', {
-        deliverableRemotePath, deliverableOriginalName, deliverableSizeBytes,
+        remotePath: deliverableRemotePath!,
+        originalName: deliverableOriginalName,
+        sizeBytes: deliverableSizeBytes,
+        sha256: null,
       })
 
       return NextResponse.json({ ok: true, id })

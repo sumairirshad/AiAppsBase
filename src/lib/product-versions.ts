@@ -74,6 +74,29 @@ export async function failProductVersion(versionId: string): Promise<void> {
   await query(`UPDATE product_versions SET status = 'failed' WHERE id = $1 AND status = 'publishing'`, [versionId])
 }
 
+/**
+ * Records a brand-new product's own deliverable as its "1.0.0" version,
+ * right after the product row itself is inserted — reusing the exact same
+ * reserve/finalize machinery a later "publish a new version" uses, so this
+ * listing has real version history from the start instead of only existing
+ * as a bare products.* column. There are no buyers yet, so this never
+ * notifies anyone.
+ */
+export async function createInitialPublishedVersion(
+  productId: string,
+  sellerId: string,
+  deliveryType: 'upload' | 'github',
+  deliverable: DeliverableSnapshot
+): Promise<void> {
+  const reserved = await reserveProductVersion(productId, sellerId, '1.0.0', deliveryType, null, false)
+  if (!reserved.ok) {
+    // A brand-new product can't already have a "1.0.0" version on record —
+    // this can only mean the insert above is being retried.
+    throw new Error(reserved.message)
+  }
+  await finalizeProductVersion(reserved.versionId, productId, deliverable)
+}
+
 export type DeliverableSnapshot = {
   remotePath: string
   originalName: string | null
