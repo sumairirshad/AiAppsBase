@@ -67,6 +67,26 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         { error: "Seller's Stripe account is not payout-capable yet — ask them to finish onboarding" },
         { status: 400 }
       )
+    case 'insufficient_balance':
+      // The seller's balance no longer covers this request -- most likely
+      // an order backing it was refunded since the request was made. Not
+      // auto-rejected: an admin should see why and decide (reject it, or
+      // wait for the seller's balance to recover via a new sale).
+      await logAdminAction({
+        adminId: userId,
+        action: 'payout.blocked_insufficient_balance',
+        targetType: 'withdrawal_request',
+        targetId: params.id,
+        reason: `Available balance ($${result.available.toFixed(2)}) no longer covers this request — likely a refund since it was requested.`,
+        newValue: { sellerId: result.sellerId, netAmount: result.netAmount, available: result.available },
+        ipAddress,
+      })
+      return NextResponse.json(
+        {
+          error: `This seller's available balance ($${result.available.toFixed(2)}) no longer covers this withdrawal — an order backing it may have been refunded since the request was made. Reject it or wait for their balance to recover.`,
+        },
+        { status: 409 }
+      )
     case 'approved':
       await logAdminAction({
         adminId: userId,

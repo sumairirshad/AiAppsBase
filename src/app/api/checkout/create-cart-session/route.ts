@@ -20,7 +20,12 @@ export async function POST(req: NextRequest) {
             EXISTS (
               SELECT 1 FROM orders o
               WHERE o.product_id = p.id AND o.buyer_id = $1 AND o.status = 'completed'
-                AND o.product_version_id = p.current_version_id
+                -- NULL-safe equality: p.current_version_id can itself be NULL
+                -- (approved before versioning existed, still awaiting its
+                -- first snapshot) -- a plain '=' is never true when both
+                -- sides are NULL, which would let this product be re-bought
+                -- every time instead of being correctly filtered out below.
+                AND o.product_version_id IS NOT DISTINCT FROM p.current_version_id
             ) AS owns_current_version
      FROM cart_items c
      JOIN products p ON c.product_id = p.id

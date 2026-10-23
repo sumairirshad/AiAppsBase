@@ -2,8 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'crypto'
 import { query } from '@/lib/db'
 import { hashPassword, validatePasswordStrength } from '@/lib/auth'
+import { rateLimit } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
+  // The reset token itself is high-entropy, but this is still a credential
+  // endpoint with no limiter at all today — defense in depth, consistent
+  // with every other auth route.
+  const limited = await rateLimit(req, 'auth:reset-password', 10, 600)
+  if (limited) return limited
+
   const body = await req.json().catch(() => null)
   if (!body || typeof body !== 'object') {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })

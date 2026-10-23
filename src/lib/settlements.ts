@@ -6,6 +6,7 @@ export type SettlementActionResult =
   | { kind: 'already_processed'; status: string; sellerId: string }
   | { kind: 'rejected'; sellerId: string; netAmount: number }
   | { kind: 'not_payout_capable'; sellerId: string }
+  | { kind: 'insufficient_balance'; sellerId: string; netAmount: number; available: number }
   | { kind: 'approved'; transferId: string; sellerId: string; netAmount: number }
   | { kind: 'transfer_failed'; message: string; sellerId: string; netAmount: number }
 
@@ -24,7 +25,7 @@ export async function processWithdrawalAction(
 ): Promise<SettlementActionResult> {
   return withTransaction<SettlementActionResult>(async (client) => {
     const wRes = await client.query(
-      `SELECT w.id, w.seller_id, w.net_amount, w.status, u.stripe_account_id
+      `SELECT w.id, w.seller_id, w.requested_amount, w.net_amount, w.status, u.stripe_account_id
        FROM withdrawal_requests w JOIN users u ON w.seller_id = u.id
        WHERE w.id = $1 FOR UPDATE OF w`,
       [withdrawalId]
@@ -32,6 +33,7 @@ export async function processWithdrawalAction(
     if ((wRes.rowCount ?? 0) === 0) return { kind: 'not_found' }
     const withdrawal = wRes.rows[0]
     const netAmount = Number(withdrawal.net_amount)
+    const requestedAmount = Number(withdrawal.requested_amount)
 
     if (withdrawal.status !== 'pending' && withdrawal.status !== 'failed') {
       return { kind: 'already_processed', status: withdrawal.status, sellerId: withdrawal.seller_id }
@@ -46,7 +48,36 @@ export async function processWithdrawalAction(
       return { kind: 'rejected', sellerId: withdrawal.seller_id, netAmount }
     }
 
-    // Approve: re-verify the seller's Stripe account live before moving money.
+    // Approve: re-verify the seller's balance can still cover this request
+    // before moving any money. The balance check at *request* time (see
+    // wallet/withdraw/route.ts) is no guarantee here — an order backing that
+    // balance can be refunded (by an admin, or a Stripe chargeback) any time
+    // between the seller requesting a withdrawal and an admin approving it.
+    // Without this recheck, the transfer would still go out for revenue that
+    // no longer exists: the buyer gets refunded AND the seller gets paid,
+    // and the platform silently absorbs the loss with nothing to catch it.
+    //
+    // Same formula wallet/withdraw/route.ts uses to compute "available"
+    // balance, with one difference: this request's own requested_amount is
+    // excluded from "locked by other requests" (via `w.id != $2`), since
+    // we're checking whether revenue still covers *this* request, not
+    // comparing it against itself.
+    const balanceRes = await client.query(
+      `SELECT
+         COALESCE((SELECT SUM(o.amount) FROM orders o JOIN products p ON o.product_id = p.id
+                   WHERE p.seller_id = $1 AND o.status = 'completed'), 0)::float AS revenue,
+         COALESCE((SELECT SUM(requested_amount) FROM withdrawal_requests
+                   WHERE seller_id = $1 AND status IN ('pending', 'approved', 'failed') AND id != $2), 0)::float
+           AS withdrawn_or_pending`,
+      [withdrawal.seller_id, withdrawalId]
+    )
+    const { revenue, withdrawn_or_pending } = balanceRes.rows[0]
+    const available = Math.max(0, revenue - withdrawn_or_pending)
+
+    if (requestedAmount > available) {
+      return { kind: 'insufficient_balance', sellerId: withdrawal.seller_id, netAmount, available }
+    }
+
     try {
       const account = await stripe.accounts.retrieve(withdrawal.stripe_account_id)
       if (!account.payouts_enabled) {

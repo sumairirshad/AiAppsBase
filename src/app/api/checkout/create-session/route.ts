@@ -48,14 +48,21 @@ export async function POST(req: NextRequest) {
   // published — a buyer who already owns an older version is allowed to buy
   // again to get a newer one (each purchase binds to its own
   // product_version_id; see completeCheckoutSession in lib/orders.ts).
-  if (product.current_version_id) {
-    const existing = await query(
-      `SELECT id FROM orders WHERE product_id = $1 AND buyer_id = $2 AND product_version_id = $3 AND status = 'completed'`,
-      [productId, userId, product.current_version_id]
-    )
-    if ((existing.rowCount ?? 0) > 0) {
-      return NextResponse.json({ error: 'You already own the current version of this product' }, { status: 409 })
-    }
+  //
+  // current_version_id can itself be NULL (a product approved before the
+  // versioning system existed, still awaiting its first real snapshot) --
+  // `product_version_id = NULL` is never true in SQL, so a plain equality
+  // check here would silently never block a repeat purchase of such a
+  // product. `IS NOT DISTINCT FROM` is NULL-safe equality: it also matches
+  // when both sides are NULL.
+  const existing = await query(
+    `SELECT id FROM orders
+     WHERE product_id = $1 AND buyer_id = $2 AND status = 'completed'
+       AND product_version_id IS NOT DISTINCT FROM $3`,
+    [productId, userId, product.current_version_id ?? null]
+  )
+  if ((existing.rowCount ?? 0) > 0) {
+    return NextResponse.json({ error: 'You already own the current version of this product' }, { status: 409 })
   }
 
   // Charge the price for the selected license tier, not the product's flat

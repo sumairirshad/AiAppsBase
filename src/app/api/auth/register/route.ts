@@ -2,8 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { hashPassword, generateOtpCode, getOtpExpiry, validatePasswordStrength } from '@/lib/auth'
 import { sendOtpEmail, EmailSendError } from '@/lib/email'
+import { rateLimit } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
+  // Unlike login/OTP verification, a brand-new account has no per-account
+  // lockout to fall back on — without this, an attacker can mass-create
+  // accounts or spam the OTP email pipeline for free.
+  const limited = await rateLimit(req, 'auth:register', 5, 600)
+  if (limited) return limited
+
   const body = await req.json().catch(() => null)
   if (!body || typeof body !== 'object') {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })

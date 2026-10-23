@@ -39,6 +39,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const title = String(body.title || '').trim()
   const description = String(body.description || '').trim()
   const category = String(body.category || '').trim()
+  const subcategory = body.subcategory ? String(body.subcategory).trim() : null
   const humanModLevel = String(body.humanModLevel || '').trim()
   const licenseType = String(body.licenseType || '').trim()
   const previewUrl = body.previewUrl ? String(body.previewUrl).trim() : null
@@ -67,13 +68,21 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       `UPDATE products SET
         title = $1, description = $2, category = $3, human_mod_level = $4,
         license_type = $5, preview_url = $6, price = $7, tags = $8, ai_tools = $9,
+        subcategory = $13,
         screenshots = COALESCE($12::text[], screenshots),
         status = CASE WHEN status IN ('approved', 'rejected') THEN 'pending' ELSE status END,
+        -- Distinguishes "an already-live listing just got edited and needs
+        -- re-review" from a brand-new submission's first-ever pending
+        -- review, so the seller's product list doesn't show an identical
+        -- generic "Pending" badge for both (see migration 035). A rejected
+        -- listing being resubmitted isn't this case -- the seller already
+        -- saw why it was rejected, this isn't a surprise.
+        pending_reason = CASE WHEN status = 'approved' THEN 'edited' ELSE NULL END,
         rejection_reason = CASE WHEN status = 'rejected' THEN NULL ELSE rejection_reason END,
         updated_at = NOW()
        WHERE id = $10 AND seller_id = $11
        RETURNING id`,
-      [title, description, category, humanModLevel, licenseType, previewUrl, price, tags, aiTools, params.id, userId, images]
+      [title, description, category, humanModLevel, licenseType, previewUrl, price, tags, aiTools, params.id, userId, images, subcategory]
     )
     if (images) await deleteRemovedImages(currentImages.filter((p) => !images!.includes(p)))
     return NextResponse.json({ ok: true, id: res.rows[0].id })

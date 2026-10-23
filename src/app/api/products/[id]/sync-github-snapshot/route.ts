@@ -44,7 +44,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
 
   if (status === 'approved') {
     await query(
-      `UPDATE products SET status = 'pending', updated_at = NOW() WHERE id = $1 AND seller_id = $2`,
+      `UPDATE products SET status = 'pending', pending_reason = 'content_updated', updated_at = NOW() WHERE id = $1 AND seller_id = $2`,
       [params.id, userId]
     )
   }

@@ -21,11 +21,12 @@ import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select, SelectContent, SelectGroup, SelectLabel, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import {
   Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog'
+import { CATEGORIES as TAXONOMY_CATEGORIES } from '@/lib/marketplace-config'
 
 const MANUAL_STEPS = [
   { label: 'Basic Info', icon: ClipboardList },
@@ -108,6 +109,7 @@ function AddProductContent() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState<Category | ''>('')
+  const [subcategory, setSubcategory] = useState('')
   const [tags, setTags] = useState('')
   const [aiTools, setAiTools] = useState<AITool[]>([])
   const [humanModLevel, setHumanModLevel] = useState<HumanModLevel | ''>('')
@@ -131,6 +133,7 @@ function AddProductContent() {
   const [ghTitle, setGhTitle] = useState('')
   const [ghDescription, setGhDescription] = useState('')
   const [ghCategory, setGhCategory] = useState<Category | ''>('')
+  const [ghSubcategory, setGhSubcategory] = useState('')
   const [ghAiTools, setGhAiTools] = useState<AITool[]>([])
   const [ghHumanModLevel, setGhHumanModLevel] = useState<HumanModLevel>('Heavily Modified')
   const [ghPrice, setGhPrice] = useState('')
@@ -196,6 +199,7 @@ function AddProductContent() {
     formData.append('title', title)
     formData.append('description', description)
     formData.append('category', category)
+    formData.append('subcategory', subcategory)
     formData.append('tags', JSON.stringify(tags.split(',').map((t) => t.trim()).filter(Boolean)))
     formData.append('aiTools', JSON.stringify(aiTools))
     formData.append('humanModLevel', humanModLevel)
@@ -267,6 +271,7 @@ function AddProductContent() {
       formData.append('title', ghTitle.trim())
       formData.append('description', ghDescription.trim() || `Source code — ${ghSelectedRepo.name}`)
       formData.append('category', ghCategory)
+      formData.append('subcategory', ghSubcategory)
       formData.append('price', ghPrice || '0')
       formData.append('licenseType', ghLicenseType)
       formData.append('humanModLevel', ghHumanModLevel)
@@ -380,6 +385,23 @@ function AddProductContent() {
                     <SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger>
                     <SelectContent>{CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Subcategory <span className="font-normal text-muted-foreground">(optional)</span></Label>
+                  <Select value={subcategory} onValueChange={setSubcategory}>
+                    <SelectTrigger><SelectValue placeholder="Select a subcategory" /></SelectTrigger>
+                    <SelectContent>
+                      {TAXONOMY_CATEGORIES.map((c) => (
+                        <SelectGroup key={c.slug}>
+                          <SelectLabel>{c.name}</SelectLabel>
+                          {c.subcategories.map((s) => (
+                            <SelectItem key={s.slug} value={s.name}>{s.name}</SelectItem>
+                          ))}
+                        </SelectGroup>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">Helps buyers find your listing through the marketplace&apos;s subcategory filters.</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="tags">Tags</Label>
@@ -525,6 +547,7 @@ function AddProductContent() {
                   {[
                     { label: 'Title', value: title },
                     { label: 'Category', value: category },
+                    { label: 'Subcategory', value: subcategory },
                     { label: 'Price', value: price ? `$${parseFloat(price).toFixed(2)}` : '' },
                     { label: 'License', value: licenseType },
                     { label: 'Human modification', value: humanModLevel },
@@ -715,6 +738,22 @@ function AddProductContent() {
                       <Select value={ghCategory} onValueChange={(v) => setGhCategory(v as Category)}>
                         <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                         <SelectContent>{CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Subcategory <span className="font-normal text-muted-foreground">(optional)</span></Label>
+                      <Select value={ghSubcategory} onValueChange={setGhSubcategory}>
+                        <SelectTrigger><SelectValue placeholder="Select subcategory" /></SelectTrigger>
+                        <SelectContent>
+                          {TAXONOMY_CATEGORIES.map((c) => (
+                            <SelectGroup key={c.slug}>
+                              <SelectLabel>{c.name}</SelectLabel>
+                              {c.subcategories.map((s) => (
+                                <SelectItem key={s.slug} value={s.name}>{s.name}</SelectItem>
+                              ))}
+                            </SelectGroup>
+                          ))}
+                        </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-1.5">

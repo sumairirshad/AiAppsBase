@@ -154,4 +154,30 @@ describe.skipIf(!isDatabaseConfigured())('completeCheckoutSession', () => {
     const orders = await query('SELECT id FROM orders WHERE buyer_id = $1 AND product_id = $2', [buyer.id, productId])
     expect(orders.rowCount).toBe(1)
   })
+
+  it('does not create a second order when the product has no resolved version (product_version_id NULL), even via two different sessions', async () => {
+    // Regression test for migration 034: `UNIQUE(buyer_id, product_id, product_version_id)`
+    // alone never catches this, because Postgres treats NULL <> NULL. A
+    // product approved before the versioning system existed (or still
+    // awaiting its first snapshot) has no current_version_id, so
+    // completeCheckoutSession falls back to product_version_id = NULL for
+    // every order on it -- without migration 034's partial unique index,
+    // two different Stripe sessions for the same buyer+product would both
+    // insert successfully instead of the second being caught by
+    // `ON CONFLICT DO NOTHING`.
+    const seller = await createTestUser({ role: 'seller' })
+    const buyer = await createTestUser({ role: 'buyer' })
+    createdUserIds.push(seller.id, buyer.id)
+    const productId = await createTestProduct(seller.id, { price: 20 })
+    // No product_versions row at all -- current_version_id stays NULL.
+
+    const sessionA = await createTestCheckoutSession(buyer.id, productId, { amount: 20, productVersionId: null })
+    await completeCheckoutSession(sessionA, 'pi_test_null_version_a')
+
+    const sessionB = await createTestCheckoutSession(buyer.id, productId, { amount: 20, productVersionId: null })
+    await completeCheckoutSession(sessionB, 'pi_test_null_version_b')
+
+    const orders = await query('SELECT id FROM orders WHERE buyer_id = $1 AND product_id = $2', [buyer.id, productId])
+    expect(orders.rowCount).toBe(1)
+  })
 })

@@ -22,8 +22,9 @@ import { Progress } from '@/components/ui/progress'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { ProductImagesEditor } from '@/components/dashboard/product-images-editor'
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select, SelectContent, SelectGroup, SelectLabel, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
+import { CATEGORIES as TAXONOMY_CATEGORIES } from '@/lib/marketplace-config'
 
 const STEPS = [
   { label: 'Basic Info', icon: ClipboardList },
@@ -74,6 +75,7 @@ export default function EditProductPage() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState<Category | ''>('')
+  const [subcategory, setSubcategory] = useState('')
   const [tags, setTags] = useState('')
   const [aiTools, setAiTools] = useState<AITool[]>([])
   const [humanModLevel, setHumanModLevel] = useState<HumanModLevel | ''>('')
@@ -102,6 +104,7 @@ export default function EditProductPage() {
       setTitle(p.title ?? '')
       setDescription(p.description ?? '')
       setCategory(p.category ?? '')
+      setSubcategory(p.subcategory ?? '')
       setTags((p.tags ?? []).join(', '))
       setAiTools(p.ai_tools ?? [])
       setHumanModLevel(p.human_mod_level ?? '')
@@ -197,6 +200,7 @@ export default function EditProductPage() {
           title,
           description,
           category,
+          subcategory,
           tags: tags.split(',').map((t) => t.trim()).filter(Boolean),
           aiTools,
           humanModLevel,
@@ -283,6 +287,23 @@ export default function EditProductPage() {
                 <SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger>
                 <SelectContent>{CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Subcategory <span className="font-normal text-muted-foreground">(optional)</span></Label>
+              <Select value={subcategory} onValueChange={setSubcategory}>
+                <SelectTrigger><SelectValue placeholder="Select a subcategory" /></SelectTrigger>
+                <SelectContent>
+                  {TAXONOMY_CATEGORIES.map((c) => (
+                    <SelectGroup key={c.slug}>
+                      <SelectLabel>{c.name}</SelectLabel>
+                      {c.subcategories.map((s) => (
+                        <SelectItem key={s.slug} value={s.name}>{s.name}</SelectItem>
+                      ))}
+                    </SelectGroup>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Helps buyers find your listing through the marketplace&apos;s subcategory filters.</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="tags">Tags</Label>
@@ -421,6 +442,7 @@ export default function EditProductPage() {
               {[
                 { label: 'Title', value: title },
                 { label: 'Category', value: category },
+                { label: 'Subcategory', value: subcategory },
                 { label: 'Price', value: price ? `$${parseFloat(price).toFixed(2)}` : '' },
                 { label: 'License', value: licenseType },
                 { label: 'Human modification', value: humanModLevel },
