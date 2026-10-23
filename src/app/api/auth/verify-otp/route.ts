@@ -2,8 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { setSession } from '@/lib/session'
 import { OTP_MAX_ATTEMPTS, OTP_LOCKOUT_MINUTES } from '@/lib/auth'
+import { rateLimit } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
+  // The per-account lockout below only trips after repeated wrong codes on
+  // ONE account — it doesn't stop one IP from trying codes across many
+  // different target accounts.
+  const limited = await rateLimit(req, 'auth:verify-otp', 15, 600)
+  if (limited) return limited
+
   const body = await req.json().catch(() => null)
   if (!body || typeof body !== 'object') {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })

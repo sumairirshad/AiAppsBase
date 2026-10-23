@@ -3,8 +3,15 @@ import { query } from '@/lib/db'
 import { verifyPassword, LOGIN_MAX_ATTEMPTS, LOGIN_LOCKOUT_MINUTES } from '@/lib/auth'
 import { setSession } from '@/lib/session'
 import { issueVerificationOtp } from '@/lib/otp'
+import { rateLimit } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
+  // Per-account lockout (below) only engages after repeated failures on ONE
+  // account — it does nothing to stop an attacker spraying one password
+  // across many different email addresses from a single IP.
+  const limited = await rateLimit(req, 'auth:login', 10, 300)
+  if (limited) return limited
+
   const body = await req.json().catch(() => null)
   if (!body || typeof body !== 'object') {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })

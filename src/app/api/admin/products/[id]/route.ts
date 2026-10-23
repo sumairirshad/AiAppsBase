@@ -59,9 +59,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     // Surface the reason to the seller for a rejection; clear any stale
-    // reason once the product moves to any other status.
+    // reason once the product moves to any other status. pending_reason is
+    // cleared too -- an admin decision resolves whatever the seller-facing
+    // "why is this pending" context was (see migration 035).
     const rejectionReason = status === 'rejected' ? String(reason).trim() : null
-    await query('UPDATE products SET status = $1, rejection_reason = $2 WHERE id = $3', [
+    await query('UPDATE products SET status = $1, rejection_reason = $2, pending_reason = NULL WHERE id = $3', [
       status,
       rejectionReason,
       params.id,

@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
     const description = formData.get('description') as string
     const price = parseFloat(formData.get('price') as string) || 0
     const category = formData.get('category') as string
+    const subcategory = (formData.get('subcategory') as string) || null
     const aiTools = JSON.parse(formData.get('aiTools') as string || '[]')
     const techStack = JSON.parse(formData.get('techStack') as string || '[]')
     const humanModLevel = formData.get('humanModLevel') as string
@@ -206,11 +207,11 @@ export async function POST(req: NextRequest) {
 
       const id = await storeImagesAndInsert(async (screenshots) => (await query(
         `INSERT INTO products (
-          id, seller_id, title, description, price, category,
+          id, seller_id, title, description, price, category, subcategory,
           ai_tools, tech_stack, human_mod_level, screenshots,
           preview_url, license_type, tags, github_repo_name, github_default_branch,
           deliverable_remote_path, deliverable_original_name, deliverable_size_bytes
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) RETURNING id`,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) RETURNING id`,
         [
           productId,
           userId,
@@ -218,6 +219,7 @@ export async function POST(req: NextRequest) {
           description,
           price,
           category,
+          subcategory,
           aiTools,
           techStack,
           humanModLevel,
@@ -249,11 +251,11 @@ export async function POST(req: NextRequest) {
 
     const id = await storeImagesAndInsert(async (screenshots) => (await query(
       `INSERT INTO products (
-        id, seller_id, title, description, price, category,
+        id, seller_id, title, description, price, category, subcategory,
         ai_tools, tech_stack, human_mod_level, screenshots,
         preview_url, license_type, tags, github_repo_name, github_default_branch,
         github_repo_private, github_snapshot_status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id`,
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) RETURNING id`,
       [
         productId,
         userId,
@@ -261,6 +263,7 @@ export async function POST(req: NextRequest) {
         description,
         price,
         category,
+        subcategory,
         aiTools,
         techStack,
         humanModLevel,

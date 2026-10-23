@@ -22,6 +22,17 @@ const statusVariant: Record<string, 'success' | 'warning' | 'destructive' | 'mut
   suspended: 'muted',
 }
 
+// A product can land back in 'pending' two very different ways: as a brand
+// new submission's first review (pending_reason is null), or because an
+// already-live listing's content just changed and needs re-review (see
+// migration 035). Without this, both look identical in the UI and a seller
+// has no way to tell why an approved listing suddenly vanished from the
+// storefront.
+const pendingReasonLabel: Record<string, string> = {
+  content_updated: 'Pending re-review — repository content was refreshed',
+  edited: 'Pending re-review — listing details were edited',
+}
+
 export default function MyProductsPage() {
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -91,7 +102,13 @@ export default function MyProductsPage() {
       if (!res.ok) throw new Error(data.error || 'Failed to sync repository snapshot')
       setProducts((prev) => prev.map((p) => (
         p.id === productId
-          ? { ...p, github_snapshot_status: 'ready', github_snapshot_error: null, status: data.statusReset ? 'pending' : p.status }
+          ? {
+              ...p,
+              github_snapshot_status: 'ready',
+              github_snapshot_error: null,
+              status: data.statusReset ? 'pending' : p.status,
+              pending_reason: data.statusReset ? 'content_updated' : p.pending_reason,
+            }
           : p
       )))
       toast.success(data.statusReset
@@ -152,7 +169,9 @@ export default function MyProductsPage() {
                 />
                 <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
                   <Badge className={cn('border-0', mediaChipClass, 'bg-black/40 dark:group-has-[[data-fallback]]/media:bg-black/40')}>{product.category}</Badge>
-                  <Badge variant={statusVariant[product.status] ?? 'muted'}>{product.status}</Badge>
+                  <Badge variant={statusVariant[product.status] ?? 'muted'}>
+                    {product.status === 'pending' && product.pending_reason ? 'Re-review' : product.status}
+                  </Badge>
                 </div>
               </div>
 
@@ -164,6 +183,11 @@ export default function MyProductsPage() {
                   <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
                     {product.description}
                   </p>
+                  {product.status === 'pending' && product.pending_reason && pendingReasonLabel[product.pending_reason] && (
+                    <p className="mt-2 rounded-md bg-warning/10 px-2.5 py-1.5 text-xs text-warning-foreground">
+                      {pendingReasonLabel[product.pending_reason]} — it&apos;s temporarily off the storefront until an admin reviews it again.
+                    </p>
+                  )}
                   {product.status === 'rejected' && product.rejection_reason && (
                     <p className="mt-2 rounded-md bg-destructive/10 px-2.5 py-1.5 text-xs text-destructive">
                       Rejected: {product.rejection_reason}

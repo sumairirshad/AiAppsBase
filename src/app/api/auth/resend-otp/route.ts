@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { issueVerificationOtp } from '@/lib/otp'
+import { rateLimit } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
+  // issueVerificationOtp's own per-account lock only trips after several
+  // WRONG-code attempts at /verify-otp — it does nothing to stop this route
+  // being hit directly and repeatedly to spam an inbox with codes.
+  const limited = await rateLimit(req, 'auth:resend-otp', 5, 600)
+  if (limited) return limited
+
   const body = await req.json().catch(() => null)
   if (!body || typeof body !== 'object') {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })

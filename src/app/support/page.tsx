@@ -106,11 +106,17 @@ export default function SupportPage() {
           <MessageCircle className="mx-auto mb-4 size-10 text-primary" />
           <h3 className="mb-2 text-lg font-semibold">Still need help?</h3>
           <p className="mb-6 text-sm text-muted-foreground">
-            Can&apos;t find what you&apos;re looking for? Email us and we&apos;ll get back to you within 24 hours.
+            Open a support ticket and we&apos;ll reply as soon as we can — you&apos;ll be able to track it and
+            reply back any time. Not signed in, or prefer email? Reach us directly instead.
           </p>
-          <Button variant="gradient" asChild>
-            <a href="mailto:support@aiappsbase.dev"><MessageCircle className="size-4" /> Email Support</a>
-          </Button>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Button variant="gradient" asChild>
+              <a href="/support/tickets/new"><MessageCircle className="size-4" /> Open a Support Ticket</a>
+            </Button>
+            <Button variant="outline" asChild>
+              <a href="mailto:support@aiappsbase.dev"><MessageCircle className="size-4" /> Email Support</a>
+            </Button>
+          </div>
         </Card>
       </div>
     </div>

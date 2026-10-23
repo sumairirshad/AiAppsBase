@@ -7,6 +7,7 @@ import {
   LayoutDashboard, BarChart3, Package, PlusCircle, Github, ShoppingBag, Users,
   Star, Wallet, Settings, Heart, Download, Receipt, LogOut, ArrowLeft, Menu, Store,
   ShieldCheck, Bell, FileText, ClipboardList, MessageSquare, DollarSign, Landmark, Flag,
+  LifeBuoy,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -29,6 +30,7 @@ const SELLER_NAV: Item[] = [
   { label: 'Customers', href: '/panel/customers', icon: Users },
   { label: 'Reviews', href: '/panel/reviews', icon: Star },
   { label: 'Wallet', href: '/panel/wallet', icon: Wallet },
+  { label: 'Support', href: '/support/tickets', icon: LifeBuoy },
   { label: 'Settings', href: '/panel/settings', icon: Settings },
 ]
 
@@ -39,6 +41,7 @@ const BUYER_NAV: Item[] = [
   { label: 'Wishlist', href: '/buyer/wishlist', icon: Heart },
   { label: 'Orders', href: '/buyer/orders', icon: Receipt },
   { label: 'Reviews', href: '/buyer/reviews', icon: Star },
+  { label: 'Support', href: '/support/tickets', icon: LifeBuoy },
   { label: 'Settings', href: '/buyer/settings', icon: Settings },
 ]
 
@@ -50,6 +53,7 @@ const ADMIN_NAV: Item[] = [
   { label: 'Orders', href: '/admin/orders', icon: ShoppingBag },
   { label: 'Reviews', href: '/admin/reviews', icon: MessageSquare },
   { label: 'Product Reports', href: '/admin/product-reports', icon: Flag },
+  { label: 'Support Tickets', href: '/admin/support-tickets', icon: LifeBuoy },
   { label: 'Finances', href: '/admin/finances', icon: DollarSign },
   { label: 'Settlements', href: '/admin/settlements', icon: Landmark },
   { label: 'Reports', href: '/admin/reports', icon: FileText },
