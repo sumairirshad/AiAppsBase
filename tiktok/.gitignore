@@ -1,0 +1,20 @@
+# .NET backend
+backend/bin/
+backend/obj/
+backend/TikTok.Api.Tests/bin/
+backend/TikTok.Api.Tests/obj/
+backend/*.user
+
+# Next.js frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
+# Secrets - never commit real credentials
+.env
+.env.local
+*.pfx
+*.pem
