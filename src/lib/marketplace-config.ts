@@ -138,6 +138,7 @@ export function languageColor(lang?: string | null): string {
 
 /* --------------------------------- Types -------------------------------- */
 import type { Components as RankComponents } from '@/lib/ranking/signals'
+import type { FundingLink } from '@/lib/github-funding'
 
 export type Review = {
   id: string
@@ -222,4 +223,8 @@ export type Repo = {
   reviews: Review[]
   /** Ranking component scores (set by the ranking service; used to re-rank on the client). */
   rank?: RankComponents
+  /** The developer's own external sponsorship/donation links, detected from
+   * the repo's .github/FUNDING.yml. Empty/absent for non-GitHub listings or
+   * repos with no funding config. */
+  fundingLinks?: FundingLink[]
 }

@@ -31,7 +31,12 @@ import { isHttpUrl } from '@/lib/utils'
 import { computeLicensePrice } from '@/lib/license-pricing'
 import { Textarea } from '@/components/ui/textarea'
 import { ReasonDialog } from '@/components/dashboard/reason-dialog'
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { fundingPlatformLabel, fundingPlatformIcon } from '@/lib/funding-platforms'
 import type { Repo, Review, Seller } from '@/lib/marketplace-config'
+import type { FundingLink } from '@/lib/github-funding'
 
 /** Open-source license strings (see LICENSES in marketplace-config.ts) — a
  * listing carrying one of these is a curated third-party project, not
@@ -509,6 +514,61 @@ function PurchasePanel({ repo }: { repo: Repo }) {
   )
 }
 
+/**
+ * A prominent "Support the developer" action for repos that declare a
+ * funding/sponsorship link via .github/FUNDING.yml. Hidden entirely when
+ * the repo has none — this is never shown as an empty state. Every link
+ * is the developer's own donation page (never a platform's homepage) and
+ * opens in a new tab.
+ */
+function SupportDeveloperCard({ links }: { links: FundingLink[] }) {
+  const validLinks = links.filter((l) => isHttpUrl(l.url))
+  if (validLinks.length === 0) return null
+
+  const single = validLinks.length === 1 ? validLinks[0] : null
+  const SingleIcon = single ? fundingPlatformIcon(single.platform) : null
+
+  return (
+    <Card className="p-5">
+      <div className="flex items-center gap-2 text-sm font-semibold">
+        <Heart className="size-4 fill-rose-500 text-rose-500" /> Support the developer
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">
+        This project accepts sponsorships — your support helps keep it maintained.
+      </p>
+      {single && SingleIcon ? (
+        <Button variant="gradient" className="mt-4 w-full" asChild>
+          <a href={single.url} target="_blank" rel="noopener noreferrer">
+            <SingleIcon className="size-4" /> {fundingPlatformLabel(single.platform)}
+          </a>
+        </Button>
+      ) : (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="gradient" className="mt-4 w-full">
+              <Heart className="size-4" /> Sponsor this creator
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56">
+            <DropdownMenuLabel>Choose a platform</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {validLinks.map((link, i) => {
+              const Icon = fundingPlatformIcon(link.platform)
+              return (
+                <DropdownMenuItem key={`${link.platform}-${i}`} asChild>
+                  <a href={link.url} target="_blank" rel="noopener noreferrer" className="flex w-full cursor-pointer items-center gap-2">
+                    <Icon className="size-4" /> {fundingPlatformLabel(link.platform)}
+                  </a>
+                </DropdownMenuItem>
+              )
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </Card>
+  )
+}
+
 export function ProductDetail({
   repo, seller, related, isOwned = false,
 }: { repo: Repo; seller?: Seller; related: Repo[]; isOwned?: boolean }) {
@@ -774,6 +834,8 @@ export function ProductDetail({
         {/* Sidebar */}
         <div className="space-y-6 lg:sticky lg:top-24 lg:self-start">
           <PurchasePanel repo={repo} />
+
+          <SupportDeveloperCard links={repo.fundingLinks ?? []} />
 
           {seller && (
             <Card className="p-5">

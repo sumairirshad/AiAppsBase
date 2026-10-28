@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { PlusCircle, Edit, Trash2, Eye, History, RefreshCw, UploadCloud, AlertTriangle, Rocket } from 'lucide-react'
+import { PlusCircle, Edit, Trash2, Eye, History, RefreshCw, UploadCloud, AlertTriangle, Rocket, Heart } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 import { cn } from '@/lib/utils'
@@ -14,6 +14,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { PageHead } from '@/components/dashboard/page-head'
 import { EmptyState } from '@/components/dashboard/empty-state'
 import { ProductImage, mediaChipClass } from '@/components/products/product-image'
+import { fundingPlatformLabel } from '@/lib/funding-platforms'
 
 const statusVariant: Record<string, 'success' | 'warning' | 'destructive' | 'muted'> = {
   approved: 'success',
@@ -82,8 +83,14 @@ export default function MyProductsPage() {
       const res = await fetch(`/api/products/${productId}/sync-github-stats`, { method: 'POST' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to refresh stats')
-      setProducts((prev) => prev.map((p) => (p.id === productId ? { ...p, ...data.stats } : p)))
-      toast.success('GitHub stats refreshed')
+      // data.stats.fundingLinks is camelCase from the sync service; every
+      // other product field here (including the stored funding_links) is
+      // snake_case straight off the DB row, so remap it to match.
+      const { fundingLinks, ...stats } = data.stats
+      setProducts((prev) => prev.map((p) => (
+        p.id === productId ? { ...p, ...stats, funding_links: fundingLinks ?? p.funding_links } : p
+      )))
+      toast.success('GitHub stats & funding links refreshed')
     } catch (err) {
       toast.error((err as Error).message)
     } finally {
@@ -183,6 +190,14 @@ export default function MyProductsPage() {
                   <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
                     {product.description}
                   </p>
+                  {Array.isArray(product.funding_links) && product.funding_links.length > 0 && (
+                    <p className="mt-2 flex items-start gap-1.5 rounded-md bg-rose-500/10 px-2.5 py-1.5 text-xs text-rose-600 dark:text-rose-400">
+                      <Heart className="mt-0.5 size-3.5 shrink-0" />
+                      <span>
+                        Funding links active: {product.funding_links.map((f: { platform: string }) => fundingPlatformLabel(f.platform)).join(', ')}
+                      </span>
+                    </p>
+                  )}
                   {product.status === 'pending' && product.pending_reason && pendingReasonLabel[product.pending_reason] && (
                     <p className="mt-2 rounded-md bg-warning/10 px-2.5 py-1.5 text-xs text-warning-foreground">
                       {pendingReasonLabel[product.pending_reason]} — it&apos;s temporarily off the storefront until an admin reviews it again.
@@ -259,7 +274,7 @@ export default function MyProductsPage() {
                           onClick={() => refreshGithubStats(product.id)}
                           disabled={refreshingId === product.id}
                           className="grid size-8 place-items-center rounded-lg border border-border bg-muted/40 text-muted-foreground transition-colors hover:text-primary disabled:opacity-50"
-                          title="Refresh GitHub stats"
+                          title="Re-sync GitHub data (stats & funding links)"
                         >
                           <RefreshCw className={cn('size-4', refreshingId === product.id && 'animate-spin')} />
                         </button>

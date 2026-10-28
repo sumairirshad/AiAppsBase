@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
-import { Package, CheckCircle, XCircle, AlertCircle, Clock, Search, ChevronLeft, ChevronRight, Star } from 'lucide-react'
+import { Package, CheckCircle, XCircle, AlertCircle, Clock, Search, ChevronLeft, ChevronRight, Star, Heart } from 'lucide-react'
 
 import { formatPrice, timeAgo } from '@/lib/utils'
+import { fundingPlatformLabel } from '@/lib/funding-platforms'
 import type { ProductStatus } from '@/types'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -36,6 +37,7 @@ const statusConfig: Record<ProductStatus, { label: string; icon: typeof CheckCir
 interface AdminProduct {
   id: string; title: string; description: string; price: number; category: string
   status: ProductStatus; featured: boolean; createdAt: string; seller: { id: string; name: string; email: string }
+  githubRepoName?: string | null; fundingLinks?: { platform: string; url: string }[]
 }
 
 const PAGE_SIZE = 20
@@ -221,6 +223,24 @@ export default function AdminProductsPage() {
                           <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><Package className="size-4" /></span>
                           <span className="font-medium">{product.title}</span>
                         </Link>
+                        {/* Detected external donation links, for compliance/security review —
+                            each must be the developer's own page, never the platform's homepage. */}
+                        {product.fundingLinks && product.fundingLinks.length > 0 && (
+                          <div className="mt-1.5 flex flex-wrap gap-1 pl-12">
+                            {product.fundingLinks.map((f, i) => (
+                              <a
+                                key={`${f.platform}-${i}`}
+                                href={f.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title={f.url}
+                                className="inline-flex items-center gap-1 rounded-md bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-medium text-rose-600 hover:underline dark:text-rose-400"
+                              >
+                                <Heart className="size-2.5" /> {fundingPlatformLabel(f.platform)}
+                              </a>
+                            ))}
+                          </div>
+                        )}
                       </td>
                       <td className="px-3 py-3 text-muted-foreground">
                         <Link href={`/admin/sellers/${product.seller.id}`} className="hover:text-primary">{product.seller.name}</Link>

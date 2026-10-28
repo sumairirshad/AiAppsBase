@@ -59,6 +59,7 @@ export function mapRow(row: any): Repo {
     features: row.features || [],
     changelog: [],
     reviews: [],
+    fundingLinks: Array.isArray(row.funding_links) ? row.funding_links : [],
   }
 }
 
