@@ -5,10 +5,11 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft, ArrowRight, Check, ClipboardList, Cpu, Tag, ImageIcon, DollarSign,
-  FileArchive, X,
+  FileArchive, X, Heart, RefreshCw,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { AITool, Category, HumanModLevel, LicenseType } from '@/types'
+import { fundingPlatformLabel } from '@/lib/funding-platforms'
 
 import { cn, formatBytes } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -85,6 +86,8 @@ export default function EditProductPage() {
   const [isGithub, setIsGithub] = useState(false)
   const [images, setImages] = useState<string[]>([])
   const [savedImages, setSavedImages] = useState<string[]>([])
+  const [fundingLinks, setFundingLinks] = useState<{ platform: string; url: string }[]>([])
+  const [resyncingGithub, setResyncingGithub] = useState(false)
 
   const [deliverableName, setDeliverableName] = useState<string | null>(null)
   const [deliverableSize, setDeliverableSize] = useState<number | null>(null)
@@ -114,6 +117,7 @@ export default function EditProductPage() {
       setIsGithub(Boolean(p.github_repo_name))
       setImages(p.screenshots ?? [])
       setSavedImages(p.screenshots ?? [])
+      setFundingLinks(Array.isArray(p.funding_links) ? p.funding_links : [])
       setDeliverableName(p.deliverable_original_name ?? null)
       setDeliverableSize(p.deliverable_size_bytes ?? null)
     } catch (err) {
@@ -182,6 +186,21 @@ export default function EditProductPage() {
       toast.error((err as Error).message)
     } finally {
       setDeletingDeliverable(false)
+    }
+  }
+
+  const resyncGithubData = async () => {
+    setResyncingGithub(true)
+    try {
+      const res = await fetch(`/api/products/${params.id}/sync-github-stats`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to refresh GitHub data')
+      setFundingLinks(data.stats?.fundingLinks ?? [])
+      toast.success('GitHub stats & funding links refreshed')
+    } catch (err) {
+      toast.error((err as Error).message)
+    } finally {
+      setResyncingGithub(false)
     }
   }
 
@@ -349,9 +368,20 @@ export default function EditProductPage() {
             </div>
 
             {isGithub ? (
-              <p className="rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
-                This is a GitHub-based listing — buyers download the linked repository directly, so there&apos;s no uploaded file to manage here.
-              </p>
+              <div className="space-y-3 rounded-lg border border-border bg-muted/40 p-3">
+                <p className="text-xs text-muted-foreground">
+                  This is a GitHub-based listing — buyers download the linked repository directly, so there&apos;s no uploaded file to manage here.
+                </p>
+                {fundingLinks.length > 0 && (
+                  <p className="flex items-start gap-1.5 rounded-md bg-rose-500/10 px-2.5 py-1.5 text-xs text-rose-600 dark:text-rose-400">
+                    <Heart className="mt-0.5 size-3.5 shrink-0" />
+                    <span>Funding links active: {fundingLinks.map((f) => fundingPlatformLabel(f.platform)).join(', ')}</span>
+                  </p>
+                )}
+                <Button type="button" variant="outline" size="sm" onClick={resyncGithubData} loading={resyncingGithub} disabled={resyncingGithub}>
+                  <RefreshCw className={cn('size-3.5', resyncingGithub && 'animate-spin')} /> Re-sync GitHub data
+                </Button>
+              </div>
             ) : (
               <div className="space-y-3">
                 <Label>Product deliverable (.zip or .rar)</Label>

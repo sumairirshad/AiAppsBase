@@ -1,5 +1,6 @@
 import { query } from '@/lib/db'
 import { decryptToken } from '@/lib/token-crypto'
+import { fetchGithubFundingLinks, type FundingLink } from '@/lib/github-funding'
 
 export type GithubRepoStats = {
   stars: number
@@ -77,18 +78,22 @@ export async function fetchGithubRepoStats(
 }
 
 /**
- * Looks up the seller's GitHub token, fetches current stats for their
- * repo, and writes them onto the product row. Best-effort: any failure
- * (no token, repo unreachable, rate-limited) is logged and swallowed —
- * the product keeps whatever stats it already had rather than blocking
- * product creation or a manual refresh on GitHub being reachable.
+ * Looks up the seller's GitHub token, fetches current stats (and declared
+ * funding/sponsorship links) for their repo, and writes them onto the
+ * product row. Best-effort: any failure (no token, repo unreachable,
+ * rate-limited) is logged and swallowed — the product keeps whatever
+ * stats/funding links it already had rather than blocking product
+ * creation or a manual refresh on GitHub being reachable. Funding links
+ * are synced independently of stats succeeding or not: a null result
+ * (couldn't be checked) leaves the stored value untouched, rather than
+ * wiping out a previously detected funding link.
  */
 export async function syncProductGithubStats(
   productId: string,
   sellerId: string,
   repoFullName: string,
   defaultBranch?: string | null
-): Promise<GithubRepoStats | null> {
+): Promise<(GithubRepoStats & { fundingLinks: FundingLink[] }) | null> {
   try {
     const userRes = await query<{ github_access_token: string | null }>(
       'SELECT github_access_token FROM users WHERE id = $1',
@@ -97,15 +102,23 @@ export async function syncProductGithubStats(
     const accessToken = decryptToken(userRes.rows[0]?.github_access_token ?? null)
     if (!accessToken) return null
 
-    const stats = await fetchGithubRepoStats(accessToken, repoFullName, defaultBranch ?? undefined)
+    const [stats, fundingLinks] = await Promise.all([
+      fetchGithubRepoStats(accessToken, repoFullName, defaultBranch ?? undefined),
+      fetchGithubFundingLinks(accessToken, repoFullName),
+    ])
     if (!stats) return null
 
     await query(
-      `UPDATE products SET stars = $1, forks = $2, watchers = $3, issues = $4, commits = $5, contributors = $6
-       WHERE id = $7`,
-      [stats.stars, stats.forks, stats.watchers, stats.issues, stats.commits, stats.contributors, productId]
+      `UPDATE products SET stars = $1, forks = $2, watchers = $3, issues = $4, commits = $5, contributors = $6,
+         funding_links = COALESCE($7::jsonb, funding_links)
+       WHERE id = $8`,
+      [
+        stats.stars, stats.forks, stats.watchers, stats.issues, stats.commits, stats.contributors,
+        fundingLinks !== null ? JSON.stringify(fundingLinks) : null,
+        productId,
+      ]
     )
-    return stats
+    return { ...stats, fundingLinks: fundingLinks ?? [] }
   } catch (error) {
     console.error('[github-stats] failed to sync stats for product', productId, error)
     return null
