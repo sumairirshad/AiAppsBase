@@ -6,6 +6,7 @@ import { downloadDeliverableStream } from '@/lib/sftp'
 import { decryptToken } from '@/lib/token-crypto'
 import { resolveOrderDeliverable } from '@/lib/product-versions'
 import { rateLimit } from '@/lib/rate-limit'
+import { recordDownloadEvent } from '@/lib/download-history'
 
 function streamDeliverable(webStream: ReadableStream, fileName: string, size?: number, contentType = 'application/octet-stream') {
   const headers: Record<string, string> = {
@@ -78,6 +79,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     try {
       const { stream, size } = await downloadDeliverableStream(deliverable.deliverableRemotePath)
       const webStream = Readable.toWeb(stream as Readable) as ReadableStream
+      await recordDownloadEvent(params.id, userId, order.product_version_id)
       return streamDeliverable(webStream, deliverable.deliverableOriginalName || 'download', size)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error'
@@ -109,6 +111,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
         if (ghRes.ok && ghRes.body) {
           const repoSlug = deliverable.githubRepoName.split('/').pop() || 'repo'
+          await recordDownloadEvent(params.id, userId, order.product_version_id)
           return streamDeliverable(ghRes.body as unknown as ReadableStream, `${repoSlug}-${branch}.zip`, undefined, 'application/zip')
         }
 
@@ -129,6 +132,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
       if (publicRes.ok && publicRes.body) {
         const repoSlug = deliverable.githubRepoName.split('/').pop() || 'repo'
+        await recordDownloadEvent(params.id, userId, order.product_version_id)
         return streamDeliverable(publicRes.body as unknown as ReadableStream, `${repoSlug}-${branch}.zip`, undefined, 'application/zip')
       }
     } catch (err) {

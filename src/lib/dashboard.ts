@@ -254,6 +254,65 @@ export async function getBuyerOrders(userId: string, limit = 50) {
   } catch { return [] }
 }
 
+export type BuyerDownloadHistoryEntry = {
+  orderId: string
+  productId: string
+  product: string
+  image: string
+  fileName: string | null
+  fileSizeBytes: number | null
+  version: string | null
+  uploadedAt: string | null
+  lastDownloadedAt: string | null
+  downloadCount: number
+  purchasedAt: string
+}
+
+/**
+ * Every completed order with a downloadable file, paired with the seller's
+ * upload date for the exact version this buyer is entitled to (never just
+ * the product's current version) and this buyer's own download activity on
+ * it — logged by recordDownloadEvent() in @/lib/download-history.
+ */
+export async function getBuyerDownloadHistory(userId: string, limit = 100): Promise<BuyerDownloadHistoryEntry[]> {
+  try {
+    const res = await query(
+      `SELECT o.id AS order_id, o.created_at AS purchased_at,
+              p.id AS product_id, p.title AS product, p.screenshots[1] AS image,
+              COALESCE(ov.deliverable_original_name, p.deliverable_original_name) AS file_name,
+              COALESCE(ov.deliverable_size_bytes, p.deliverable_size_bytes) AS file_size_bytes,
+              COALESCE(ov.version, p.version) AS version,
+              COALESCE(ov.published_at, ov.created_at, p.created_at) AS uploaded_at,
+              de.last_downloaded_at, COALESCE(de.download_count, 0)::int AS download_count
+       FROM orders o
+       JOIN products p ON p.id = o.product_id
+       LEFT JOIN product_versions ov ON ov.id = o.product_version_id
+       LEFT JOIN (
+         SELECT order_id, MAX(downloaded_at) AS last_downloaded_at, COUNT(*) AS download_count
+         FROM download_events GROUP BY order_id
+       ) de ON de.order_id = o.id
+       WHERE o.buyer_id = $1 AND o.status = 'completed'
+         AND (COALESCE(ov.deliverable_remote_path, p.deliverable_remote_path) IS NOT NULL
+              OR COALESCE(ov.github_repo_name, p.github_repo_name) IS NOT NULL)
+       ORDER BY o.created_at DESC LIMIT $2`,
+      [userId, limit]
+    )
+    return res.rows.map((r: any): BuyerDownloadHistoryEntry => ({
+      orderId: r.order_id,
+      productId: r.product_id,
+      product: r.product,
+      image: r.image || '',
+      fileName: r.file_name,
+      fileSizeBytes: r.file_size_bytes != null ? Number(r.file_size_bytes) : null,
+      version: r.version,
+      uploadedAt: r.uploaded_at ? new Date(r.uploaded_at).toISOString() : null,
+      lastDownloadedAt: r.last_downloaded_at ? new Date(r.last_downloaded_at).toISOString() : null,
+      downloadCount: r.download_count,
+      purchasedAt: new Date(r.purchased_at).toISOString(),
+    }))
+  } catch { return [] }
+}
+
 /** One order's full receipt detail, scoped to this buyer — null if it doesn't exist or isn't theirs. */
 export async function getBuyerOrderReceipt(orderId: string, buyerId: string) {
   try {

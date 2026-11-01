@@ -7,7 +7,7 @@ import {
   LayoutDashboard, BarChart3, Package, PlusCircle, Github, ShoppingBag, Users,
   Star, Wallet, Settings, Heart, Download, Receipt, LogOut, ArrowLeft, Menu, Store,
   ShieldCheck, Bell, FileText, ClipboardList, MessageSquare, DollarSign, Landmark, Flag,
-  LifeBuoy,
+  LifeBuoy, History,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -38,6 +38,7 @@ const BUYER_NAV: Item[] = [
   { label: 'Dashboard', href: '/buyer', icon: LayoutDashboard },
   { label: 'Purchases', href: '/buyer/purchases', icon: ShoppingBag },
   { label: 'Downloads', href: '/buyer/downloads', icon: Download },
+  { label: 'Download History', href: '/buyer/download-history', icon: History },
   { label: 'Wishlist', href: '/buyer/wishlist', icon: Heart },
   { label: 'Orders', href: '/buyer/orders', icon: Receipt },
   { label: 'Reviews', href: '/buyer/reviews', icon: Star },
