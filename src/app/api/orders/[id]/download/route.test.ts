@@ -165,6 +165,11 @@ describe('GET /api/orders/[id]/download — snapshot-backed deliverable (primary
     expect(fetchMock).not.toHaveBeenCalled()
     // the exact version the buyer purchased, never just "the product's current version"
     expect(resolveOrderDeliverableMock).toHaveBeenCalledWith('product-1', 'version-1')
+    // every successful download is logged for the buyer's Download History page
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO download_events'),
+      [ORDER_ID, BUYER_ID, 'version-1']
+    )
   })
 
   it('streams a snapshotted PUBLIC repo product identically', async () => {
@@ -207,6 +212,8 @@ describe('GET /api/orders/[id]/download — snapshot-backed deliverable (primary
 
     const res = await call()
     expect(res.status).toBe(502)
+    // a failed fetch from storage is never logged as a successful download
+    expect(queryMock).not.toHaveBeenCalledWith(expect.stringContaining('INSERT INTO download_events'), expect.anything())
   })
 })
 
@@ -227,6 +234,10 @@ describe('GET /api/orders/[id]/download — legacy pre-snapshot GitHub products'
     expect(res.status).toBe(200)
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect((fetchMock.mock.calls[0][1] as RequestInit).headers).toMatchObject({ Authorization: 'Bearer seller-token' })
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO download_events'),
+      [ORDER_ID, BUYER_ID, 'version-1']
+    )
   })
 
   it('falls back to a public fetch when there is no usable seller token', async () => {
@@ -245,6 +256,10 @@ describe('GET /api/orders/[id]/download — legacy pre-snapshot GitHub products'
     expect(res.status).toBe(200)
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(fetchMock.mock.calls[0][0]).toContain('archive/refs/heads')
+    expect(queryMock).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO download_events'),
+      [ORDER_ID, BUYER_ID, 'version-1']
+    )
   })
 
   it('never redirects a buyer to a raw GitHub URL when every fetch path fails — returns a clear in-app error instead', async () => {
@@ -266,6 +281,7 @@ describe('GET /api/orders/[id]/download — legacy pre-snapshot GitHub products'
     expect(res.headers.get('location')).toBeNull()
     const body = await res.json()
     expect(body.error).toMatch(/reconnect/i)
+    expect(queryMock).not.toHaveBeenCalledWith(expect.stringContaining('INSERT INTO download_events'), expect.anything())
   })
 })
 
