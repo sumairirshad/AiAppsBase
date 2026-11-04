@@ -4,6 +4,8 @@ import { verifyPassword, LOGIN_MAX_ATTEMPTS, LOGIN_LOCKOUT_MINUTES } from '@/lib
 import { setSession } from '@/lib/session'
 import { issueVerificationOtp } from '@/lib/otp'
 import { rateLimit } from '@/lib/rate-limit'
+import { getClientIp } from '@/lib/admin'
+import { logSecurityEvent } from '@/lib/security-events'
 
 export async function POST(req: NextRequest) {
   // Per-account lockout (below) only engages after repeated failures on ONE
@@ -23,14 +25,14 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    return await handleLogin(email, password)
+    return await handleLogin(email, password, getClientIp(req), req.headers.get('user-agent'))
   } catch (err) {
     console.error('[auth/login] unexpected failure:', err)
     return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 })
   }
 }
 
-async function handleLogin(email: string, password: string) {
+async function handleLogin(email: string, password: string, ipAddress: string | null, userAgent: string | null) {
   const userRes = await query(
     'SELECT id, password_hash, is_verified, role, account_status, login_failed_attempts, login_locked_until, otp_locked_until FROM users WHERE email = $1',
     [email.trim().toLowerCase()]
@@ -52,11 +54,13 @@ async function handleLogin(email: string, password: string) {
   const isValid = await verifyPassword(password, user.password_hash)
   if (!isValid) {
     const attempts = user.login_failed_attempts + 1
+    await logSecurityEvent({ userId: user.id, eventType: 'login_failed', ipAddress, userAgent, details: `Attempt ${attempts} of ${LOGIN_MAX_ATTEMPTS}` })
     if (attempts >= LOGIN_MAX_ATTEMPTS) {
       await query(
         `UPDATE users SET login_failed_attempts = 0, login_locked_until = NOW() + $2 * INTERVAL '1 minute' WHERE id = $1`,
         [user.id, LOGIN_LOCKOUT_MINUTES]
       )
+      await logSecurityEvent({ userId: user.id, eventType: 'login_locked', ipAddress, userAgent, details: `Locked for ${LOGIN_LOCKOUT_MINUTES} minutes after ${LOGIN_MAX_ATTEMPTS} failed attempts` })
     } else {
       await query('UPDATE users SET login_failed_attempts = $2 WHERE id = $1', [user.id, attempts])
     }

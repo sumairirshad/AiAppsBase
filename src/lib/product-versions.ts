@@ -105,12 +105,6 @@ export type DeliverableSnapshot = {
   githubRepoName?: string | null
   githubBranch?: string | null
   githubCommitSha?: string | null
-  /** Malware scan result for this exact deliverable — see lib/malware-scan.ts. Required: a version can only be finalized once it has a clean scan on record. */
-  scanResult: {
-    status: 'clean'
-    result: string | null
-    engineVersion: string | null
-  }
 }
 
 /**
@@ -137,13 +131,11 @@ export async function finalizeProductVersion(
          status = 'published', published_at = COALESCE(published_at, NOW()),
          deliverable_remote_path = $1, deliverable_original_name = $2, deliverable_size_bytes = $3, deliverable_sha256 = $4,
          github_repo_name = COALESCE($5, github_repo_name), github_branch = COALESCE($6, github_branch),
-         github_commit_sha = COALESCE($7, github_commit_sha),
-         scan_status = $8, scan_result = $9, scan_engine_version = $10, scanned_at = NOW()
-       WHERE id = $11`,
+         github_commit_sha = COALESCE($7, github_commit_sha)
+       WHERE id = $8`,
       [
         deliverable.remotePath, deliverable.originalName, deliverable.sizeBytes, deliverable.sha256,
         deliverable.githubRepoName ?? null, deliverable.githubBranch ?? null, deliverable.githubCommitSha ?? null,
-        deliverable.scanResult.status, deliverable.scanResult.result, deliverable.scanResult.engineVersion,
         versionId,
       ]
     )
@@ -245,8 +237,6 @@ export type ResolvedDeliverable = {
   githubRepoName: string | null
   githubBranch: string | null
   githubCommitSha: string | null
-  /** Malware scan verdict on record for this exact deliverable — see migration 039. */
-  scanStatus: 'pending' | 'clean' | 'infected' | 'scan_error' | 'unscanned_legacy' | null
 }
 
 /**
@@ -265,7 +255,7 @@ export async function resolveOrderDeliverable(
   if (versionId) {
     const res = await query(
       `SELECT id, delivery_type, deliverable_remote_path, deliverable_original_name,
-              deliverable_size_bytes, deliverable_sha256, scan_status,
+              deliverable_size_bytes, deliverable_sha256,
               github_repo_name, github_branch, github_commit_sha
        FROM product_versions WHERE id = $1 AND product_id = $2`,
       [versionId, productId]
@@ -279,7 +269,6 @@ export async function resolveOrderDeliverable(
         deliverableOriginalName: r.deliverable_original_name,
         deliverableSizeBytes: r.deliverable_size_bytes != null ? Number(r.deliverable_size_bytes) : null,
         deliverableSha256: r.deliverable_sha256,
-        scanStatus: r.scan_status,
         githubRepoName: r.github_repo_name,
         githubBranch: r.github_branch,
         githubCommitSha: r.github_commit_sha,
@@ -289,9 +278,8 @@ export async function resolveOrderDeliverable(
 
   // No version on record at all (pre-migration edge case that somehow
   // wasn't backfilled) — fall back to the product's live columns, exactly
-  // the behavior this app had before versioning existed. These predate both
-  // sha256 hashing and malware scanning, so there's nothing honest to report
-  // for either beyond "never scanned".
+  // the behavior this app had before versioning existed. These predate
+  // sha256 hashing, so there's nothing to report there either.
   const productRes = await query(
     `SELECT github_repo_name, github_default_branch, deliverable_remote_path, deliverable_original_name,
             deliverable_size_bytes
@@ -307,7 +295,6 @@ export async function resolveOrderDeliverable(
     deliverableOriginalName: p.deliverable_original_name,
     deliverableSizeBytes: p.deliverable_size_bytes != null ? Number(p.deliverable_size_bytes) : null,
     deliverableSha256: null,
-    scanStatus: 'unscanned_legacy',
     githubRepoName: p.github_repo_name,
     githubBranch: p.github_default_branch,
     githubCommitSha: null,

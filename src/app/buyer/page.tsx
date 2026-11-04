@@ -16,7 +16,6 @@ import {
 } from '@/lib/dashboard'
 import { ProductImage } from '@/components/products/product-image'
 import { listApprovedProducts } from '@/lib/products'
-import { MalwareDownloadButton } from '@/components/buyer/malware-download-button'
 
 const statusVariant: Record<string, 'success' | 'destructive' | 'warning'> = {
   completed: 'success', refunded: 'destructive', disputed: 'warning',
@@ -85,7 +84,9 @@ export default async function BuyerDashboard() {
                   <div className="text-xs text-muted-foreground">{o.date}</div>
                 </div>
                 {o.downloadable && (
-                  <MalwareDownloadButton orderId={o.id} productTitle={o.product} size="sm" className="shrink-0" compactLabel />
+                  <Button size="sm" variant="outline" className="shrink-0" asChild>
+                    <a href={`/api/orders/${o.id}/download`}><Download className="size-4" /> <span className="hidden sm:inline">Download</span></a>
+                  </Button>
                 )}
               </div>
             ))}

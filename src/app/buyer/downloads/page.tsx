@@ -1,12 +1,12 @@
 import Link from 'next/link'
-import { Key } from 'lucide-react'
+import { Download, Key } from 'lucide-react'
 
+import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { PageHead } from '@/components/dashboard/page-head'
 import { EmptyState } from '@/components/dashboard/empty-state'
 import { getCurrentUser, getBuyerOrders } from '@/lib/dashboard'
 import { ProductImage } from '@/components/products/product-image'
-import { MalwareDownloadButton } from '@/components/buyer/malware-download-button'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,7 +32,7 @@ export default async function BuyerDownloadsPage() {
                   </div>
                 </div>
                 {o.downloadable ? (
-                  <MalwareDownloadButton orderId={o.id} productTitle={o.product} />
+                  <Button variant="outline" asChild><a href={`/api/orders/${o.id}/download`}><Download className="size-4" /> Download</a></Button>
                 ) : (
                   <span className="text-xs text-muted-foreground">No file attached</span>
                 )}

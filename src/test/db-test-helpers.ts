@@ -66,13 +66,9 @@ export async function createTestProductVersion(
   const deliveryType = opts.deliveryType ?? 'upload'
   const deliverableRemotePath =
     'deliverableRemotePath' in opts ? opts.deliverableRemotePath : status === 'published' ? '/remote/test-file.zip' : null
-  // scan_status must be 'clean' (or 'unscanned_legacy') for any row inserted
-  // as already-'published' — see the product_versions_published_requires_safe_scan
-  // CHECK constraint (migration 039) — a freshly-inserted test fixture isn't
-  // a pre-existing legacy row, so 'clean' is the honest value here.
   const res = await query<{ id: string }>(
-    `INSERT INTO product_versions (product_id, seller_id, version, delivery_type, status, deliverable_remote_path, published_at, scan_status)
-     VALUES ($1, $2, $3, $4, $5, $6, CASE WHEN $5 = 'published' THEN NOW() ELSE NULL END, CASE WHEN $5 = 'published' THEN 'clean' ELSE 'pending' END)
+    `INSERT INTO product_versions (product_id, seller_id, version, delivery_type, status, deliverable_remote_path, published_at)
+     VALUES ($1, $2, $3, $4, $5, $6, CASE WHEN $5 = 'published' THEN NOW() ELSE NULL END)
      RETURNING id`,
     [productId, sellerId, opts.version ?? '1.0.0', deliveryType, status, deliverableRemotePath]
   )

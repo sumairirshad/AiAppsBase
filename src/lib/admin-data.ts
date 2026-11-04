@@ -208,7 +208,7 @@ export async function getAdminUserDetail(id: string) {
     if (userRes.rowCount === 0) return null
     const user = userRes.rows[0] as any
 
-    const [orders, reviews, products, auditLog] = await Promise.all([
+    const [orders, reviews, products, auditLog, securityEvents] = await Promise.all([
       query(
         `SELECT o.id, o.amount::float AS amount, o.status, o.created_at, o.license_type, p.title AS product, p.id AS product_id
          FROM orders o JOIN products p ON o.product_id = p.id WHERE o.buyer_id = $1 ORDER BY o.created_at DESC LIMIT 20`,
@@ -236,6 +236,11 @@ export async function getAdminUserDetail(id: string) {
          WHERE a.target_type = 'user' AND a.target_id = $1 ORDER BY a.created_at DESC LIMIT 20`,
         [id]
       ),
+      query(
+        `SELECT id, event_type, ip_address, user_agent, details, created_at
+         FROM security_events WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50`,
+        [id]
+      ),
     ])
 
     return {
@@ -246,6 +251,7 @@ export async function getAdminUserDetail(id: string) {
       reviews: reviews.rows.map((r: any) => ({ ...r, date: new Date(r.created_at).toISOString().slice(0, 10) })),
       products: products.rows,
       auditLog: auditLog.rows.map((r: any) => ({ ...r, date: new Date(r.created_at).toLocaleString() })),
+      securityEvents: securityEvents.rows.map((r: any) => ({ ...r, date: new Date(r.created_at).toLocaleString() })),
     }
   } catch { return null }
 }
@@ -495,8 +501,7 @@ export async function getOrderDownloadAudit(orderId: string) {
   try {
     const res = await query(
       `SELECT id, file_name, file_sha256, file_size_bytes, ip_address, user_agent,
-              scan_status, warning_shown, override_requested, override_password_verified,
-              override_email_verified, status, block_reason, created_at
+              status, block_reason, created_at
        FROM download_audit_log
        WHERE order_id = $1
        ORDER BY created_at DESC`,

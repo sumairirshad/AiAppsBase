@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, Package, User, Store, Key, CreditCard, CheckCircle, Download, ShieldAlert } from 'lucide-react'
+import { ArrowLeft, Package, User, Store, Key, CreditCard, CheckCircle, Download } from 'lucide-react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -115,23 +115,13 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
                 <div key={d.id} className="rounded-lg border p-3 text-sm">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant={downloadStatusVariant[d.status] ?? 'muted'} className="capitalize">{d.status}</Badge>
-                    {d.warning_shown && (
-                      <Badge variant="destructive" className="flex items-center gap-1"><ShieldAlert className="size-3" /> Malware warning shown</Badge>
-                    )}
                     <span className="text-xs text-muted-foreground">{d.date}</span>
                   </div>
                   <div className="mt-2 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
                     {d.file_name && <p>File: {d.file_name}</p>}
                     {d.file_sha256 && <p className="truncate">SHA-256: {d.file_sha256}</p>}
                     {d.ip_address && <p>IP: {d.ip_address}</p>}
-                    {d.scan_status && <p>Scan result: {d.scan_status}</p>}
                     {d.block_reason && <p>Reason: {d.block_reason}</p>}
-                    {d.override_requested && (
-                      <p>
-                        Override: password {d.override_password_verified ? 'verified' : 'NOT verified'}, email code{' '}
-                        {d.override_email_verified ? 'verified' : 'NOT verified'}
-                      </p>
-                    )}
                   </div>
                 </div>
               ))}

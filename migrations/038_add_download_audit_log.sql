@@ -31,24 +31,10 @@ CREATE TABLE IF NOT EXISTS download_audit_log (
   ip_address TEXT,
   user_agent TEXT,
 
-  -- What the scan on record for this deliverable said at the moment of this
-  -- attempt (see migration 039) -- not re-computed here, just carried over
-  -- so a dispute doesn't need a second join to know what the buyer was told.
-  scan_status TEXT,
-
-  -- Was a malware warning shown for this attempt, and if so, did the buyer
-  -- go through the password + email re-verification override flow (see
-  -- lib/download-audit.ts / Phase 3)? warning_shown=false, override_*=NULL
-  -- is the overwhelmingly common case: a clean file, no warning needed.
-  warning_shown BOOLEAN NOT NULL DEFAULT FALSE,
-  override_requested BOOLEAN NOT NULL DEFAULT FALSE,
-  override_password_verified BOOLEAN NOT NULL DEFAULT FALSE,
-  override_email_verified BOOLEAN NOT NULL DEFAULT FALSE,
-
   -- 'success' = bytes were streamed to the buyer; 'blocked' = refused before
-  -- streaming anything (not entitled, infected with no/failed override,
-  -- scan still pending); 'failed' = an attempt that should have succeeded
-  -- but errored (storage unreachable, etc).
+  -- streaming anything (not entitled, order not completed, nothing to
+  -- deliver); 'failed' = an attempt that should have succeeded but errored
+  -- (storage unreachable, etc).
   status TEXT NOT NULL CHECK (status IN ('success', 'blocked', 'failed')),
   block_reason TEXT,
 

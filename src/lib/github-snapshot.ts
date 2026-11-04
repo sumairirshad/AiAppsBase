@@ -1,7 +1,6 @@
 import { query } from '@/lib/db'
 import { decryptToken } from '@/lib/token-crypto'
 import { uploadDeliverable, deleteDeliverable } from '@/lib/sftp'
-import { scanBuffer, MalwareScanUnavailableError } from '@/lib/malware-scan'
 
 /**
  * Snapshot-based delivery for GitHub-sourced products.
@@ -199,25 +198,6 @@ export async function snapshotGithubRepo(
     [productId]
   )
   const previousRemotePath = existingRes.rows[0]?.deliverable_remote_path ?? null
-
-  // A GitHub repo zipball is still a seller-controlled archive — scan it
-  // like any other upload before it's ever stored. Fail closed: an
-  // unreachable scanner blocks the snapshot rather than publishing unscanned.
-  try {
-    const scanOutcome = await scanBuffer(buffer)
-    if (scanOutcome.status === 'infected') {
-      console.error('[github-snapshot] malware detected:', productId, repoFullName, branch, scanOutcome.viruses)
-      return recordFailure(
-        `This repository's archive was flagged as malware by our security scan (${scanOutcome.viruses.join(', ') || 'unknown signature'}).`
-      )
-    }
-  } catch (err) {
-    const message = err instanceof MalwareScanUnavailableError
-      ? 'The security scan is temporarily unavailable. Please try again shortly.'
-      : err instanceof Error ? err.message : 'Unknown error'
-    console.error('[github-snapshot] malware scan failed:', productId, repoFullName, branch, err)
-    return recordFailure(message)
-  }
 
   const repoSlug = repoFullName.split('/').pop() || 'repo'
   const fileName = `${repoSlug}-${branch}.zip`

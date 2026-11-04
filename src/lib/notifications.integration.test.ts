@@ -17,7 +17,6 @@ describe.skipIf(!isDatabaseConfigured())('notifications (integration)', () => {
     if (!reserved.ok) throw new Error('unreachable')
     await finalizeProductVersion(reserved.versionId, productId, {
       remotePath: `/remote/${version}.zip`, originalName: `${version}.zip`, sizeBytes: 1, sha256: 'x',
-      scanResult: { status: 'clean', result: null, engineVersion: null },
     })
     return reserved.versionId
   }

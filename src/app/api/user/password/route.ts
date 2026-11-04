@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getSessionUserId, invalidateSessions, setSession } from '@/lib/session'
 import { hashPassword, validatePasswordStrength, verifyPassword } from '@/lib/auth'
+import { getClientIp } from '@/lib/admin'
+import { logSecurityEvent } from '@/lib/security-events'
 
 export async function POST(req: NextRequest) {
   const userId = await getSessionUserId()
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const ipAddress = getClientIp(req)
+  const userAgent = req.headers.get('user-agent')
 
   const body = await req.json().catch(() => ({}))
   const current = typeof body.current === 'string' ? body.current : ''
@@ -20,10 +25,14 @@ export async function POST(req: NextRequest) {
     if (res.rowCount === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     const ok = await verifyPassword(current, res.rows[0].password_hash)
-    if (!ok) return NextResponse.json({ error: 'Current password is incorrect.' }, { status: 400 })
+    if (!ok) {
+      await logSecurityEvent({ userId, eventType: 'password_change_failed', ipAddress, userAgent, details: 'Current password was incorrect' })
+      return NextResponse.json({ error: 'Current password is incorrect.' }, { status: 400 })
+    }
 
     const hash = await hashPassword(next)
     await query(`UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2`, [hash, userId])
+    await logSecurityEvent({ userId, eventType: 'password_changed', ipAddress, userAgent })
 
     // Invalidate every other signed-in session, then re-issue a fresh cookie
     // for this one so the device making the change stays logged in.

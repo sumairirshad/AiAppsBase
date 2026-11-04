@@ -41,7 +41,6 @@ describe.skipIf(!isDatabaseConfigured())('product-versions (integration)', () =>
 
     await finalizeProductVersion(reserved.versionId, productId, {
       remotePath: '/remote/v1.zip', originalName: 'v1.zip', sizeBytes: 100, sha256: 'abc',
-      scanResult: { status: 'clean', result: null, engineVersion: null },
     })
 
     const productRes = await query<{ current_version_id: string; version: string }>(
@@ -173,7 +172,6 @@ describe.skipIf(!isDatabaseConfigured())('product-versions (integration)', () =>
     if (!reserved.ok) throw new Error('unreachable')
     await finalizeProductVersion(reserved.versionId, productId, {
       remotePath: '/remote/v2.zip', originalName: 'v2.zip', sizeBytes: 10, sha256: 'x',
-      scanResult: { status: 'clean', result: null, engineVersion: null },
     })
 
     const notifs = await query(
@@ -197,7 +195,6 @@ describe.skipIf(!isDatabaseConfigured())('product-versions (integration)', () =>
     if (!reserved.ok) throw new Error('unreachable')
     await finalizeProductVersion(reserved.versionId, productId, {
       remotePath: '/remote/v2.zip', originalName: 'v2.zip', sizeBytes: 10, sha256: 'x',
-      scanResult: { status: 'clean', result: null, engineVersion: null },
     })
 
     const notifs = await query(`SELECT 1 FROM buyer_notifications WHERE product_id = $1`, [productId])
@@ -215,7 +212,6 @@ describe.skipIf(!isDatabaseConfigured())('product-versions (integration)', () =>
     if (!reserved.ok) throw new Error('unreachable')
     await finalizeProductVersion(reserved.versionId, productId, {
       remotePath: '/remote/v1.zip', originalName: 'v1.zip', sizeBytes: 10, sha256: 'x',
-      scanResult: { status: 'clean', result: null, engineVersion: null },
     })
 
     const notifs = await query(`SELECT 1 FROM buyer_notifications WHERE product_id = $1`, [productId])
@@ -235,7 +231,6 @@ describe.skipIf(!isDatabaseConfigured())('product-versions (integration)', () =>
 
     const deliverable = {
       remotePath: '/remote/v2.zip', originalName: 'v2.zip', sizeBytes: 10, sha256: 'x',
-      scanResult: { status: 'clean' as const, result: null, engineVersion: null },
     }
     await finalizeProductVersion(reserved.versionId, productId, deliverable)
     await finalizeProductVersion(reserved.versionId, productId, deliverable) // simulated retry

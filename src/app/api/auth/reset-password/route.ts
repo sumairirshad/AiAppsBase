@@ -3,6 +3,8 @@ import { createHash } from 'crypto'
 import { query } from '@/lib/db'
 import { hashPassword, validatePasswordStrength } from '@/lib/auth'
 import { rateLimit } from '@/lib/rate-limit'
+import { getClientIp } from '@/lib/admin'
+import { logSecurityEvent } from '@/lib/security-events'
 
 export async function POST(req: NextRequest) {
   // The reset token itself is high-entropy, but this is still a credential
@@ -54,6 +56,11 @@ export async function POST(req: NextRequest) {
      WHERE id = $2`,
     [passwordHash, userId]
   )
+
+  await logSecurityEvent({
+    userId, eventType: 'password_changed', ipAddress: getClientIp(req), userAgent: req.headers.get('user-agent'),
+    details: 'Via forgot-password reset link',
+  })
 
   return NextResponse.json({ ok: true })
 }

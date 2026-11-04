@@ -19,22 +19,18 @@ export type DownloadAttemptEntry = {
   fileSizeBytes: number | null
   ipAddress: string | null
   userAgent: string | null
-  scanStatus: string | null
-  warningShown?: boolean
-  overrideRequested?: boolean
-  overridePasswordVerified?: boolean
-  overrideEmailVerified?: boolean
   status: 'success' | 'blocked' | 'failed'
   blockReason?: string | null
 }
 
 /**
  * Records one download attempt against an order — successful, blocked (not
- * entitled, infected with no valid override, scan not yet done), or failed
- * (storage error after passing every check). This is the only write path
- * into download_audit_log: there is no UPDATE or DELETE anywhere in the app
+ * entitled, order not completed, nothing to deliver), or failed (storage
+ * error after passing every check). This is the only write path into
+ * download_audit_log: there is no UPDATE or DELETE anywhere in the app
  * touching this table, so once written a row stands as evidence independent
- * of either the buyer's or seller's own account of events.
+ * of either the buyer's or seller's own account of events — including how
+ * many times a buyer actually hit the download endpoint for a given order.
  *
  * Best-effort: a logging failure must never block the underlying download,
  * so failures are logged to stderr and swallowed here — mirroring
@@ -46,16 +42,12 @@ export async function logDownloadAttempt(entry: DownloadAttemptEntry): Promise<v
       `INSERT INTO download_audit_log (
          order_id, buyer_id, seller_id, product_id, product_version_id,
          file_name, file_sha256, file_size_bytes,
-         ip_address, user_agent, scan_status,
-         warning_shown, override_requested, override_password_verified, override_email_verified,
-         status, block_reason
-       ) VALUES ($1,$2,$3,$4,$5, $6,$7,$8, $9,$10,$11, $12,$13,$14,$15, $16,$17)`,
+         ip_address, user_agent, status, block_reason
+       ) VALUES ($1,$2,$3,$4,$5, $6,$7,$8, $9,$10,$11,$12)`,
       [
         entry.orderId, entry.buyerId, entry.sellerId, entry.productId, entry.productVersionId,
         entry.fileName, entry.fileSha256, entry.fileSizeBytes,
-        entry.ipAddress, entry.userAgent, entry.scanStatus,
-        entry.warningShown ?? false, entry.overrideRequested ?? false,
-        entry.overridePasswordVerified ?? false, entry.overrideEmailVerified ?? false,
+        entry.ipAddress, entry.userAgent,
         entry.status, entry.blockReason ?? null,
       ]
     )
