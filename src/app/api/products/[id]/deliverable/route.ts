@@ -3,6 +3,8 @@ import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
 import { uploadDeliverable, deleteDeliverable } from '@/lib/sftp'
 import { isAllowedDeliverableUpload } from '@/lib/upload-safety'
+import { isValidArchiveBuffer } from '@/lib/archive-signature'
+import { scanBuffer, MalwareScanUnavailableError } from '@/lib/malware-scan'
 
 /**
  * Legacy direct deliverable replace/delete. AUD finding: this previously let
@@ -70,8 +72,30 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: 'The deliverable file must be a .zip or .rar archive' }, { status: 400 })
   }
 
+  const buffer = Buffer.from(await deliverableFile.arrayBuffer())
+
+  // AUD finding: this path checked only the file extension — a renamed
+  // malicious file with a ".zip" name would sail straight through. Verify
+  // the real magic bytes, same as the streamed upload path.
+  if (!isValidArchiveBuffer(buffer)) {
+    return NextResponse.json({ error: 'The uploaded file is not a valid ZIP or RAR archive.' }, { status: 400 })
+  }
+
   try {
-    const buffer = Buffer.from(await deliverableFile.arrayBuffer())
+    // Fail closed: never store (let alone deliver) a file that hasn't
+    // cleared a malware scan, and never silently skip the scan just
+    // because the scanner itself is unreachable.
+    const scanOutcome = await scanBuffer(buffer)
+    if (scanOutcome.status === 'infected') {
+      return NextResponse.json(
+        {
+          error: `This file was flagged as malware by our security scan (${scanOutcome.viruses.join(', ') || 'unknown signature'}) and cannot be uploaded.`,
+          malwareDetected: true,
+        },
+        { status: 400 }
+      )
+    }
+
     const { remotePath } = await uploadDeliverable(buffer, params.id, deliverableFile.name)
 
     await query(
@@ -91,6 +115,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     return NextResponse.json({ ok: true })
   } catch (err) {
+    if (err instanceof MalwareScanUnavailableError) {
+      return NextResponse.json(
+        { error: 'The security scan is temporarily unavailable. Please try uploading again shortly.' },
+        { status: 503 }
+      )
+    }
     const message = err instanceof Error ? err.message : 'Unknown error'
     console.error('[products/deliverable] upload failed:', message, err)
     return NextResponse.json({ error: `Could not reach file storage server: ${message}` }, { status: 502 })

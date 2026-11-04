@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Readable } from 'stream'
+import { PassThrough, Readable } from 'stream'
 import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
 import { decryptToken } from '@/lib/token-crypto'
@@ -11,6 +11,7 @@ import {
 } from '@/lib/product-versions'
 import { GithubApiError, fetchGithubCommitZipballStream, resolveCommitSha, verifyGithubRepoOwnership } from '@/lib/github-ownership'
 import { rateLimit } from '@/lib/rate-limit'
+import { scanStream, MalwareScanUnavailableError } from '@/lib/malware-scan'
 
 const MAX_RELEASE_NOTES_LENGTH = 4000
 
@@ -137,25 +138,60 @@ async function publishUploadVersion(req: NextRequest, productId: string, sellerI
 
       const remotePath = buildVersionRemotePath(productId, versionId, filename)
       const hasher = new ByteCounterHasher()
+      // Fed from the SAME source stream as the upload below (Node supports
+      // piping one Readable to multiple destinations) so the malware scan
+      // and the upload-to-storage happen concurrently over one pass of the
+      // bytes, rather than buffering the whole file to scan it first.
+      const scanTee = new PassThrough()
+      stream.pipe(scanTee)
+
       try {
-        await uploadStreamToDeliverablePath(
-          stream.pipe(createArchiveSignatureValidator()).pipe(hasher),
-          remotePath
-        )
+        const [scanOutcome] = await Promise.all([
+          scanStream(scanTee),
+          uploadStreamToDeliverablePath(stream.pipe(createArchiveSignatureValidator()).pipe(hasher), remotePath),
+        ])
 
         const storedSize = await statRemoteDeliverable(remotePath)
         if (storedSize !== null && storedSize !== hasher.bytes) {
           throw new Error('Upload verification failed: the stored file size did not match what was sent.')
         }
 
+        // Malicious files must remain blocked from normal delivery — never
+        // finalize (publish) an infected version. The file already landed
+        // in storage above (concurrently with the scan); delete it rather
+        // than ever letting a buyer resolve a download to it.
+        if (scanOutcome.status === 'infected') {
+          await deleteDeliverable(remotePath).catch(() => {})
+          await failProductVersion(versionId)
+          outcomeRef.value = {
+            status: 400,
+            body: {
+              error: `This file was flagged as malware by our security scan (${scanOutcome.viruses.join(', ') || 'unknown signature'}) and cannot be published.`,
+              malwareDetected: true,
+            },
+          }
+          return
+        }
+
         await finalizeProductVersion(versionId, productId, {
           remotePath, originalName: filename, sizeBytes: hasher.bytes, sha256: hasher.digestHex(),
+          scanResult: { status: 'clean', result: null, engineVersion: null },
         })
       } catch (err) {
         await deleteDeliverable(remotePath).catch(() => {})
         await failProductVersion(versionId)
         if (err instanceof InvalidArchiveSignatureError) {
           outcomeRef.value = { status: 400, body: { error: err.message } }
+          return
+        }
+        // Fail closed: the scanner being unreachable is never treated as
+        // "assume clean" — the upload is refused and must be retried once
+        // scanning is available again.
+        if (err instanceof MalwareScanUnavailableError) {
+          outcomeRef.value = {
+            status: 503,
+            body: { error: 'The security scan is temporarily unavailable. Please try publishing again shortly.' },
+          }
           return
         }
         throw err
@@ -237,22 +273,50 @@ async function publishGithubVersion(req: NextRequest, productId: string, sellerI
     const fileName = `${repoSlug}-${commitSha.slice(0, 7)}.zip`
     const remotePath = buildVersionRemotePath(productId, versionId, fileName)
     const hasher = new ByteCounterHasher()
+    // A GitHub-sourced snapshot is still an archive fetched from a
+    // seller-controlled repository — it gets the same malware scan as a
+    // direct ZIP/RAR upload, not a pass just because it came from GitHub.
+    const scanTee = new PassThrough()
+    const source = zipballStream as unknown as Readable
+    source.pipe(scanTee)
 
     try {
-      await uploadStreamToDeliverablePath((zipballStream as unknown as Readable).pipe(hasher), remotePath)
+      const [scanOutcome] = await Promise.all([
+        scanStream(scanTee),
+        uploadStreamToDeliverablePath(source.pipe(hasher), remotePath),
+      ])
 
       const storedSize = await statRemoteDeliverable(remotePath)
       if (storedSize !== null && storedSize !== hasher.bytes) {
         throw new Error('Snapshot verification failed: the stored archive size did not match what was fetched from GitHub.')
       }
 
+      if (scanOutcome.status === 'infected') {
+        await deleteDeliverable(remotePath).catch(() => {})
+        await failProductVersion(versionId)
+        return NextResponse.json(
+          {
+            error: `This repository snapshot was flagged as malware by our security scan (${scanOutcome.viruses.join(', ') || 'unknown signature'}) and cannot be published.`,
+            malwareDetected: true,
+          },
+          { status: 400 }
+        )
+      }
+
       await finalizeProductVersion(versionId, productId, {
         remotePath, originalName: fileName, sizeBytes: hasher.bytes, sha256: hasher.digestHex(),
         githubRepoName: repoFullName, githubBranch: branch, githubCommitSha: commitSha,
+        scanResult: { status: 'clean', result: null, engineVersion: null },
       })
     } catch (err) {
       await deleteDeliverable(remotePath).catch(() => {})
       await failProductVersion(versionId)
+      if (err instanceof MalwareScanUnavailableError) {
+        return NextResponse.json(
+          { error: 'The security scan is temporarily unavailable. Please try publishing again shortly.' },
+          { status: 503 }
+        )
+      }
       throw err
     }
 

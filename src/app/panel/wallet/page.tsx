@@ -14,7 +14,15 @@ import { getPlatformFeePercent } from '@/lib/payouts'
 export const dynamic = 'force-dynamic'
 
 const withdrawalStatusVariant: Record<string, 'success' | 'warning' | 'destructive'> = {
-  pending: 'warning', approved: 'success', rejected: 'destructive', failed: 'destructive',
+  // 'approved' means the transfer to your Stripe balance succeeded, not yet
+  // that it has landed in your bank — 'paid' is the confirmed-in-bank state.
+  pending: 'warning', approved: 'warning', paid: 'success',
+  rejected: 'destructive', failed: 'destructive', payout_failed: 'destructive',
+}
+
+const withdrawalStatusLabel: Record<string, string> = {
+  pending: 'Pending', approved: 'Transfer sent', paid: 'Paid to bank',
+  rejected: 'Rejected', failed: 'Transfer failed', payout_failed: 'Bank payout failed',
 }
 
 export default async function SellerWalletPage() {
@@ -111,9 +119,12 @@ export default async function SellerWalletPage() {
                       <td className="px-6 py-3 text-muted-foreground">${w.feeAmount.toFixed(2)}</td>
                       <td className="px-6 py-3 text-success">${w.netAmount.toFixed(2)}</td>
                       <td className="px-6 py-3">
-                        <Badge variant={withdrawalStatusVariant[w.status] ?? 'muted'}>{w.status}</Badge>
+                        <Badge variant={withdrawalStatusVariant[w.status] ?? 'muted'}>{withdrawalStatusLabel[w.status] ?? w.status}</Badge>
                         {w.rejectionReason && (w.status === 'rejected' || w.status === 'failed') && (
                           <p className="mt-1 text-xs text-muted-foreground">{w.rejectionReason}</p>
+                        )}
+                        {w.payoutFailureReason && w.status === 'payout_failed' && (
+                          <p className="mt-1 text-xs text-muted-foreground">{w.payoutFailureReason}</p>
                         )}
                       </td>
                       <td className="px-6 py-3 text-muted-foreground">{w.createdAt}</td>

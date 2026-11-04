@@ -482,6 +482,30 @@ export async function getAdminOrderDetail(id: string) {
   } catch { return null }
 }
 
+/**
+ * Full delivery/download evidence trail for one order — every attempt
+ * (successful, blocked, or failed), in order. This is the admin-facing read
+ * side of download_audit_log (migration 038): the only way any of these
+ * rows is ever produced is lib/download-audit.ts#logDownloadAttempt, and
+ * nothing in the app ever updates or deletes one, so this is the record an
+ * admin resolves a "the seller never delivered" / "I never got the file"
+ * dispute against.
+ */
+export async function getOrderDownloadAudit(orderId: string) {
+  try {
+    const res = await query(
+      `SELECT id, file_name, file_sha256, file_size_bytes, ip_address, user_agent,
+              scan_status, warning_shown, override_requested, override_password_verified,
+              override_email_verified, status, block_reason, created_at
+       FROM download_audit_log
+       WHERE order_id = $1
+       ORDER BY created_at DESC`,
+      [orderId]
+    )
+    return res.rows.map((r: any) => ({ ...r, date: new Date(r.created_at).toLocaleString() }))
+  } catch { return [] }
+}
+
 /* -------------------------------------------------------------------------- */
 /*                               Product Reports                              */
 /* -------------------------------------------------------------------------- */

@@ -13,6 +13,12 @@ vi.mock('@/lib/sftp', () => ({
   deleteDeliverable: (...args: unknown[]) => deleteDeliverableMock(...args),
 }))
 
+const scanBufferMock = vi.fn()
+vi.mock('@/lib/malware-scan', () => ({
+  scanBuffer: (...args: unknown[]) => scanBufferMock(...args),
+  MalwareScanUnavailableError: class MalwareScanUnavailableError extends Error {},
+}))
+
 import { verifyGithubRepoAccess, snapshotGithubRepo } from './github-snapshot'
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -145,6 +151,8 @@ describe('snapshotGithubRepo', () => {
     uploadDeliverableMock.mockReset()
     deleteDeliverableMock.mockReset()
     deleteDeliverableMock.mockResolvedValue(undefined)
+    scanBufferMock.mockReset()
+    scanBufferMock.mockResolvedValue({ status: 'clean' })
   })
 
   it('does not store or mark ready when the seller has no usable GitHub token (buyer-independent failure)', async () => {
@@ -239,6 +247,24 @@ describe('snapshotGithubRepo', () => {
     expect(result).toEqual({ ok: true, private: true, commitSha: 'sha-new', remotePath: '/new/path.zip', sizeBytes: 4 })
     expect(successUpdates).toHaveLength(1)
     expect(deleteDeliverableMock).toHaveBeenCalledWith('/old/path.zip')
+  })
+
+  it('blocks the snapshot and never uploads when the malware scan flags the archive', async () => {
+    const { failureUpdates } = wireQueryMock({ previousRemotePath: '/old/path.zip' })
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ private: true }, 200))
+      .mockResolvedValueOnce(jsonResponse({ commit: { sha: 'sha-bad' } }, 200))
+      .mockResolvedValueOnce(zipResponse(200, new Uint8Array([9, 9, 9, 9])))
+    vi.stubGlobal('fetch', fetchMock)
+    scanBufferMock.mockResolvedValueOnce({ status: 'infected', viruses: ['Test.Signature'] })
+
+    const result = await snapshotGithubRepo('product-1', 'seller-1', 'octocat/secret', 'main')
+
+    expect(result.ok).toBe(false)
+    expect(uploadDeliverableMock).not.toHaveBeenCalled()
+    expect(deleteDeliverableMock).not.toHaveBeenCalled()
+    expect(failureUpdates).toHaveLength(1)
   })
 
   it('does not attempt cleanup when there was no previous deliverable', async () => {

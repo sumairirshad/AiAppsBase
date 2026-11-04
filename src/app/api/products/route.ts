@@ -4,6 +4,8 @@ import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
 import { uploadDeliverable } from '@/lib/sftp'
 import { isAllowedDeliverableUpload } from '@/lib/upload-safety'
+import { isValidArchiveBuffer } from '@/lib/archive-signature'
+import { scanBuffer, MalwareScanUnavailableError } from '@/lib/malware-scan'
 import {
   ImageUploadError, MAX_PRODUCT_IMAGES, deleteProductImageDir, readValidatedImage, writeProductImages,
 } from '@/lib/product-images'
@@ -191,12 +193,37 @@ export async function POST(req: NextRequest) {
 
       const buffer = Buffer.from(await deliverableFile.arrayBuffer())
 
+      // AUD finding: this path checked only the file extension — a renamed
+      // malicious file with a ".zip" name would sail straight through.
+      if (!isValidArchiveBuffer(buffer)) {
+        return NextResponse.json({ error: 'The uploaded file is not a valid ZIP or RAR archive.' }, { status: 400 })
+      }
+
       try {
+        // Fail closed: scan before ever writing the file to storage, and
+        // never treat an unreachable scanner as "assume clean".
+        const scanOutcome = await scanBuffer(buffer)
+        if (scanOutcome.status === 'infected') {
+          return NextResponse.json(
+            {
+              error: `This file was flagged as malware by our security scan (${scanOutcome.viruses.join(', ') || 'unknown signature'}) and cannot be uploaded.`,
+              malwareDetected: true,
+            },
+            { status: 400 }
+          )
+        }
+
         const { remotePath } = await uploadDeliverable(buffer, productId, deliverableFile.name)
         deliverableRemotePath = remotePath
         deliverableOriginalName = deliverableFile.name
         deliverableSizeBytes = deliverableFile.size
       } catch (err) {
+        if (err instanceof MalwareScanUnavailableError) {
+          return NextResponse.json(
+            { error: 'The security scan is temporarily unavailable. Please try again shortly.' },
+            { status: 503 }
+          )
+        }
         const message = err instanceof Error ? err.message : 'Unknown error'
         console.error('[products/create] SFTP upload failed:', message, err)
         return NextResponse.json(
@@ -244,6 +271,8 @@ export async function POST(req: NextRequest) {
         originalName: deliverableOriginalName,
         sizeBytes: deliverableSizeBytes,
         sha256: null,
+        // Already scanned clean above, before the file was ever uploaded.
+        scanResult: { status: 'clean', result: null, engineVersion: null },
       })
 
       return NextResponse.json({ ok: true, id })

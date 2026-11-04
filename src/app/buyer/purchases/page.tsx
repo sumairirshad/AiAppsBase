@@ -1,8 +1,6 @@
 import Link from 'next/link'
-import { Download } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { PageHead } from '@/components/dashboard/page-head'
@@ -10,6 +8,7 @@ import { EmptyState } from '@/components/dashboard/empty-state'
 import { LicenseKey } from '@/components/dashboard/license-key'
 import { getCurrentUser, getBuyerOrders } from '@/lib/dashboard'
 import { ProductImage } from '@/components/products/product-image'
+import { MalwareDownloadButton } from '@/components/buyer/malware-download-button'
 
 export const dynamic = 'force-dynamic'
 
@@ -58,9 +57,7 @@ export default async function PurchasesPage() {
                   <span className="text-lg font-bold">{order.amount === 0 ? 'Free' : `$${order.amount}`}</span>
                   <Badge variant={statusVariant[order.status] ?? 'muted'}>{order.status}</Badge>
                   {order.downloadable && order.status === 'completed' && (
-                    <Button size="sm" asChild>
-                      <a href={`/api/orders/${order.id}/download`}><Download className="size-4" /> Download</a>
-                    </Button>
+                    <MalwareDownloadButton orderId={order.id} productTitle={order.product} size="sm" />
                   )}
                 </div>
               </CardContent>

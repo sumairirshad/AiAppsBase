@@ -57,22 +57,30 @@ function mockOrderLookup(row: OrderRow | null) {
 }
 
 type Deliverable = {
+  productVersionId: string | null
   deliveryType: 'upload' | 'github'
   deliverableRemotePath: string | null
   deliverableOriginalName: string | null
+  deliverableSizeBytes: number | null
+  deliverableSha256: string | null
   githubRepoName: string | null
   githubBranch: string | null
   githubCommitSha: string | null
+  scanStatus: 'pending' | 'clean' | 'infected' | 'scan_error' | 'unscanned_legacy' | null
 }
 
 function deliverable(overrides: Partial<Deliverable> = {}): Deliverable {
   return {
+    productVersionId: 'version-1',
     deliveryType: 'upload',
     deliverableRemotePath: null,
     deliverableOriginalName: null,
+    deliverableSizeBytes: null,
+    deliverableSha256: null,
     githubRepoName: null,
     githubBranch: null,
     githubCommitSha: null,
+    scanStatus: 'clean',
     ...overrides,
   }
 }
@@ -284,5 +292,88 @@ describe('GET /api/orders/[id]/download — nothing to deliver', () => {
     resolveOrderDeliverableMock.mockResolvedValue(null)
     const res = await call()
     expect(res.status).toBe(404)
+  })
+})
+
+describe('GET /api/orders/[id]/download — malware scan gating', () => {
+  it('blocks a file flagged infected instead of streaming it, and never calls SFTP at all', async () => {
+    getSessionUserIdMock.mockResolvedValue(BUYER_ID)
+    mockOrderLookup(orderRow())
+    resolveOrderDeliverableMock.mockResolvedValue(deliverable({
+      deliverableRemotePath: '/deliverables/p1/file.zip', deliverableOriginalName: 'file.zip', scanStatus: 'infected',
+    }))
+
+    const res = await call()
+    expect(res.status).toBe(409)
+    const body = await res.json()
+    expect(body.malwareDetected).toBe(true)
+    expect(downloadDeliverableStreamMock).not.toHaveBeenCalled()
+  })
+
+  it('blocks a file still awaiting its scan result rather than serving it unscanned', async () => {
+    getSessionUserIdMock.mockResolvedValue(BUYER_ID)
+    mockOrderLookup(orderRow())
+    resolveOrderDeliverableMock.mockResolvedValue(deliverable({
+      deliverableRemotePath: '/deliverables/p1/file.zip', scanStatus: 'pending',
+    }))
+
+    const res = await call()
+    expect(res.status).toBe(409)
+    expect(downloadDeliverableStreamMock).not.toHaveBeenCalled()
+  })
+
+  it('fails closed (blocks) when the scanner itself errored, rather than skipping the scan', async () => {
+    getSessionUserIdMock.mockResolvedValue(BUYER_ID)
+    mockOrderLookup(orderRow())
+    resolveOrderDeliverableMock.mockResolvedValue(deliverable({
+      deliverableRemotePath: '/deliverables/p1/file.zip', scanStatus: 'scan_error',
+    }))
+
+    const res = await call()
+    expect(res.status).toBe(409)
+    expect(downloadDeliverableStreamMock).not.toHaveBeenCalled()
+  })
+
+  it('allows a legacy unscanned file through unchanged (pre-dates malware scanning)', async () => {
+    getSessionUserIdMock.mockResolvedValue(BUYER_ID)
+    mockOrderLookup(orderRow())
+    resolveOrderDeliverableMock.mockResolvedValue(deliverable({
+      deliverableRemotePath: '/deliverables/p1/file.zip', scanStatus: 'unscanned_legacy',
+    }))
+    downloadDeliverableStreamMock.mockResolvedValue({ stream: Readable.from(Buffer.from('legacy-zip')), size: 10 })
+
+    const res = await call()
+    expect(res.status).toBe(200)
+  })
+})
+
+describe('GET /api/orders/[id]/download — audit logging', () => {
+  it('writes a download_audit_log row on a successful download', async () => {
+    getSessionUserIdMock.mockResolvedValue(BUYER_ID)
+    mockOrderLookup(orderRow())
+    resolveOrderDeliverableMock.mockResolvedValue(deliverable({
+      deliverableRemotePath: '/deliverables/p1/file.zip', deliverableOriginalName: 'file.zip',
+    }))
+    downloadDeliverableStreamMock.mockResolvedValue({ stream: Readable.from(Buffer.from('bytes')), size: 5 })
+
+    await call()
+
+    const insertCall = queryMock.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO download_audit_log'))
+    expect(insertCall).toBeTruthy()
+    const [, params] = insertCall as [string, unknown[]]
+    expect(params).toContain('success')
+  })
+
+  it('writes a blocked audit row (not a success row) when the buyer is not entitled', async () => {
+    getSessionUserIdMock.mockResolvedValue('someone-else')
+    mockOrderLookup(orderRow())
+
+    await call()
+
+    const insertCall = queryMock.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO download_audit_log'))
+    expect(insertCall).toBeTruthy()
+    const [, params] = insertCall as [string, unknown[]]
+    expect(params).toContain('blocked')
+    expect(params).toContain('not_order_owner')
   })
 })

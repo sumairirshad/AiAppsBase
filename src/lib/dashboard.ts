@@ -52,7 +52,7 @@ export async function getSellerStats(userId: string): Promise<SellerStats> {
          COALESCE((SELECT AVG(r.rating) FROM reviews r JOIN products p ON r.product_id=p.id
                    WHERE p.seller_id=$1),0)::float AS avg_rating,
          COALESCE((SELECT SUM(requested_amount) FROM withdrawal_requests
-                   WHERE seller_id=$1 AND status IN ('pending','approved','failed')),0)::float AS withdrawn_or_pending,
+                   WHERE seller_id=$1 AND status IN ('pending','approved','failed','paid','payout_failed')),0)::float AS withdrawn_or_pending,
          COALESCE((SELECT SUM(requested_amount) FROM withdrawal_requests
                    WHERE seller_id=$1 AND status='pending'),0)::float AS pending_withdrawals`,
       [userId]
@@ -69,22 +69,24 @@ export async function getSellerStats(userId: string): Promise<SellerStats> {
 
 export type SellerWithdrawal = {
   id: string; requestedAmount: number; feeAmount: number; netAmount: number
-  status: string; rejectionReason: string | null; createdAt: string; processedAt: string | null
+  status: string; rejectionReason: string | null; payoutFailureReason: string | null
+  createdAt: string; processedAt: string | null; payoutConfirmedAt: string | null
 }
 
 export async function getSellerWithdrawals(userId: string): Promise<SellerWithdrawal[]> {
   try {
     const res = await query(
       `SELECT id, requested_amount::float, fee_amount::float, net_amount::float,
-              status, rejection_reason, created_at, processed_at
+              status, rejection_reason, payout_failure_reason, created_at, processed_at, payout_confirmed_at
        FROM withdrawal_requests WHERE seller_id=$1 ORDER BY created_at DESC LIMIT 50`,
       [userId]
     )
     return res.rows.map((r: any) => ({
       id: r.id, requestedAmount: r.requested_amount, feeAmount: r.fee_amount, netAmount: r.net_amount,
-      status: r.status, rejectionReason: r.rejection_reason,
+      status: r.status, rejectionReason: r.rejection_reason, payoutFailureReason: r.payout_failure_reason,
       createdAt: new Date(r.created_at).toISOString().slice(0, 10),
       processedAt: r.processed_at ? new Date(r.processed_at).toISOString().slice(0, 10) : null,
+      payoutConfirmedAt: r.payout_confirmed_at ? new Date(r.payout_confirmed_at).toISOString().slice(0, 10) : null,
     }))
   } catch { return [] }
 }

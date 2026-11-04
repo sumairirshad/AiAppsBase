@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Download, Receipt } from 'lucide-react'
+import { Receipt } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -8,6 +8,7 @@ import { PageHead } from '@/components/dashboard/page-head'
 import { EmptyState } from '@/components/dashboard/empty-state'
 import { getCurrentUser, getBuyerOrders } from '@/lib/dashboard'
 import { OrderDisputeAction } from '@/components/buyer/order-dispute-action'
+import { MalwareDownloadButton } from '@/components/buyer/malware-download-button'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,7 +53,7 @@ export default async function BuyerOrdersPage() {
                     <td className="px-6 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
                         {o.downloadable && o.status === 'completed' && (
-                          <Button size="sm" variant="outline" asChild><a href={`/api/orders/${o.id}/download`}><Download className="size-4" /> Download</a></Button>
+                          <MalwareDownloadButton orderId={o.id} productTitle={o.product} size="sm" />
                         )}
                         {o.status === 'completed' && <OrderDisputeAction orderId={o.id} />}
                         <Button size="sm" variant="outline" asChild>
