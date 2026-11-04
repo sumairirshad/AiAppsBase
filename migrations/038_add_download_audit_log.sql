@@ -18,7 +18,7 @@
 CREATE TABLE IF NOT EXISTS download_audit_log (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
-  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
   buyer_id UUID NOT NULL REFERENCES users(id),
   seller_id UUID NOT NULL REFERENCES users(id),
   product_id UUID NOT NULL REFERENCES products(id),
