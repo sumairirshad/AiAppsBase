@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Procurement.Application.Common.Interfaces;
+using Procurement.Infrastructure.Auth;
 using Procurement.Infrastructure.Persistence;
 using Procurement.Infrastructure.Persistence.Seed;
 
@@ -20,6 +22,12 @@ public static class DependencyInjection
                 sql.MigrationsAssembly(typeof(ProcurementDbContext).Assembly.FullName);
                 sql.EnableRetryOnFailure();
             }).ReplaceService<Microsoft.EntityFrameworkCore.Migrations.IMigrationsSqlGenerator, IdempotentSqlServerMigrationsSqlGenerator>());
+
+        services.AddScoped<IProcurementDbContext>(sp => sp.GetRequiredService<ProcurementDbContext>());
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUserContext, CurrentUserContext>();
+        services.AddSingleton<IJwtTokenService, JwtTokenService>();
+        services.AddSingleton<IPasswordHasher, PasswordHasher>();
 
         return services;
     }

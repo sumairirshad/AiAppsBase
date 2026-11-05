@@ -1,9 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using Procurement.Application.Common.Interfaces;
 using Procurement.Domain.Entities;
 
 namespace Procurement.Infrastructure.Persistence;
 
-public class ProcurementDbContext : DbContext
+public class ProcurementDbContext : DbContext, IProcurementDbContext
 {
     public ProcurementDbContext(DbContextOptions<ProcurementDbContext> options) : base(options) { }
 
