@@ -57,9 +57,12 @@ function mockOrderLookup(row: OrderRow | null) {
 }
 
 type Deliverable = {
+  productVersionId: string | null
   deliveryType: 'upload' | 'github'
   deliverableRemotePath: string | null
   deliverableOriginalName: string | null
+  deliverableSizeBytes: number | null
+  deliverableSha256: string | null
   githubRepoName: string | null
   githubBranch: string | null
   githubCommitSha: string | null
@@ -67,9 +70,12 @@ type Deliverable = {
 
 function deliverable(overrides: Partial<Deliverable> = {}): Deliverable {
   return {
+    productVersionId: 'version-1',
     deliveryType: 'upload',
     deliverableRemotePath: null,
     deliverableOriginalName: null,
+    deliverableSizeBytes: null,
+    deliverableSha256: null,
     githubRepoName: null,
     githubBranch: null,
     githubCommitSha: null,
@@ -284,5 +290,36 @@ describe('GET /api/orders/[id]/download — nothing to deliver', () => {
     resolveOrderDeliverableMock.mockResolvedValue(null)
     const res = await call()
     expect(res.status).toBe(404)
+  })
+})
+
+describe('GET /api/orders/[id]/download — audit logging', () => {
+  it('writes a download_audit_log row on a successful download', async () => {
+    getSessionUserIdMock.mockResolvedValue(BUYER_ID)
+    mockOrderLookup(orderRow())
+    resolveOrderDeliverableMock.mockResolvedValue(deliverable({
+      deliverableRemotePath: '/deliverables/p1/file.zip', deliverableOriginalName: 'file.zip',
+    }))
+    downloadDeliverableStreamMock.mockResolvedValue({ stream: Readable.from(Buffer.from('bytes')), size: 5 })
+
+    await call()
+
+    const insertCall = queryMock.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO download_audit_log'))
+    expect(insertCall).toBeTruthy()
+    const [, params] = insertCall as [string, unknown[]]
+    expect(params).toContain('success')
+  })
+
+  it('writes a blocked audit row (not a success row) when the buyer is not entitled', async () => {
+    getSessionUserIdMock.mockResolvedValue('someone-else')
+    mockOrderLookup(orderRow())
+
+    await call()
+
+    const insertCall = queryMock.mock.calls.find(([sql]) => String(sql).includes('INSERT INTO download_audit_log'))
+    expect(insertCall).toBeTruthy()
+    const [, params] = insertCall as [string, unknown[]]
+    expect(params).toContain('blocked')
+    expect(params).toContain('not_order_owner')
   })
 })

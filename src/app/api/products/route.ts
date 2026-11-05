@@ -4,6 +4,7 @@ import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
 import { uploadDeliverable } from '@/lib/sftp'
 import { isAllowedDeliverableUpload } from '@/lib/upload-safety'
+import { isValidArchiveBuffer } from '@/lib/archive-signature'
 import {
   ImageUploadError, MAX_PRODUCT_IMAGES, deleteProductImageDir, readValidatedImage, writeProductImages,
 } from '@/lib/product-images'
@@ -190,6 +191,12 @@ export async function POST(req: NextRequest) {
       }
 
       const buffer = Buffer.from(await deliverableFile.arrayBuffer())
+
+      // AUD finding: this path checked only the file extension — a renamed
+      // malicious file with a ".zip" name would sail straight through.
+      if (!isValidArchiveBuffer(buffer)) {
+        return NextResponse.json({ error: 'The uploaded file is not a valid ZIP or RAR archive.' }, { status: 400 })
+      }
 
       try {
         const { remotePath } = await uploadDeliverable(buffer, productId, deliverableFile.name)

@@ -208,7 +208,7 @@ export async function getAdminUserDetail(id: string) {
     if (userRes.rowCount === 0) return null
     const user = userRes.rows[0] as any
 
-    const [orders, reviews, products, auditLog] = await Promise.all([
+    const [orders, reviews, products, auditLog, securityEvents] = await Promise.all([
       query(
         `SELECT o.id, o.amount::float AS amount, o.status, o.created_at, o.license_type, p.title AS product, p.id AS product_id
          FROM orders o JOIN products p ON o.product_id = p.id WHERE o.buyer_id = $1 ORDER BY o.created_at DESC LIMIT 20`,
@@ -236,6 +236,11 @@ export async function getAdminUserDetail(id: string) {
          WHERE a.target_type = 'user' AND a.target_id = $1 ORDER BY a.created_at DESC LIMIT 20`,
         [id]
       ),
+      query(
+        `SELECT id, event_type, ip_address, user_agent, details, created_at
+         FROM security_events WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50`,
+        [id]
+      ),
     ])
 
     return {
@@ -246,6 +251,7 @@ export async function getAdminUserDetail(id: string) {
       reviews: reviews.rows.map((r: any) => ({ ...r, date: new Date(r.created_at).toISOString().slice(0, 10) })),
       products: products.rows,
       auditLog: auditLog.rows.map((r: any) => ({ ...r, date: new Date(r.created_at).toLocaleString() })),
+      securityEvents: securityEvents.rows.map((r: any) => ({ ...r, date: new Date(r.created_at).toLocaleString() })),
     }
   } catch { return null }
 }
@@ -480,6 +486,29 @@ export async function getAdminOrderDetail(id: string) {
     const r = res.rows[0] as any
     return { ...r, amount: Math.round(Number(r.amount)), date: new Date(r.created_at).toLocaleString() }
   } catch { return null }
+}
+
+/**
+ * Full delivery/download evidence trail for one order — every attempt
+ * (successful, blocked, or failed), in order. This is the admin-facing read
+ * side of download_audit_log (migration 038): the only way any of these
+ * rows is ever produced is lib/download-audit.ts#logDownloadAttempt, and
+ * nothing in the app ever updates or deletes one, so this is the record an
+ * admin resolves a "the seller never delivered" / "I never got the file"
+ * dispute against.
+ */
+export async function getOrderDownloadAudit(orderId: string) {
+  try {
+    const res = await query(
+      `SELECT id, file_name, file_sha256, file_size_bytes, ip_address, user_agent,
+              status, block_reason, created_at
+       FROM download_audit_log
+       WHERE order_id = $1
+       ORDER BY created_at DESC`,
+      [orderId]
+    )
+    return res.rows.map((r: any) => ({ ...r, date: new Date(r.created_at).toLocaleString() }))
+  } catch { return [] }
 }
 
 /* -------------------------------------------------------------------------- */

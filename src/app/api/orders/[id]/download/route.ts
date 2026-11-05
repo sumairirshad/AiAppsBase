@@ -6,6 +6,7 @@ import { downloadDeliverableStream } from '@/lib/sftp'
 import { decryptToken } from '@/lib/token-crypto'
 import { resolveOrderDeliverable } from '@/lib/product-versions'
 import { rateLimit } from '@/lib/rate-limit'
+import { getRequestIp, logDownloadAttempt } from '@/lib/download-audit'
 
 function streamDeliverable(webStream: ReadableStream, fileName: string, size?: number, contentType = 'application/octet-stream') {
   const headers: Record<string, string> = {
@@ -28,9 +29,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const ipAddress = getRequestIp(req)
+  const userAgent = req.headers.get('user-agent')
+
   const orderRes = await query(
     `SELECT o.buyer_id, o.status, o.product_id, o.product_version_id,
-            u.github_access_token AS seller_github_access_token
+            p.seller_id, u.github_access_token AS seller_github_access_token
      FROM orders o
      JOIN products p ON o.product_id = p.id
      JOIN users u ON u.id = p.seller_id
@@ -47,10 +51,20 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   // IDOR protection: an order id alone (even guessed/enumerated) never
   // grants a download — it must belong to the requesting buyer.
   if (order.buyer_id !== userId) {
+    await logDownloadAttempt({
+      orderId: params.id, buyerId: userId, sellerId: order.seller_id, productId: order.product_id,
+      productVersionId: order.product_version_id, fileName: null, fileSha256: null, fileSizeBytes: null,
+      ipAddress, userAgent, status: 'blocked', blockReason: 'not_order_owner',
+    })
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   if (order.status !== 'completed') {
+    await logDownloadAttempt({
+      orderId: params.id, buyerId: userId, sellerId: order.seller_id, productId: order.product_id,
+      productVersionId: order.product_version_id, fileName: null, fileSha256: null, fileSizeBytes: null,
+      ipAddress, userAgent, status: 'blocked', blockReason: `order_status_${order.status}`,
+    })
     return NextResponse.json(
       { error: 'This order is not eligible for download (it may have been refunded or disputed).' },
       { status: 400 }
@@ -63,7 +77,25 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   // link returns. See lib/product-versions.ts.
   const deliverable = await resolveOrderDeliverable(order.product_id, order.product_version_id)
   if (!deliverable) {
+    await logDownloadAttempt({
+      orderId: params.id, buyerId: userId, sellerId: order.seller_id, productId: order.product_id,
+      productVersionId: order.product_version_id, fileName: null, fileSha256: null, fileSizeBytes: null,
+      ipAddress, userAgent, status: 'blocked', blockReason: 'no_deliverable',
+    })
     return NextResponse.json({ error: 'No downloadable file for this product' }, { status: 404 })
+  }
+
+  const auditFields = {
+    orderId: params.id, buyerId: userId, sellerId: order.seller_id, productId: order.product_id,
+    productVersionId: deliverable.productVersionId,
+    fileName: deliverable.deliverableOriginalName, fileSha256: deliverable.deliverableSha256,
+    fileSizeBytes: deliverable.deliverableSizeBytes, ipAddress, userAgent,
+  }
+
+  const logOutcome = async (response: NextResponse) => {
+    const ok = response.status >= 200 && response.status < 300
+    await logDownloadAttempt({ ...auditFields, status: ok ? 'success' : 'failed', blockReason: ok ? null : `stream_status_${response.status}` })
+    return response
   }
 
   if (deliverable.deliverableRemotePath) {
@@ -78,11 +110,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     try {
       const { stream, size } = await downloadDeliverableStream(deliverable.deliverableRemotePath)
       const webStream = Readable.toWeb(stream as Readable) as ReadableStream
-      return streamDeliverable(webStream, deliverable.deliverableOriginalName || 'download', size)
+      return logOutcome(streamDeliverable(webStream, deliverable.deliverableOriginalName || 'download', size))
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error'
       console.error('[orders/download] SFTP fetch failed:', message, err)
-      return NextResponse.json({ error: 'Could not reach file storage server. Please try again shortly.' }, { status: 502 })
+      return logOutcome(NextResponse.json({ error: 'Could not reach file storage server. Please try again shortly.' }, { status: 502 }))
     }
   }
 
@@ -109,7 +141,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
         if (ghRes.ok && ghRes.body) {
           const repoSlug = deliverable.githubRepoName.split('/').pop() || 'repo'
-          return streamDeliverable(ghRes.body as unknown as ReadableStream, `${repoSlug}-${branch}.zip`, undefined, 'application/zip')
+          return logOutcome(streamDeliverable(ghRes.body as unknown as ReadableStream, `${repoSlug}-${branch}.zip`, undefined, 'application/zip'))
         }
 
         console.error(
@@ -129,7 +161,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
       if (publicRes.ok && publicRes.body) {
         const repoSlug = deliverable.githubRepoName.split('/').pop() || 'repo'
-        return streamDeliverable(publicRes.body as unknown as ReadableStream, `${repoSlug}-${branch}.zip`, undefined, 'application/zip')
+        return logOutcome(streamDeliverable(publicRes.body as unknown as ReadableStream, `${repoSlug}-${branch}.zip`, undefined, 'application/zip'))
       }
     } catch (err) {
       console.error('[orders/download] legacy public archive fetch error:', err)
@@ -140,14 +172,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       deliverable.githubRepoName,
       'branch', branch
     )
-    return NextResponse.json(
+    return logOutcome(NextResponse.json(
       {
         error:
           "This product's files couldn't be retrieved. The seller's GitHub connection needs to be reconnected — please contact support or the seller.",
       },
       { status: 502 }
-    )
+    ))
   }
 
-  return NextResponse.json({ error: 'No downloadable file for this product' }, { status: 404 })
+  return logOutcome(NextResponse.json({ error: 'No downloadable file for this product' }, { status: 404 }))
 }

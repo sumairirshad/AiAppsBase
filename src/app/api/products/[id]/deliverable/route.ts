@@ -3,6 +3,7 @@ import { query } from '@/lib/db'
 import { getSessionUserId } from '@/lib/session'
 import { uploadDeliverable, deleteDeliverable } from '@/lib/sftp'
 import { isAllowedDeliverableUpload } from '@/lib/upload-safety'
+import { isValidArchiveBuffer } from '@/lib/archive-signature'
 
 /**
  * Legacy direct deliverable replace/delete. AUD finding: this previously let
@@ -70,8 +71,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: 'The deliverable file must be a .zip or .rar archive' }, { status: 400 })
   }
 
+  const buffer = Buffer.from(await deliverableFile.arrayBuffer())
+
+  // AUD finding: this path checked only the file extension — a renamed
+  // malicious file with a ".zip" name would sail straight through. Verify
+  // the real magic bytes, same as the streamed upload path.
+  if (!isValidArchiveBuffer(buffer)) {
+    return NextResponse.json({ error: 'The uploaded file is not a valid ZIP or RAR archive.' }, { status: 400 })
+  }
+
   try {
-    const buffer = Buffer.from(await deliverableFile.arrayBuffer())
     const { remotePath } = await uploadDeliverable(buffer, params.id, deliverableFile.name)
 
     await query(

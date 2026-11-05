@@ -228,9 +228,12 @@ export async function listProductVersions(productId: string, sellerId: string): 
 }
 
 export type ResolvedDeliverable = {
+  productVersionId: string | null
   deliveryType: 'upload' | 'github'
   deliverableRemotePath: string | null
   deliverableOriginalName: string | null
+  deliverableSizeBytes: number | null
+  deliverableSha256: string | null
   githubRepoName: string | null
   githubBranch: string | null
   githubCommitSha: string | null
@@ -251,7 +254,8 @@ export async function resolveOrderDeliverable(
   const versionId = productVersionId
   if (versionId) {
     const res = await query(
-      `SELECT delivery_type, deliverable_remote_path, deliverable_original_name,
+      `SELECT id, delivery_type, deliverable_remote_path, deliverable_original_name,
+              deliverable_size_bytes, deliverable_sha256,
               github_repo_name, github_branch, github_commit_sha
        FROM product_versions WHERE id = $1 AND product_id = $2`,
       [versionId, productId]
@@ -259,9 +263,12 @@ export async function resolveOrderDeliverable(
     if ((res.rowCount ?? 0) > 0) {
       const r = res.rows[0]
       return {
+        productVersionId: r.id,
         deliveryType: r.delivery_type,
         deliverableRemotePath: r.deliverable_remote_path,
         deliverableOriginalName: r.deliverable_original_name,
+        deliverableSizeBytes: r.deliverable_size_bytes != null ? Number(r.deliverable_size_bytes) : null,
+        deliverableSha256: r.deliverable_sha256,
         githubRepoName: r.github_repo_name,
         githubBranch: r.github_branch,
         githubCommitSha: r.github_commit_sha,
@@ -271,18 +278,23 @@ export async function resolveOrderDeliverable(
 
   // No version on record at all (pre-migration edge case that somehow
   // wasn't backfilled) — fall back to the product's live columns, exactly
-  // the behavior this app had before versioning existed.
+  // the behavior this app had before versioning existed. These predate
+  // sha256 hashing, so there's nothing to report there either.
   const productRes = await query(
-    `SELECT github_repo_name, github_default_branch, deliverable_remote_path, deliverable_original_name
+    `SELECT github_repo_name, github_default_branch, deliverable_remote_path, deliverable_original_name,
+            deliverable_size_bytes
      FROM products WHERE id = $1`,
     [productId]
   )
   if ((productRes.rowCount ?? 0) === 0) return null
   const p = productRes.rows[0]
   return {
+    productVersionId: null,
     deliveryType: p.github_repo_name ? 'github' : 'upload',
     deliverableRemotePath: p.deliverable_remote_path,
     deliverableOriginalName: p.deliverable_original_name,
+    deliverableSizeBytes: p.deliverable_size_bytes != null ? Number(p.deliverable_size_bytes) : null,
+    deliverableSha256: null,
     githubRepoName: p.github_repo_name,
     githubBranch: p.github_default_branch,
     githubCommitSha: null,

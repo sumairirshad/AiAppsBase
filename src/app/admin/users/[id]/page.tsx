@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, Mail, Github, Calendar, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, Mail, Github, Calendar, ShieldCheck, ShieldAlert } from 'lucide-react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -61,6 +61,7 @@ export default async function AdminUserDetailPage({ params }: { params: { id: st
           <TabsTrigger value="reviews">Reviews ({user.reviews.length})</TabsTrigger>
           {user.role === 'seller' && <TabsTrigger value="products">Products ({user.products.length})</TabsTrigger>}
           <TabsTrigger value="history">Account history ({user.auditLog.length})</TabsTrigger>
+          <TabsTrigger value="security">Security ({user.securityEvents.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="orders">
@@ -167,6 +168,31 @@ export default async function AdminUserDetailPage({ params }: { params: { id: st
                   <p className="mt-1 text-muted-foreground">Reason: {a.reason}</p>
                   {a.notes && <p className="mt-0.5 text-muted-foreground">Notes: {a.notes}</p>}
                   <p className="mt-1 text-xs text-muted-foreground">By {a.admin_name}</p>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="security">
+          <Card>
+            <CardHeader><CardTitle>Security events</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              {user.securityEvents.length === 0 ? (
+                <EmptyState icon="ShieldCheck" title="No security events" description="Failed logins, lockouts, and password changes for this account will appear here." className="border-0" />
+              ) : user.securityEvents.map((e: any) => (
+                <div key={e.id} className="rounded-lg border border-border p-3 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 font-medium capitalize">
+                      {(e.event_type === 'login_locked' || e.event_type === 'password_change_failed') && (
+                        <ShieldAlert className="size-3.5 text-destructive" />
+                      )}
+                      {e.event_type.replace(/_/g, ' ')}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{e.date}</span>
+                  </div>
+                  {e.details && <p className="mt-1 text-muted-foreground">{e.details}</p>}
+                  {e.ip_address && <p className="mt-0.5 text-xs text-muted-foreground">IP: {e.ip_address}</p>}
                 </div>
               ))}
             </CardContent>

@@ -20,6 +20,11 @@ function matchesKnownArchiveSignature(header: Buffer): boolean {
   return all.some((sig) => header.length >= sig.length && header.subarray(0, sig.length).equals(sig))
 }
 
+/** Same real-bytes ZIP/RAR check as {@link createArchiveSignatureValidator}, for a buffer already fully in memory (the legacy buffered upload paths — product creation and direct deliverable replace — never stream). */
+export function isValidArchiveBuffer(buffer: Buffer): boolean {
+  return matchesKnownArchiveSignature(buffer)
+}
+
 /**
  * A passthrough stream that validates a file's *actual bytes* against the
  * real ZIP/RAR magic numbers — not just its extension or the browser-

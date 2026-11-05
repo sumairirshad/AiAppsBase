@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { Download, Key } from 'lucide-react'
 
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { PageHead } from '@/components/dashboard/page-head'

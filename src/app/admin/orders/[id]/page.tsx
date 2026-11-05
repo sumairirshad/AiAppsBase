@@ -1,12 +1,16 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, Package, User, Store, Key, CreditCard, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Package, User, Store, Key, CreditCard, CheckCircle, Download } from 'lucide-react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { getAdminOrderDetail } from '@/lib/admin-data'
+import { getAdminOrderDetail, getOrderDownloadAudit } from '@/lib/admin-data'
 import { OrderRefundAction } from '@/components/admin/order-refund-action'
 import { OrderDisputeResolution } from '@/components/admin/order-dispute-resolution'
+
+const downloadStatusVariant: Record<string, 'success' | 'warning' | 'destructive'> = {
+  success: 'success', blocked: 'warning', failed: 'destructive',
+}
 
 export const dynamic = 'force-dynamic'
 
@@ -21,6 +25,7 @@ const statusLabel: Record<string, string> = {
 export default async function AdminOrderDetailPage({ params }: { params: { id: string } }) {
   const order = await getAdminOrderDetail(params.id)
   if (!order) notFound()
+  const downloadAudit = await getOrderDownloadAudit(params.id)
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -95,6 +100,33 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
               <p className="text-xs text-muted-foreground">{order.date}</p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Download className="size-4" /> Delivery &amp; download evidence</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {downloadAudit.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No download attempts recorded for this order yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {downloadAudit.map((d: any) => (
+                <div key={d.id} className="rounded-lg border p-3 text-sm">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={downloadStatusVariant[d.status] ?? 'muted'} className="capitalize">{d.status}</Badge>
+                    <span className="text-xs text-muted-foreground">{d.date}</span>
+                  </div>
+                  <div className="mt-2 grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
+                    {d.file_name && <p>File: {d.file_name}</p>}
+                    {d.file_sha256 && <p className="truncate">SHA-256: {d.file_sha256}</p>}
+                    {d.ip_address && <p>IP: {d.ip_address}</p>}
+                    {d.block_reason && <p>Reason: {d.block_reason}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

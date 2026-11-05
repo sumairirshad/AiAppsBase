@@ -229,7 +229,9 @@ describe.skipIf(!isDatabaseConfigured())('product-versions (integration)', () =>
     const reserved = await reserveProductVersion(productId, seller.id, '1.1.0', 'upload', null, true)
     if (!reserved.ok) throw new Error('unreachable')
 
-    const deliverable = { remotePath: '/remote/v2.zip', originalName: 'v2.zip', sizeBytes: 10, sha256: 'x' }
+    const deliverable = {
+      remotePath: '/remote/v2.zip', originalName: 'v2.zip', sizeBytes: 10, sha256: 'x',
+    }
     await finalizeProductVersion(reserved.versionId, productId, deliverable)
     await finalizeProductVersion(reserved.versionId, productId, deliverable) // simulated retry
 

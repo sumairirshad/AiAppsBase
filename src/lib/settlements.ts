@@ -67,7 +67,7 @@ export async function processWithdrawalAction(
          COALESCE((SELECT SUM(o.amount) FROM orders o JOIN products p ON o.product_id = p.id
                    WHERE p.seller_id = $1 AND o.status = 'completed'), 0)::float AS revenue,
          COALESCE((SELECT SUM(requested_amount) FROM withdrawal_requests
-                   WHERE seller_id = $1 AND status IN ('pending', 'approved', 'failed') AND id != $2), 0)::float
+                   WHERE seller_id = $1 AND status IN ('pending', 'approved', 'failed', 'paid', 'payout_failed') AND id != $2), 0)::float
            AS withdrawn_or_pending`,
       [withdrawal.seller_id, withdrawalId]
     )

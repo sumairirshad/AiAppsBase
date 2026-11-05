@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
            COALESCE((SELECT SUM(o.amount) FROM orders o JOIN products p ON o.product_id=p.id
                      WHERE p.seller_id=$1 AND o.status='completed'),0)::float AS revenue,
            COALESCE((SELECT SUM(requested_amount) FROM withdrawal_requests
-                     WHERE seller_id=$1 AND status IN ('pending','approved','failed')),0)::float AS withdrawn_or_pending`,
+                     WHERE seller_id=$1 AND status IN ('pending','approved','failed','paid','payout_failed')),0)::float AS withdrawn_or_pending`,
         [userId]
       )
       const { revenue, withdrawn_or_pending } = balanceRes.rows[0]
