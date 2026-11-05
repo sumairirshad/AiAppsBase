@@ -6,6 +6,7 @@ using Procurement.Application.Common.Interfaces;
 using Procurement.Infrastructure.Auth;
 using Procurement.Infrastructure.Persistence;
 using Procurement.Infrastructure.Persistence.Seed;
+using Procurement.Infrastructure.Storage;
 
 namespace Procurement.Infrastructure;
 
@@ -29,6 +30,7 @@ public static class DependencyInjection
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddSingleton<IEncryptionService, AesEncryptionService>();
+        services.AddSingleton<IFileStorageService, LocalFileStorageService>();
 
         return services;
     }

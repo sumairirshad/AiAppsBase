@@ -10,6 +10,7 @@ public record CategoryDto(long Id, string Code, string Name, long? ParentId, boo
 public record ItemDto(long Id, string Code, string Name, long CategoryId, string CategoryName, long UnitId, string UnitCode, bool IsActive);
 public record UnitDto(long Id, string Code, string Name, byte Precision);
 public record DepartmentCategoryDto(long DepartmentId, long CategoryId, string CategoryCode, string CategoryName);
+public record SpendSubHeadDto(long Id, string Code, string Name, bool AllowsTentative, string ProcurementModeCode);
 
 public record ListCategoriesQuery : IRequest<List<CategoryDto>>;
 public class ListCategoriesQueryHandler : IRequestHandler<ListCategoriesQuery, List<CategoryDto>>
@@ -100,6 +101,17 @@ public class ListUnitsQueryHandler : IRequestHandler<ListUnitsQuery, List<UnitDt
     public ListUnitsQueryHandler(IProcurementDbContext db) => _db = db;
     public async Task<List<UnitDto>> Handle(ListUnitsQuery request, CancellationToken ct) =>
         await _db.Units.OrderBy(u => u.Name).Select(u => new UnitDto(u.Id, u.Code, u.Name, u.Precision)).ToListAsync(ct);
+}
+
+public record ListSpendSubHeadsQuery : IRequest<List<SpendSubHeadDto>>;
+public class ListSpendSubHeadsQueryHandler : IRequestHandler<ListSpendSubHeadsQuery, List<SpendSubHeadDto>>
+{
+    private readonly IProcurementDbContext _db;
+    public ListSpendSubHeadsQueryHandler(IProcurementDbContext db) => _db = db;
+    public async Task<List<SpendSubHeadDto>> Handle(ListSpendSubHeadsQuery request, CancellationToken ct) =>
+        await _db.SpendSubHeads.Join(_db.ProcurementModes, s => s.ProcurementModeId, m => m.Id,
+            (s, m) => new SpendSubHeadDto(s.Id, s.Code, s.Name, s.AllowsTentative, m.Code))
+            .OrderBy(d => d.Name).ToListAsync(ct);
 }
 
 public record ListDepartmentCategoriesQuery(long DepartmentId) : IRequest<List<DepartmentCategoryDto>>;

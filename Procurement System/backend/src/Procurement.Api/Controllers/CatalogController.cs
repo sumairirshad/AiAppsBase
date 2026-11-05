@@ -27,4 +27,7 @@ public class CatalogController : ControllerBase
 
     [HttpGet("api/v1/units")]
     public async Task<ActionResult<List<UnitDto>>> ListUnits(CancellationToken ct) => Ok(await _sender.Send(new ListUnitsQuery(), ct));
+
+    [HttpGet("api/v1/spend-sub-heads")]
+    public async Task<ActionResult<List<SpendSubHeadDto>>> ListSpendSubHeads(CancellationToken ct) => Ok(await _sender.Send(new ListSpendSubHeadsQuery(), ct));
 }

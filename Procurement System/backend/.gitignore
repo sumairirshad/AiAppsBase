@@ -4,3 +4,4 @@ obj/
 .vs/
 *.db
 appsettings.*.local.json
+App_Data/
