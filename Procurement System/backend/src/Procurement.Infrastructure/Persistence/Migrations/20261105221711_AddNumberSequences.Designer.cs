@@ -12,7 +12,7 @@ using Procurement.Infrastructure.Persistence;
 namespace Procurement.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ProcurementDbContext))]
-    [Migration("20261105174852_AddNumberSequences")]
+    [Migration("20261105221711_AddNumberSequences")]
     partial class AddNumberSequences
     {
         /// <inheritdoc />
@@ -28,10 +28,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.ActionTypes", b =>
                 {
                     b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -58,10 +55,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.AdvanceTypes", b =>
                 {
                     b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -88,10 +82,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.AiCheckTypes", b =>
                 {
                     b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -165,10 +156,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.AmendmentTypes", b =>
                 {
                     b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -239,10 +227,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.ApprovalRequestStatuses", b =>
                 {
                     b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -468,10 +453,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.ClauseCategories", b =>
                 {
                     b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -498,10 +480,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.CommentTypes", b =>
                 {
                     b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -620,10 +599,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.ContractTypes", b =>
                 {
                     b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -736,10 +712,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.CostTypes", b =>
                 {
                     b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -857,10 +830,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.DispatchChannels", b =>
                 {
                     b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -923,10 +893,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.DocumentTypes", b =>
                 {
                     b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -1015,10 +982,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.EntityTypes", b =>
                 {
                     b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -1365,10 +1329,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.MonthEndAuditStatuses", b =>
                 {
                     b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -1456,10 +1417,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.NotificationTypes", b =>
                 {
                     b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -1542,10 +1500,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.OccurrenceStatuses", b =>
                 {
                     b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -1738,10 +1693,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.PoStatuses", b =>
                 {
                     b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -1771,10 +1723,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.PoTypes", b =>
                 {
                     b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -2158,10 +2107,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.PrStatuses", b =>
                 {
                     b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -2191,10 +2137,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.ProcurementModes", b =>
                 {
                     b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -2517,10 +2460,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.QueryStatuses", b =>
                 {
                     b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -2716,10 +2656,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.RecurringFrequencies", b =>
                 {
                     b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -2823,10 +2760,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.RecurringPlanTypes", b =>
                 {
                     b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -2996,10 +2930,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.SecurityDepositStatuses", b =>
                 {
                     b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -3175,10 +3106,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.StageTypes", b =>
                 {
                     b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -3321,10 +3249,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.TaskStatuses", b =>
                 {
                     b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -3768,10 +3693,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.VendorStatuses", b =>
                 {
                     b.Property<short>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("smallint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Id"));
 
                     b.Property<string>("Code")
                         .IsRequired()

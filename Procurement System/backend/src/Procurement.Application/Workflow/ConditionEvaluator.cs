@@ -76,6 +76,14 @@ public class ConditionEvaluator
             return decimal.Parse(settingValue, CultureInfo.InvariantCulture);
         }
 
-        return decimal.Parse(token, CultureInfo.InvariantCulture);
+        if (decimal.TryParse(token, CultureInfo.InvariantCulture, out var literal))
+        {
+            return literal;
+        }
+
+        // A variable the caller hasn't computed yet at this point in the workflow (e.g. OverBudget before
+        // Finance has run the budget check, or IsHigherQuote before quotations exist) has nothing to compare:
+        // treat it as the "not met" value so the stage is correctly skipped rather than throwing.
+        return 0;
     }
 }

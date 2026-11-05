@@ -60,10 +60,10 @@ public class ListItemsQueryHandler : IRequestHandler<ListItemsQuery, List<ItemDt
         var query = _db.Items.Where(i => i.IsActive);
         if (request.CategoryId != null) query = query.Where(i => i.CategoryId == request.CategoryId);
 
-        return await query.Join(_db.Categories, i => i.CategoryId, c => c.Id, (i, c) => new { i, c })
+        var items = await query.Join(_db.Categories, i => i.CategoryId, c => c.Id, (i, c) => new { i, c })
             .Join(_db.Units, x => x.i.UnitId, u => u.Id, (x, u) => new ItemDto(x.i.Id, x.i.Code, x.i.Name, x.c.Id, x.c.Name, u.Id, u.Code, x.i.IsActive))
-            .OrderBy(d => d.Name)
             .ToListAsync(ct);
+        return items.OrderBy(d => d.Name).ToList();
     }
 }
 
@@ -108,10 +108,13 @@ public class ListSpendSubHeadsQueryHandler : IRequestHandler<ListSpendSubHeadsQu
 {
     private readonly IProcurementDbContext _db;
     public ListSpendSubHeadsQueryHandler(IProcurementDbContext db) => _db = db;
-    public async Task<List<SpendSubHeadDto>> Handle(ListSpendSubHeadsQuery request, CancellationToken ct) =>
-        await _db.SpendSubHeads.Join(_db.ProcurementModes, s => s.ProcurementModeId, m => m.Id,
+    public async Task<List<SpendSubHeadDto>> Handle(ListSpendSubHeadsQuery request, CancellationToken ct)
+    {
+        var subHeads = await _db.SpendSubHeads.Join(_db.ProcurementModes, s => s.ProcurementModeId, m => m.Id,
             (s, m) => new SpendSubHeadDto(s.Id, s.Code, s.Name, s.AllowsTentative, m.Code))
-            .OrderBy(d => d.Name).ToListAsync(ct);
+            .ToListAsync(ct);
+        return subHeads.OrderBy(d => d.Name).ToList();
+    }
 }
 
 public record ListDepartmentCategoriesQuery(long DepartmentId) : IRequest<List<DepartmentCategoryDto>>;
@@ -119,11 +122,13 @@ public class ListDepartmentCategoriesQueryHandler : IRequestHandler<ListDepartme
 {
     private readonly IProcurementDbContext _db;
     public ListDepartmentCategoriesQueryHandler(IProcurementDbContext db) => _db = db;
-    public async Task<List<DepartmentCategoryDto>> Handle(ListDepartmentCategoriesQuery request, CancellationToken ct) =>
-        await _db.DepartmentCategories.Where(dc => dc.DepartmentId == request.DepartmentId)
+    public async Task<List<DepartmentCategoryDto>> Handle(ListDepartmentCategoriesQuery request, CancellationToken ct)
+    {
+        var results = await _db.DepartmentCategories.Where(dc => dc.DepartmentId == request.DepartmentId)
             .Join(_db.Categories, dc => dc.CategoryId, c => c.Id, (dc, c) => new DepartmentCategoryDto(dc.DepartmentId, c.Id, c.Code, c.Name))
-            .OrderBy(d => d.CategoryName)
             .ToListAsync(ct);
+        return results.OrderBy(d => d.CategoryName).ToList();
+    }
 }
 
 public record SetDepartmentCategoriesCommand(long DepartmentId, List<long> CategoryIds) : IRequest;

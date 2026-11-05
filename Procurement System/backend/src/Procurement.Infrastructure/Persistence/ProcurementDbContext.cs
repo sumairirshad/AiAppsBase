@@ -161,6 +161,9 @@ public class ProcurementDbContext : DbContext, IProcurementDbContext
             if (lookupBaseType.IsAssignableFrom(entityType.ClrType) && entityType.ClrType != lookupBaseType)
             {
                 modelBuilder.Entity(entityType.ClrType).HasIndex(nameof(Domain.Entities.LookupEntity.Code)).IsUnique();
+                // Lookup Ids are fixed, well-known values assigned by the seeder (matching the data dictionary's
+                // Id/SortOrder), not database-generated identities.
+                modelBuilder.Entity(entityType.ClrType).Property(nameof(Domain.Entities.LookupEntity.Id)).ValueGeneratedNever();
             }
         }
 

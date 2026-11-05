@@ -15,8 +15,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "ActionTypes",
                 columns: table => new
                 {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<short>(type: "smallint", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<short>(type: "smallint", nullable: false),
@@ -31,8 +30,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "AdvanceTypes",
                 columns: table => new
                 {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<short>(type: "smallint", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<short>(type: "smallint", nullable: false),
@@ -47,8 +45,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "AiCheckTypes",
                 columns: table => new
                 {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<short>(type: "smallint", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<short>(type: "smallint", nullable: false),
@@ -63,8 +60,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "AmendmentTypes",
                 columns: table => new
                 {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<short>(type: "smallint", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<short>(type: "smallint", nullable: false),
@@ -79,8 +75,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "ApprovalRequestStatuses",
                 columns: table => new
                 {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<short>(type: "smallint", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<short>(type: "smallint", nullable: false),
@@ -122,8 +117,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "ClauseCategories",
                 columns: table => new
                 {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<short>(type: "smallint", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<short>(type: "smallint", nullable: false),
@@ -138,8 +132,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "CommentTypes",
                 columns: table => new
                 {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<short>(type: "smallint", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<short>(type: "smallint", nullable: false),
@@ -175,8 +168,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "ContractTypes",
                 columns: table => new
                 {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<short>(type: "smallint", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<short>(type: "smallint", nullable: false),
@@ -191,8 +183,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "CostTypes",
                 columns: table => new
                 {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<short>(type: "smallint", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<short>(type: "smallint", nullable: false),
@@ -220,8 +211,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "DispatchChannels",
                 columns: table => new
                 {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<short>(type: "smallint", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<short>(type: "smallint", nullable: false),
@@ -267,8 +257,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "DocumentTypes",
                 columns: table => new
                 {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<short>(type: "smallint", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<short>(type: "smallint", nullable: false),
@@ -283,8 +272,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "EntityTypes",
                 columns: table => new
                 {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<short>(type: "smallint", nullable: false),
                     TableName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -320,8 +308,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "MonthEndAuditStatuses",
                 columns: table => new
                 {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<short>(type: "smallint", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<short>(type: "smallint", nullable: false),
@@ -337,8 +324,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "NotificationTypes",
                 columns: table => new
                 {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<short>(type: "smallint", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<short>(type: "smallint", nullable: false),
@@ -353,8 +339,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "OccurrenceStatuses",
                 columns: table => new
                 {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<short>(type: "smallint", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<short>(type: "smallint", nullable: false),
@@ -402,8 +387,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "PoStatuses",
                 columns: table => new
                 {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<short>(type: "smallint", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<short>(type: "smallint", nullable: false),
@@ -419,8 +403,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "PoTypes",
                 columns: table => new
                 {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<short>(type: "smallint", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<short>(type: "smallint", nullable: false),
@@ -435,8 +418,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "ProcurementModes",
                 columns: table => new
                 {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<short>(type: "smallint", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<short>(type: "smallint", nullable: false),
@@ -451,8 +433,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "PrStatuses",
                 columns: table => new
                 {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<short>(type: "smallint", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<short>(type: "smallint", nullable: false),
@@ -468,8 +449,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "QueryStatuses",
                 columns: table => new
                 {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<short>(type: "smallint", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<short>(type: "smallint", nullable: false),
@@ -485,8 +465,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "RecurringFrequencies",
                 columns: table => new
                 {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<short>(type: "smallint", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<short>(type: "smallint", nullable: false),
@@ -501,8 +480,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "RecurringPlanTypes",
                 columns: table => new
                 {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<short>(type: "smallint", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<short>(type: "smallint", nullable: false),
@@ -531,8 +509,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "SecurityDepositStatuses",
                 columns: table => new
                 {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<short>(type: "smallint", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<short>(type: "smallint", nullable: false),
@@ -563,8 +540,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "StageTypes",
                 columns: table => new
                 {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<short>(type: "smallint", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<short>(type: "smallint", nullable: false),
@@ -579,8 +555,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "TaskStatuses",
                 columns: table => new
                 {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<short>(type: "smallint", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<short>(type: "smallint", nullable: false),
@@ -641,8 +616,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "VendorStatuses",
                 columns: table => new
                 {
-                    Id = table.Column<short>(type: "smallint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<short>(type: "smallint", nullable: false),
                     Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<short>(type: "smallint", nullable: false),
