@@ -110,4 +110,6 @@ public interface IProcurementDbContext
     DbSet<OutboxMessages> OutboxMessages { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+
+    Task<long> GetNextSequenceValueAsync(string sequenceName, CancellationToken cancellationToken = default);
 }

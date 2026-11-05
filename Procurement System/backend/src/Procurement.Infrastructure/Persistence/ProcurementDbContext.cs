@@ -126,6 +126,24 @@ public class ProcurementDbContext : DbContext, IProcurementDbContext
     public DbSet<Notifications> Notifications => Set<Notifications>();
     public DbSet<OutboxMessages> OutboxMessages => Set<OutboxMessages>();
 
+    private static readonly HashSet<string> KnownSequenceNames = new()
+    {
+        "seq_pr", "seq_po", "seq_manual_po", "seq_grn", "seq_invoice", "seq_vr",
+    };
+
+    public async Task<long> GetNextSequenceValueAsync(string sequenceName, CancellationToken cancellationToken = default)
+    {
+        if (!KnownSequenceNames.Contains(sequenceName))
+        {
+            throw new ArgumentException($"Unknown sequence '{sequenceName}'.", nameof(sequenceName));
+        }
+
+#pragma warning disable EF1002 // sequenceName is validated against KnownSequenceNames above; never user input.
+        var results = await Database.SqlQueryRaw<long>($"SELECT NEXT VALUE FOR [{sequenceName}] AS [Value]").ToListAsync(cancellationToken);
+#pragma warning restore EF1002
+        return results.Single();
+    }
+
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
         configurationBuilder.Properties<decimal>().HaveColumnType("decimal(18,2)");

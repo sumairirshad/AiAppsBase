@@ -20,5 +20,8 @@ public interface IWorkflowEngine
         long instanceId, string actionTypeCode, long actorUserId, long actorRoleId,
         string? remarks, IDictionary<string, object> context, CancellationToken ct);
 
+    /// <summary>Ends the workflow early (e.g. Reject) without moving to the next sequential stage.</summary>
+    Task TerminateAsync(long instanceId, string actionTypeCode, long actorUserId, long actorRoleId, string? remarks, CancellationToken ct);
+
     Task<WorkflowTasks?> GetOpenTaskAsync(long instanceId, CancellationToken ct);
 }

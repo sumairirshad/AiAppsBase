@@ -28,6 +28,7 @@ public static class DependencyInjection
         services.AddScoped<ICurrentUserContext, CurrentUserContext>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
+        services.AddSingleton<IEncryptionService, AesEncryptionService>();
 
         return services;
     }
