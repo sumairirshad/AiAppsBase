@@ -1,0 +1,34 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Procurement.Infrastructure.Persistence;
+using Procurement.Infrastructure.Persistence.Seed;
+
+namespace Procurement.Infrastructure;
+
+public static class DependencyInjection
+{
+    public static IServiceCollection AddProcurementInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    {
+        var connectionString = configuration.GetConnectionString("ProcurementDb")
+            ?? throw new InvalidOperationException("Connection string 'ProcurementDb' is not configured.");
+
+        services.AddDbContext<ProcurementDbContext>(options =>
+            options.UseSqlServer(connectionString, sql =>
+            {
+                sql.MigrationsAssembly(typeof(ProcurementDbContext).Assembly.FullName);
+                sql.EnableRetryOnFailure();
+            }).ReplaceService<Microsoft.EntityFrameworkCore.Migrations.IMigrationsSqlGenerator, IdempotentSqlServerMigrationsSqlGenerator>());
+
+        return services;
+    }
+
+    public static async Task MigrateAndSeedProcurementDbAsync(this IServiceProvider services)
+    {
+        using var scope = services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ProcurementDbContext>();
+        await db.Database.MigrateAsync();
+        await DbSeeder.SeedAsync(db);
+    }
+}
