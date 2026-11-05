@@ -71,4 +71,6 @@ export interface SpendSubHead {
   id: number;
   code: string;
   name: string;
+  allowsTentative: boolean;
+  procurementModeCode: string;
 }

@@ -1,0 +1,56 @@
+.summary-card {
+  margin-bottom: 16px;
+  padding: 16px 20px;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px 24px;
+
+  .label {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: rgba(0, 0, 0, 0.5);
+  }
+  .value {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: #1c2b36;
+  }
+}
+
+.draft-actions {
+  margin-top: 16px;
+}
+
+.decision-panel {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e3e7ea;
+}
+
+.decision-label {
+  font-weight: 600;
+  margin: 0 0 8px;
+  color: #9a5b00;
+}
+
+.decision-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.full-width-table {
+  width: 100%;
+}
+
+.bill-info {
+  padding: 16px;
+  p {
+    margin: 4px 0;
+  }
+}

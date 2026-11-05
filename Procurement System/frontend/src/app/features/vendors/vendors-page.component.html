@@ -1,0 +1,47 @@
+<app-page-header title="Vendors" subtitle="Approved vendor master and registration queue">
+  <button mat-raised-button color="primary" (click)="register()"><mat-icon>add</mat-icon> Register vendor</button>
+</app-page-header>
+
+<mat-tab-group animationDuration="150ms">
+  <mat-tab label="Approved Vendors">
+    <table mat-table [dataSource]="vendors" class="full-width-table">
+      <ng-container matColumnDef="legalName"><th mat-header-cell *matHeaderCellDef>Vendor</th><td mat-cell *matCellDef="let v">{{ v.legalName }} <span *ngIf="v.isStarVendor" class="star">&#9733;</span></td></ng-container>
+      <ng-container matColumnDef="ntn"><th mat-header-cell *matHeaderCellDef>NTN</th><td mat-cell *matCellDef="let v">{{ v.ntn }}</td></ng-container>
+      <ng-container matColumnDef="status"><th mat-header-cell *matHeaderCellDef>Status</th><td mat-cell *matCellDef="let v"><app-status-chip [status]="v.vendorStatus"></app-status-chip></td></ng-container>
+      <ng-container matColumnDef="score"><th mat-header-cell *matHeaderCellDef>Score</th><td mat-cell *matCellDef="let v">{{ v.overallScore ? (v.overallScore | number: '1.0-1') : '—' }}</td></ng-container>
+      <ng-container matColumnDef="categories"><th mat-header-cell *matHeaderCellDef>Categories</th><td mat-cell *matCellDef="let v">{{ v.categoryCodes.join(', ') }}</td></ng-container>
+      <ng-container matColumnDef="action">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let v">
+          <button mat-button color="warn" *ngIf="isProcurement && !v.isBlacklisted" (click)="blacklist(v)">Blacklist</button>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="vendorColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: vendorColumns"></tr>
+    </table>
+  </mat-tab>
+
+  <mat-tab label="Registrations">
+    <table mat-table [dataSource]="registrations" class="full-width-table">
+      <ng-container matColumnDef="requestNo"><th mat-header-cell *matHeaderCellDef>Request</th><td mat-cell *matCellDef="let r">{{ r.requestNo }}</td></ng-container>
+      <ng-container matColumnDef="legalName"><th mat-header-cell *matHeaderCellDef>Vendor</th><td mat-cell *matCellDef="let r">{{ r.legalName }}</td></ng-container>
+      <ng-container matColumnDef="status"><th mat-header-cell *matHeaderCellDef>Status</th><td mat-cell *matCellDef="let r"><app-status-chip [status]="r.status"></app-status-chip></td></ng-container>
+      <ng-container matColumnDef="proposedBy"><th mat-header-cell *matHeaderCellDef>Registered by</th><td mat-cell *matCellDef="let r">{{ r.proposedByUserName }}</td></ng-container>
+      <ng-container matColumnDef="action">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let r">
+          <ng-container *ngIf="r.status === 'PendingProcurement' && isProcurement">
+            <button mat-button color="primary" (click)="procurementDecision(r, true)">Accept</button>
+            <button mat-button color="warn" (click)="procurementDecision(r, false)">Reject</button>
+          </ng-container>
+          <ng-container *ngIf="r.status === 'PendingProcurementHod' && isProcurementHod">
+            <button mat-button color="primary" (click)="procurementHodDecision(r, true)">Approve</button>
+            <button mat-button color="warn" (click)="procurementHodDecision(r, false)">Reject</button>
+          </ng-container>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="registrationColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: registrationColumns"></tr>
+    </table>
+  </mat-tab>
+</mat-tab-group>

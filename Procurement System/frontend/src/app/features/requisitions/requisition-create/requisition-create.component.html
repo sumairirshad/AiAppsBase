@@ -1,0 +1,115 @@
+<app-page-header title="New Purchase Requisition" subtitle="Raise a request for your department"></app-page-header>
+
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <mat-card class="section">
+    <h3>Basics</h3>
+    <div class="form-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Requesting Department</mat-label>
+        <mat-select formControlName="departmentId">
+          <mat-option *ngFor="let d of departments" [value]="d.id">{{ d.name }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Location</mat-label>
+        <mat-select formControlName="locationId">
+          <mat-option *ngFor="let l of locations" [value]="l.id">{{ l.name }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Charge to Budget Line (Spend Class)</mat-label>
+        <mat-select formControlName="spendSubHeadId">
+          <mat-option *ngFor="let s of spendSubHeads" [value]="s.id">{{ s.name }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="span-2">
+        <mat-label>Title / Description</mat-label>
+        <input matInput formControlName="title" />
+      </mat-form-field>
+    </div>
+
+    <div class="toggle-row" *ngIf="selectedSubHead?.allowsTentative">
+      <mat-checkbox formControlName="isTentative">This is a tentative / estimated amount</mat-checkbox>
+    </div>
+
+    <div class="toggle-row" *ngIf="selectedSubHead?.code === 'APR-FAULT'">
+      <mat-checkbox formControlName="isEmergency">Emergency</mat-checkbox>
+      <mat-form-field appearance="outline" *ngIf="form.value.isEmergency" class="emergency-field">
+        <mat-label>Emergency justification</mat-label>
+        <input matInput formControlName="emergencyJustification" />
+      </mat-form-field>
+    </div>
+  </mat-card>
+
+  <mat-card class="section" *ngIf="!isBillRoute">
+    <h3>Items</h3>
+    <div class="line" *ngFor="let line of lineGroups; let i = index" [formGroup]="line">
+      <mat-form-field appearance="outline">
+        <mat-label>Item</mat-label>
+        <mat-select formControlName="itemId">
+          <mat-option *ngFor="let it of items" [value]="it.id">{{ it.name }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="qty">
+        <mat-label>Qty</mat-label>
+        <input matInput type="number" formControlName="qty" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="qty">
+        <mat-label>Unit</mat-label>
+        <mat-select formControlName="unitId">
+          <mat-option *ngFor="let u of units" [value]="u.id">{{ u.code }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="price">
+        <mat-label>Est. Unit Price</mat-label>
+        <input matInput type="number" formControlName="estUnitPrice" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="loc">
+        <mat-label>Location</mat-label>
+        <mat-select formControlName="locationId">
+          <mat-option *ngFor="let l of locations" [value]="l.id">{{ l.name }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <div class="line-total">{{ (line.value.qty || 0) * (line.value.estUnitPrice || 0) | number: '1.0-2' }}</div>
+      <button mat-icon-button type="button" (click)="removeLine(i)" [disabled]="lines.length === 1">
+        <mat-icon>delete</mat-icon>
+      </button>
+    </div>
+    <button mat-stroked-button type="button" (click)="addLine()"><mat-icon>add</mat-icon> Add line</button>
+    <p class="total">Total: PKR {{ lineTotal | number: '1.0-2' }}</p>
+  </mat-card>
+
+  <mat-card class="section" *ngIf="isBillRoute">
+    <h3>Bill Details</h3>
+    <div class="form-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Billing Period</mat-label>
+        <input matInput formControlName="billingPeriod" placeholder="e.g. November 2026" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Bill Amount (PKR)</mat-label>
+        <input matInput type="number" formControlName="billAmount" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Due Date</mat-label>
+        <input matInput [matDatepicker]="picker" formControlName="dueDate" />
+        <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="span-2">
+        <mat-label>Purpose</mat-label>
+        <input matInput formControlName="purpose" />
+      </mat-form-field>
+    </div>
+    <app-document-upload label="Upload bill" documentTypeCode="Bill" (uploaded)="onBillDocumentUploaded($event)"></app-document-upload>
+  </mat-card>
+
+  <div class="submit-row">
+    <button mat-raised-button color="primary" type="submit" [disabled]="submitting">
+      {{ submitting ? 'Saving…' : 'Save as draft' }}
+    </button>
+  </div>
+</form>

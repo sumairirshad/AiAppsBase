@@ -1,0 +1,47 @@
+<div class="tab-content">
+  <div class="action-bar" *ngIf="pr.prStatusCode === 'PendingProcurement' && isProcurement">
+    <button mat-raised-button color="primary" (click)="acceptForSourcing()">Accept for sourcing &amp; group lines</button>
+  </div>
+
+  <div class="action-bar" *ngIf="pr.prStatusCode === 'PendingQuotations' && isProcurement">
+    <button mat-raised-button color="primary" (click)="completeQuotations()">Complete quotation collection</button>
+  </div>
+
+  <div class="action-bar" *ngIf="pr.prStatusCode === 'PendingQuoteReview' && pr.currentStageCode === 'QUOTE_REVIEW' && auth.hasRole('AUDIT')">
+    <button mat-raised-button color="primary" [disabled]="!allGroupsHaveSelection()" (click)="completeQuoteReview()">Complete quote review</button>
+  </div>
+
+  <div class="action-bar" *ngIf="pr.currentStageCode === 'OPD_QUOTE_EXCEPTION' && auth.hasRole('OPD')">
+    <button mat-raised-button color="primary" (click)="opdQuoteException(true)">Approve high-quote exception</button>
+    <button mat-stroked-button color="warn" (click)="opdQuoteException(false)">Reject</button>
+  </div>
+
+  <mat-card class="group-card" *ngFor="let group of groups">
+    <div class="group-header">
+      <h4>Group {{ group.groupNo }} &mdash; {{ group.categoryName }}</h4>
+      <span class="amount">PKR {{ group.groupAmount | number: '1.0-2' }}</span>
+    </div>
+    <p class="quote-requirement">
+      Requires {{ group.requiredQuotes }} quotation(s) from distinct vendors &middot; collected {{ group.distinctVendorQuotes }}
+    </p>
+
+    <table mat-table [dataSource]="quotationsByGroup[group.id] || []" class="full-width-table" *ngIf="(quotationsByGroup[group.id] || []).length">
+      <ng-container matColumnDef="vendor"><th mat-header-cell *matHeaderCellDef>Vendor</th><td mat-cell *matCellDef="let q">{{ q.vendorName }}</td></ng-container>
+      <ng-container matColumnDef="total"><th mat-header-cell *matHeaderCellDef>Comparable Total</th><td mat-cell *matCellDef="let q">{{ q.comparableTotal | number: '1.0-2' }}</td></ng-container>
+      <ng-container matColumnDef="recommended"><th mat-header-cell *matHeaderCellDef></th><td mat-cell *matCellDef="let q"><span class="recommended-tag" *ngIf="q.isRecommended">Recommended</span></td></ng-container>
+      <ng-container matColumnDef="action">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let q">
+          <button mat-button color="primary" *ngIf="group.selectedQuotationId !== q.id && auth.hasRole('AUDIT')" (click)="selectQuotation(group, q)">Select</button>
+          <span *ngIf="group.selectedQuotationId === q.id" class="selected-tag">Selected</span>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="['vendor','total','recommended','action']"></tr>
+      <tr mat-row *matRowDef="let row; columns: ['vendor','total','recommended','action']"></tr>
+    </table>
+
+    <button mat-stroked-button *ngIf="isProcurement" (click)="addQuotation(group)"><mat-icon>add</mat-icon> Add quotation</button>
+  </mat-card>
+
+  <p class="empty-state" *ngIf="!groups.length">No sourcing groups yet.</p>
+</div>

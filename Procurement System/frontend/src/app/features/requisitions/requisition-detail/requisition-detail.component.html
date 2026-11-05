@@ -1,0 +1,88 @@
+<ng-container *ngIf="loading">
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+</ng-container>
+
+<ng-container *ngIf="pr">
+  <app-page-header [title]="pr.prNumber" [subtitle]="pr.title">
+    <app-status-chip [status]="pr.prStatusCode" [label]="pr.prStatusName"></app-status-chip>
+  </app-page-header>
+
+  <mat-card class="summary-card">
+    <div class="summary-grid">
+      <div><span class="label">Requester</span><span class="value">{{ pr.requesterName }}</span></div>
+      <div><span class="label">Department</span><span class="value">{{ pr.departmentName }}</span></div>
+      <div><span class="label">Location</span><span class="value">{{ pr.locationName }}</span></div>
+      <div><span class="label">Spend Class</span><span class="value">{{ pr.spendSubHeadName }}</span></div>
+      <div><span class="label">Estimated Amount</span><span class="value">PKR {{ pr.estimatedAmount | number: '1.0-2' }}</span></div>
+      <div *ngIf="pr.approvedAmount"><span class="label">Approved Amount</span><span class="value">PKR {{ pr.approvedAmount | number: '1.0-2' }}</span></div>
+      <div *ngIf="pr.isEmergency"><span class="label">Emergency</span><span class="value">{{ pr.emergencyJustification }}</span></div>
+    </div>
+
+    <div class="draft-actions" *ngIf="pr.prStatusCode === 'Draft' || pr.prStatusCode === 'Returned'">
+      <button mat-raised-button color="primary" (click)="submitForApproval()">Submit for approval</button>
+    </div>
+
+    <div class="decision-panel" *ngIf="canActOnDecisionGate">
+      <p class="decision-label">Awaiting your decision ({{ pr.currentStageRoleCode }})</p>
+      <div class="decision-actions" *ngIf="gateKind === 'hod' || gateKind === 'audit'">
+        <button mat-raised-button color="primary" (click)="approve()">Approve</button>
+        <button mat-stroked-button (click)="return()">Return</button>
+        <button mat-stroked-button color="warn" (click)="reject()">Reject</button>
+      </div>
+      <div class="decision-actions" *ngIf="gateKind === 'finance'">
+        <button mat-raised-button color="primary" (click)="financeApprove()">Approve &amp; record budget check</button>
+        <button mat-stroked-button (click)="return()">Return</button>
+        <button mat-stroked-button color="warn" (click)="reject()">Reject</button>
+      </div>
+      <div class="decision-actions" *ngIf="gateKind === 'opd-budget'">
+        <button mat-raised-button color="primary" (click)="opdBudgetDecision(true)">Approve exception</button>
+        <button mat-stroked-button color="warn" (click)="opdBudgetDecision(false)">Reject</button>
+      </div>
+    </div>
+  </mat-card>
+
+  <mat-tab-group animationDuration="150ms">
+    <mat-tab label="Lines">
+      <table mat-table [dataSource]="pr.lines" class="full-width-table" *ngIf="pr.lines.length">
+        <ng-container matColumnDef="item"><th mat-header-cell *matHeaderCellDef>Item</th><td mat-cell *matCellDef="let l">{{ l.itemName }}</td></ng-container>
+        <ng-container matColumnDef="qty"><th mat-header-cell *matHeaderCellDef>Qty</th><td mat-cell *matCellDef="let l">{{ l.qty }} {{ l.unitCode }}</td></ng-container>
+        <ng-container matColumnDef="price"><th mat-header-cell *matHeaderCellDef>Est. Unit Price</th><td mat-cell *matCellDef="let l">{{ l.estUnitPrice | number: '1.0-2' }}</td></ng-container>
+        <ng-container matColumnDef="total"><th mat-header-cell *matHeaderCellDef>Line Total</th><td mat-cell *matCellDef="let l">{{ l.lineTotal | number: '1.0-2' }}</td></ng-container>
+        <ng-container matColumnDef="location"><th mat-header-cell *matHeaderCellDef>Location</th><td mat-cell *matCellDef="let l">{{ l.locationName }}</td></ng-container>
+        <ng-container matColumnDef="accepted"><th mat-header-cell *matHeaderCellDef>Accepted Qty</th><td mat-cell *matCellDef="let l">{{ l.acceptedQty }}</td></ng-container>
+        <tr mat-header-row *matHeaderRowDef="['item','qty','price','total','location','accepted']"></tr>
+        <tr mat-row *matRowDef="let row; columns: ['item','qty','price','total','location','accepted']"></tr>
+      </table>
+      <div class="bill-info" *ngIf="pr.billingPeriod">
+        <p><strong>Billing period:</strong> {{ pr.billingPeriod }}</p>
+        <p><strong>Bill amount:</strong> PKR {{ pr.billAmount | number: '1.0-2' }}</p>
+        <p><strong>Purpose:</strong> {{ pr.purpose }}</p>
+        <p><strong>Due date:</strong> {{ pr.dueDate | date }}</p>
+      </div>
+    </mat-tab>
+
+    <mat-tab label="Timeline">
+      <app-timeline [entries]="timeline"></app-timeline>
+    </mat-tab>
+
+    <mat-tab label="Sourcing" *ngIf="pr.spendSubHeadCode === 'APR-FAULT' || pr.spendSubHeadCode === 'APR-PROJECT' || pr.spendSubHeadCode === 'PRE-CYC-FIXED'">
+      <app-sourcing-tab [pr]="pr" (refresh)="load()"></app-sourcing-tab>
+    </mat-tab>
+
+    <mat-tab label="Purchasing">
+      <app-purchasing-tab [pr]="pr" (refresh)="load()"></app-purchasing-tab>
+    </mat-tab>
+
+    <mat-tab label="Receiving">
+      <app-receiving-tab [pr]="pr" (refresh)="load()"></app-receiving-tab>
+    </mat-tab>
+
+    <mat-tab label="Bills">
+      <app-bills-tab [pr]="pr" (refresh)="load()"></app-bills-tab>
+    </mat-tab>
+
+    <mat-tab label="Audit">
+      <app-audit-tab [pr]="pr" (refresh)="load()"></app-audit-tab>
+    </mat-tab>
+  </mat-tab-group>
+</ng-container>

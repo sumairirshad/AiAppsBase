@@ -1,0 +1,43 @@
+<div class="tab-content">
+  <div class="action-bar" *ngIf="pr.prStatusCode === 'PoPreparation' && isProcurement && purchaseOrders.length === 0">
+    <button mat-raised-button color="primary" (click)="createPurchaseOrders()">Create purchase order(s)</button>
+  </div>
+
+  <div class="action-bar" *ngIf="pr.prStatusCode === 'PoIssued' && isProcurement && purchaseOrders.length">
+    <button mat-raised-button color="primary" [disabled]="!canCompleteContractIssuance()" (click)="completeContractIssuance()">
+      Activate PO(s) &amp; move to receiving
+    </button>
+  </div>
+
+  <mat-card class="po-card" *ngFor="let po of purchaseOrders">
+    <div class="po-header">
+      <h4>{{ po.poNumber }}</h4>
+      <app-status-chip [status]="po.poStatusCode"></app-status-chip>
+    </div>
+    <p class="po-meta">{{ po.vendorName }} &middot; PKR {{ po.total | number: '1.0-2' }} &middot; delivery {{ po.deliveryDate | date }}</p>
+
+    <table mat-table [dataSource]="po.lines" class="full-width-table">
+      <ng-container matColumnDef="item"><th mat-header-cell *matHeaderCellDef>Item</th><td mat-cell *matCellDef="let l">{{ l.itemName }}</td></ng-container>
+      <ng-container matColumnDef="qty"><th mat-header-cell *matHeaderCellDef>Qty</th><td mat-cell *matCellDef="let l">{{ l.qty }}</td></ng-container>
+      <ng-container matColumnDef="outstanding"><th mat-header-cell *matHeaderCellDef>Outstanding</th><td mat-cell *matCellDef="let l">{{ l.outstandingQty }}</td></ng-container>
+      <ng-container matColumnDef="total"><th mat-header-cell *matHeaderCellDef>Line Total</th><td mat-cell *matCellDef="let l">{{ l.lineTotal | number: '1.0-2' }}</td></ng-container>
+      <tr mat-header-row *matHeaderRowDef="['item','qty','outstanding','total']"></tr>
+      <tr mat-row *matRowDef="let row; columns: ['item','qty','outstanding','total']"></tr>
+    </table>
+
+    <div class="contract-section" *ngIf="po.poTypeCode !== 'Recurring' && (!po.hasSignedContract || !po.hasCheque) && isProcurement">
+      <h5>Signed contract &amp; security cheque</h5>
+      <div class="contract-fields">
+        <app-document-upload label="Signed contract" documentTypeCode="SignedContract" (uploaded)="chequeForms[po.id].signedDocumentId = $event"></app-document-upload>
+        <mat-form-field appearance="outline"><mat-label>Cheque no.</mat-label><input matInput [(ngModel)]="chequeForms[po.id].chequeNo" /></mat-form-field>
+        <mat-form-field appearance="outline"><mat-label>Bank</mat-label><input matInput [(ngModel)]="chequeForms[po.id].chequeBank" /></mat-form-field>
+        <mat-form-field appearance="outline"><mat-label>Amount</mat-label><input matInput type="number" [(ngModel)]="chequeForms[po.id].chequeAmount" /></mat-form-field>
+        <app-document-upload label="Cheque scan" documentTypeCode="SecurityCheque" (uploaded)="chequeForms[po.id].chequeDocumentId = $event"></app-document-upload>
+        <button mat-raised-button color="primary" (click)="issueContract(po)">Save</button>
+      </div>
+    </div>
+    <p class="done-tag" *ngIf="po.hasSignedContract && po.hasCheque">Contract and security cheque on file.</p>
+  </mat-card>
+
+  <p class="empty-state" *ngIf="!purchaseOrders.length">No purchase orders yet.</p>
+</div>

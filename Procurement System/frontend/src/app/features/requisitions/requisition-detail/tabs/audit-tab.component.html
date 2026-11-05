@@ -1,0 +1,35 @@
+<div class="tab-content">
+  <mat-card class="stamp-card">
+    <h4>Audit stamp</h4>
+    <ng-container *ngIf="stamp; else noStamp">
+      <p>Stamped by {{ stamp.stampedByName }} on {{ stamp.stampedAt | date: 'medium' }}</p>
+      <p>Payment verified: {{ stamp.paymentVerified ? 'Yes' : 'No' }} &middot; Delivery verified: {{ stamp.deliveryVerified ? 'Yes' : 'No' }}</p>
+    </ng-container>
+    <ng-template #noStamp>
+      <ng-container *ngIf="pr.prStatusCode === 'AuditReview' && isAudit; else notReady">
+        <mat-checkbox [(ngModel)]="paymentVerified">Payment verified (Finance Portal)</mat-checkbox>
+        <mat-checkbox [(ngModel)]="deliveryVerified">Delivery verified</mat-checkbox>
+        <div class="stamp-actions">
+          <button mat-raised-button color="primary" [disabled]="!paymentVerified || !deliveryVerified" (click)="submitStamp()">
+            Stamp &amp; close
+          </button>
+        </div>
+      </ng-container>
+      <ng-template #notReady><p class="muted">Not yet ready for the audit stamp.</p></ng-template>
+    </ng-template>
+  </mat-card>
+
+  <mat-card class="queries-card">
+    <div class="queries-header">
+      <h4>Audit queries</h4>
+      <button mat-stroked-button *ngIf="isAudit" (click)="raiseQuery()"><mat-icon>help_outline</mat-icon> Raise query</button>
+    </div>
+    <div class="query" *ngFor="let q of queries">
+      <p class="query-text"><strong>{{ q.raisedByName }}:</strong> {{ q.queryText }}</p>
+      <p class="response-text" *ngIf="q.responseText"><strong>Response:</strong> {{ q.responseText }}</p>
+      <app-status-chip [status]="q.queryStatusCode"></app-status-chip>
+      <button mat-button color="primary" *ngIf="q.queryStatusCode === 'Open'" (click)="respondQuery(q)">Respond</button>
+    </div>
+    <p class="empty-state" *ngIf="!queries.length">No queries raised.</p>
+  </mat-card>
+</div>

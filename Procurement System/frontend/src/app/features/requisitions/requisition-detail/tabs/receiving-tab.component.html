@@ -1,0 +1,52 @@
+<div class="tab-content">
+  <mat-card class="po-card" *ngFor="let po of purchaseOrders">
+    <div class="po-header">
+      <h4>{{ po.poNumber }}</h4>
+      <app-status-chip [status]="po.poStatusCode"></app-status-chip>
+    </div>
+    <table mat-table [dataSource]="po.lines" class="full-width-table">
+      <ng-container matColumnDef="item"><th mat-header-cell *matHeaderCellDef>Item</th><td mat-cell *matCellDef="let l">{{ l.itemName }}</td></ng-container>
+      <ng-container matColumnDef="qty"><th mat-header-cell *matHeaderCellDef>Ordered</th><td mat-cell *matCellDef="let l">{{ l.qty }}</td></ng-container>
+      <ng-container matColumnDef="accepted"><th mat-header-cell *matHeaderCellDef>Accepted</th><td mat-cell *matCellDef="let l">{{ l.acceptedQty }}</td></ng-container>
+      <ng-container matColumnDef="outstanding"><th mat-header-cell *matHeaderCellDef>Outstanding</th><td mat-cell *matCellDef="let l">{{ l.outstandingQty }}</td></ng-container>
+      <tr mat-header-row *matHeaderRowDef="['item','qty','accepted','outstanding']"></tr>
+      <tr mat-row *matRowDef="let row; columns: ['item','qty','accepted','outstanding']"></tr>
+    </table>
+    <button mat-stroked-button *ngIf="isProcurement && hasOutstanding(po)" (click)="recordGrn(po)">
+      <mat-icon>local_shipping</mat-icon> Record goods receipt
+    </button>
+  </mat-card>
+
+  <h3 class="section-title" *ngIf="grns.length">Goods receipts</h3>
+  <mat-card class="grn-card" *ngFor="let grn of grns">
+    <div class="grn-header">
+      <h4>{{ grn.grnNumber }}</h4>
+      <span class="meta">{{ grn.receivedOn | date }} &middot; note {{ grn.deliveryNoteNo }}</span>
+      <span class="late-tag" *ngIf="grn.onTime === false">Late</span>
+    </div>
+    <table mat-table [dataSource]="grn.lines" class="full-width-table">
+      <ng-container matColumnDef="item"><th mat-header-cell *matHeaderCellDef>Item</th><td mat-cell *matCellDef="let l">{{ l.itemName }}</td></ng-container>
+      <ng-container matColumnDef="delivered"><th mat-header-cell *matHeaderCellDef>Delivered</th><td mat-cell *matCellDef="let l">{{ l.deliveredQty }}</td></ng-container>
+      <ng-container matColumnDef="accepted"><th mat-header-cell *matHeaderCellDef>Accepted</th><td mat-cell *matCellDef="let l">{{ l.acceptedQty }}</td></ng-container>
+      <ng-container matColumnDef="rejected"><th mat-header-cell *matHeaderCellDef>Rejected</th><td mat-cell *matCellDef="let l">{{ l.rejectedQty }}</td></ng-container>
+      <tr mat-header-row *matHeaderRowDef="['item','delivered','accepted','rejected']"></tr>
+      <tr mat-row *matRowDef="let row; columns: ['item','delivered','accepted','rejected']"></tr>
+    </table>
+
+    <div class="ack-panel" *ngIf="!grn.ackStatus && isRequester">
+      <mat-form-field appearance="outline" class="rating">
+        <mat-label>Quality rating</mat-label>
+        <mat-select [(ngModel)]="ratings[grn.id]">
+          <mat-option *ngFor="let r of [1,2,3,4,5]" [value]="r">{{ r }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <button mat-raised-button color="primary" (click)="acknowledge(grn, true)">Accept delivery</button>
+      <button mat-stroked-button color="warn" (click)="acknowledge(grn, false)">Dispute</button>
+    </div>
+    <p class="ack-status" *ngIf="grn.ackStatus">
+      {{ grn.ackStatus }} <span *ngIf="grn.disputeReason">&mdash; {{ grn.disputeReason }}</span>
+    </p>
+  </mat-card>
+
+  <p class="empty-state" *ngIf="!purchaseOrders.length">No active purchase orders yet.</p>
+</div>

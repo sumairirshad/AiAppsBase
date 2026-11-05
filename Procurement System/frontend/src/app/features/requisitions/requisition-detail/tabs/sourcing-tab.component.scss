@@ -1,0 +1,46 @@
+.tab-content {
+  padding: 16px 4px;
+}
+.action-bar {
+  margin-bottom: 16px;
+  display: flex;
+  gap: 8px;
+}
+.group-card {
+  margin-bottom: 16px;
+  padding: 16px;
+}
+.group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  h4 { margin: 0; }
+  .amount { font-weight: 600; color: #1f5f8b; }
+}
+.quote-requirement {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 13px;
+  margin: 4px 0 12px;
+}
+.full-width-table {
+  width: 100%;
+  margin-bottom: 12px;
+}
+.recommended-tag {
+  background: #e3f3e8;
+  color: #1e7a34;
+  border-radius: 10px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.selected-tag {
+  color: #1f5f8b;
+  font-weight: 600;
+  font-size: 12px;
+}
+.empty-state {
+  padding: 32px;
+  text-align: center;
+  color: rgba(0, 0, 0, 0.5);
+}

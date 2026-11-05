@@ -1,0 +1,10 @@
+.tab-content { padding: 16px 4px; }
+.action-bar { margin-bottom: 16px; display: flex; gap: 8px; }
+.po-card { margin-bottom: 16px; padding: 16px; }
+.po-header { display: flex; justify-content: space-between; align-items: baseline; h4 { margin: 0; } }
+.po-meta { color: rgba(0, 0, 0, 0.6); font-size: 13px; margin: 2px 0 12px; }
+.full-width-table { width: 100%; margin-bottom: 12px; }
+.contract-section { border-top: 1px solid #e3e7ea; padding-top: 12px; margin-top: 8px; h5 { margin: 0 0 8px; } }
+.contract-fields { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.done-tag { color: #1e7a34; font-size: 13px; font-weight: 500; }
+.empty-state { padding: 32px; text-align: center; color: rgba(0, 0, 0, 0.5); }
