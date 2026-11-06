@@ -1,0 +1,13 @@
+## .NET
+backend/**/bin/
+backend/**/obj/
+*.user
+
+## Angular / Node
+frontend/**/node_modules/
+frontend/**/dist/
+frontend/**/.angular/
+
+## Files
+backend/**/filestorage/
+*.log

@@ -1,0 +1,62 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Procurement_Dev_2026!"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: src/Procurement.Api/Dockerfile
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__ProcurementDb: "Server=sqlserver,1433;Database=ProcurementDb;User Id=sa;Password=Procurement_Dev_2026!;TrustServerCertificate=True;"
+      SeedDemoData: "true"
+      Jwt__Issuer: "procurement-system"
+      Jwt__Audience: "procurement-system"
+      Jwt__SigningKey: "CHANGE_ME_at_least_32_characters_signing_key"
+      Cors__AllowedOrigins__0: "http://localhost:4200"
+      Cors__AllowedOrigins__1: "http://localhost:8081"
+      FileStorage__RootPath: "/data/filestorage"
+    volumes:
+      - filestorage:/data/filestorage
+    ports:
+      - "5000:8080"
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: src/Procurement.Worker/Dockerfile
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__ProcurementDb: "Server=sqlserver,1433;Database=ProcurementDb;User Id=sa;Password=Procurement_Dev_2026!;TrustServerCertificate=True;"
+      SeedDemoData: "true"
+      FileStorage__RootPath: "/data/filestorage"
+    volumes:
+      - filestorage:/data/filestorage
+
+  web:
+    build:
+      context: ./frontend
+    depends_on:
+      - api
+    ports:
+      - "8081:80"
+
+volumes:
+  sqlserver-data:
+  filestorage:
