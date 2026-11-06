@@ -53,7 +53,7 @@ public class SourcingController : ControllerBase
     }
 
     [HttpPost("api/v1/requisitions/{prId:long}/opd-quote-exception")]
-    public async Task<IActionResult> OpdQuoteException(long prId, [FromBody] DecisionRequest request, CancellationToken ct)
+    public async Task<IActionResult> OpdQuoteException(long prId, [FromBody] OpdQuoteExceptionDecisionRequest request, CancellationToken ct)
     {
         await _sender.Send(new OpdQuoteExceptionDecisionCommand(prId, request.Approve, request.Reason), ct);
         return NoContent();
@@ -61,5 +61,5 @@ public class SourcingController : ControllerBase
 
     public record AddQuotationRequest(long VendorId, string QuotationNo, DateOnly QuotationDate, long DocumentId, List<QuotationLineInput> Lines);
     public record SelectQuotationRequest(long QuotationId, string? Justification);
-    public record DecisionRequest(bool Approve, string Reason);
+    public record OpdQuoteExceptionDecisionRequest(bool Approve, string Reason);
 }

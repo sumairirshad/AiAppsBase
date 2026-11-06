@@ -64,7 +64,7 @@ public class PurchaseRequisitionsController : ControllerBase
     }
 
     [HttpPost("{id:long}/opd-budget-exception")]
-    public async Task<IActionResult> OpdBudgetException(long id, [FromBody] DecisionRequest request, CancellationToken ct)
+    public async Task<IActionResult> OpdBudgetException(long id, [FromBody] OpdBudgetExceptionDecisionRequest request, CancellationToken ct)
     {
         await _sender.Send(new OpdBudgetExceptionDecisionCommand(id, request.Approve, request.Reason), ct);
         return NoContent();
@@ -72,6 +72,6 @@ public class PurchaseRequisitionsController : ControllerBase
 
     public record RemarksRequest(string? Remarks);
     public record ReasonRequest(string Reason);
-    public record DecisionRequest(bool Approve, string Reason);
+    public record OpdBudgetExceptionDecisionRequest(bool Approve, string Reason);
     public record FinanceApproveRequest(string BudgetRef, decimal AvailableAmount, string? Remarks);
 }
