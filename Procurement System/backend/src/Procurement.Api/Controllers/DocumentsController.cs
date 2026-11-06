@@ -24,20 +24,26 @@ public class DocumentsController : ControllerBase
     }
 
     public record DocumentUploadResult(long Id, string FileName, long SizeBytes);
+    public class UploadDocumentForm
+    {
+        public IFormFile File { get; set; } = null!;
+        public string DocumentTypeCode { get; set; } = null!;
+    }
 
     [HttpPost]
     [RequestSizeLimit(25_000_000)]
-    public async Task<ActionResult<DocumentUploadResult>> Upload([FromForm] IFormFile file, [FromForm] string documentTypeCode, CancellationToken ct)
+    public async Task<ActionResult<DocumentUploadResult>> Upload([FromForm] UploadDocumentForm form, CancellationToken ct)
     {
+        var file = form.File;
         if (file.Length == 0)
         {
             return BadRequest(new { title = "Validation Failed", detail = "The uploaded file is empty." });
         }
 
-        var documentType = await _db.DocumentTypes.FirstOrDefaultAsync(t => t.Code == documentTypeCode, ct);
+        var documentType = await _db.DocumentTypes.FirstOrDefaultAsync(t => t.Code == form.DocumentTypeCode, ct);
         if (documentType == null)
         {
-            return BadRequest(new { title = "Validation Failed", detail = $"Unknown document type '{documentTypeCode}'." });
+            return BadRequest(new { title = "Validation Failed", detail = $"Unknown document type '{form.DocumentTypeCode}'." });
         }
 
         var storageKey = $"{Guid.NewGuid():N}-{Path.GetFileName(file.FileName)}";
