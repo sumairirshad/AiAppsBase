@@ -31,9 +31,10 @@ public class AuditStampHandler : IRequestHandler<AuditStampCommand, SubmitPrResu
 
     public async Task<SubmitPrResult> Handle(AuditStampCommand request, CancellationToken ct)
     {
-        await _permissions.RequireAsync(request.ActorUserId, "AUDIT.STAMP", ct);
         var pr = await _db.PurchaseRequisitions.FirstOrDefaultAsync(p => p.Id == request.PrId, ct)
             ?? throw new InvalidOperationException("PR not found.");
+        // BR-008: AUDIT_STAMP escalates to OPD on timeout.
+        await _permissions.RequireAsync(request.ActorUserId, "AUDIT.STAMP", pr.WorkflowInstanceId, ct);
         if (await _db.Set<AuditStamps>().AnyAsync(s => s.PrId == pr.Id, ct))
             throw new InvalidOperationException("This PR has already been stamped; a correction is a new audit event, not an edit.");
 

@@ -15,6 +15,14 @@ public interface IWorkflowEngine
 
     Task<IReadOnlyList<string>> GetAllowedActionsAsync(long instanceId, long actorUserId, IReadOnlyCollection<long> actorRoleIds, CancellationToken ct = default);
 
+    // BR-008: true once the open task on this instance is actionable by this actor, either
+    // because it's genuinely assigned to their role/user or because they are the stage's
+    // escalation target and the task has actually escalated. A dedicated command (GRN,
+    // PO/contract, bill forward, audit stamp, acknowledge, ...) whose own permission check
+    // is normally gated to one role should also accept this as an alternate authorization,
+    // so the stage's escalation path (see WorkflowStages.EscalateToRoleId) actually works.
+    Task<bool> CanActNowAsync(long instanceId, long actorUserId, IReadOnlyCollection<long> actorRoleIds, CancellationToken ct = default);
+
     // Re-opens a task at the stage a PR was last Returned or Queried from (the requester
     // edited the PR and is resubmitting, or answered the query) - never skips back further
     // than that one stage, so whoever was reviewing it still reviews it again.

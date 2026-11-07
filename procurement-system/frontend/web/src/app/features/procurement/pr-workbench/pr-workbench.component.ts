@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { RequisitionsService } from '../../../core/services/requisitions.service';
 import { SourcingService } from '../../../core/services/sourcing.service';
 import { PurchasingService } from '../../../core/services/purchasing.service';
@@ -51,7 +51,15 @@ interface GrnLineForm {
   imports: [PrDetailCoreComponent, RouterLink, FormsModule, DecimalPipe, DocumentUploadComponent],
   template: `
     <div class="page">
-      <p><a routerLink="/procurement/dashboard">&larr; Back to Procurement</a></p>
+      <p><a [routerLink]="backLink">&larr; {{ backLabel }}</a></p>
+      @if (isOpdHandoff) {
+        <div class="card" style="background:var(--color-surface-muted, #f6f6f6)">
+          <p style="margin:0">
+            <strong>Escalated to OPD.</strong> Procurement did not act on this stage within its deadline, so OPD is
+            completing it here on Procurement's behalf.
+          </p>
+        </div>
+      }
       <app-pr-detail-core [pr]="pr" (act)="onAct($event)" (queried)="load()"></app-pr-detail-core>
 
       @if (pr) {
@@ -349,6 +357,18 @@ export class ProcurementPrWorkbenchComponent implements OnInit {
   busy = false;
   private prId = 0;
 
+  /**
+   * This same component is reused, unmodified otherwise, from an OPD-prefixed route
+   * (app.routes.ts) when an Operational stage Procurement owns has escalated to OPD - see
+   * features/opd/pr-detail. Route `data` is what tells it which role is actually acting, so the
+   * generic action bar's calls go through as that role instead of being hardcoded to
+   * Procurement, and so the back link returns to the right dashboard.
+   */
+  actingRoleCode = 'PROCUREMENT';
+  backLink: any[] = ['/procurement/dashboard'];
+  backLabel = 'Back to Procurement';
+  isOpdHandoff = false;
+
   groups: SourcingGroupDto[] = [];
   quotation = { groupId: null as number | null, vendorId: null as number | null, quotationNo: '', quotationDate: '', taxTotal: 0, documentId: 0 };
   quotationLines: QuotationLineForm[] = [];
@@ -370,6 +390,7 @@ export class ProcurementPrWorkbenchComponent implements OnInit {
 
   constructor(
     private route: ActivatedRoute,
+    private router: Router,
     private requisitions: RequisitionsService,
     private sourcing: SourcingService,
     private purchasing: PurchasingService,
@@ -381,6 +402,11 @@ export class ProcurementPrWorkbenchComponent implements OnInit {
 
   ngOnInit(): void {
     this.prId = Number(this.route.snapshot.paramMap.get('id'));
+    const data = this.route.snapshot.data as { roleCode?: string; backLink?: string; backLabel?: string };
+    if (data.roleCode) this.actingRoleCode = data.roleCode;
+    if (data.backLink) this.backLink = [data.backLink, this.prId];
+    if (data.backLabel) this.backLabel = data.backLabel;
+    this.isOpdHandoff = this.actingRoleCode === 'OPD';
     this.load();
     this.vendorsService.list().subscribe((v) => (this.vendors = v.filter((x) => x.statusCode === 'Approved')));
   }
@@ -399,7 +425,17 @@ export class ProcurementPrWorkbenchComponent implements OnInit {
   }
 
   load(): void {
-    this.requisitions.detail(this.prId).subscribe((pr) => (this.pr = pr));
+    this.requisitions.detail(this.prId).subscribe((pr) => {
+      this.pr = pr;
+      // Defends against someone navigating here by hand for a PR that was never actually
+      // escalated to OPD (or whose owning role already acted): the backend's own
+      // WorkflowEngine.GetAllowedActionsAsync only populates allowedActions for OPD on an
+      // Operational-stage task when it is genuinely the escalation target.
+      if (this.isOpdHandoff && pr.allowedActions.length === 0) {
+        this.toast.error('This PR is not currently escalated to OPD at this stage.');
+        this.router.navigate(['/opd/pr', this.prId]);
+      }
+    });
     this.sourcing.groupsForPr(this.prId).subscribe((groups) => (this.groups = groups));
     this.purchasing.ordersForPr(this.prId).subscribe((orders) => {
       this.purchaseOrders = orders;
@@ -417,7 +453,7 @@ export class ProcurementPrWorkbenchComponent implements OnInit {
       this.toast.error('Use the specific action for this step above - it advances the PR for you.');
       return;
     }
-    this.requisitions.act(this.prId, 'PROCUREMENT', event.actionCode, event.remarks).subscribe(() => {
+    this.requisitions.act(this.prId, this.actingRoleCode, event.actionCode, event.remarks).subscribe(() => {
       this.toast.success('Done.');
       this.load();
     });

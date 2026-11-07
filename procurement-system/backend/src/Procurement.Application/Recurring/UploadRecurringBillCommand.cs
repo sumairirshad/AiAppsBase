@@ -21,23 +21,43 @@ public class UploadRecurringBillHandler : IRequestHandler<UploadRecurringBillCom
     private readonly IPermissionChecker _permissions;
     private readonly IWorkflowEngine _workflow;
     private readonly LookupCache _lookups;
+    private readonly UserAccessService _access;
 
-    public UploadRecurringBillHandler(IApplicationDbContext db, IPermissionChecker permissions, IWorkflowEngine workflow, LookupCache lookups)
+    public UploadRecurringBillHandler(IApplicationDbContext db, IPermissionChecker permissions, IWorkflowEngine workflow, LookupCache lookups, UserAccessService access)
     {
         _db = db;
         _permissions = permissions;
         _workflow = workflow;
         _lookups = lookups;
+        _access = access;
     }
 
     public async Task<SubmitPrResult> Handle(UploadRecurringBillCommand request, CancellationToken ct)
     {
-        await _permissions.RequireAsync(request.ActorUserId, "PR.BILL_UPLOAD", ct);
         var pr = await _db.PurchaseRequisitions.FirstOrDefaultAsync(p => p.Id == request.PrId, ct)
             ?? throw new InvalidOperationException("PR not found.");
         if (pr.WorkflowInstanceId is null) throw new InvalidOperationException("This PR has no active workflow instance.");
+        await _permissions.RequireAsync(request.ActorUserId, "PR.BILL_UPLOAD", pr.WorkflowInstanceId, ct);
         if (await _db.Set<PrBills>().AnyAsync(b => b.PrId == pr.Id, ct))
             throw new InvalidOperationException("A bill has already been uploaded for this period.");
+
+        // OWNER_UPLOAD is Requester-scoped, but (BR-008) escalates to OPD on timeout - act as
+        // whichever role is actually authorized: the plan owner normally, or the open task's
+        // own EscalatedToRoleId when a genuine escalation target is uploading instead.
+        long actingRoleId;
+        if (pr.RequesterId == request.ActorUserId)
+        {
+            actingRoleId = await _lookups.IdAsync<Roles, long>("REQUESTOR", ct);
+        }
+        else
+        {
+            var roleIds = (await _access.GetAssignmentsAsync(request.ActorUserId, ct)).Select(a => a.RoleId).ToList();
+            if (!await _workflow.CanActNowAsync(pr.WorkflowInstanceId.Value, request.ActorUserId, roleIds, ct))
+                throw new UnauthorizedAccessException("Only the plan owner can upload this period's bill.");
+            var openTask = await _db.WorkflowTasks.Where(t => t.InstanceId == pr.WorkflowInstanceId.Value).OrderByDescending(t => t.Id).FirstAsync(ct);
+            actingRoleId = openTask.EscalatedToRoleId
+                ?? throw new UnauthorizedAccessException("Only the plan owner can upload this period's bill.");
+        }
 
         _db.Set<PrBills>().Add(new PrBills
         {
@@ -54,9 +74,8 @@ public class UploadRecurringBillHandler : IRequestHandler<UploadRecurringBillCom
         await _db.SaveChangesAsync(ct);
 
         var definitionId = await _db.WorkflowInstances.Where(i => i.Id == pr.WorkflowInstanceId.Value).Select(i => i.DefinitionId).FirstAsync(ct);
-        var requestorRoleId = await _lookups.IdAsync<Roles, long>("REQUESTOR", ct);
         var result = await _workflow.ExecuteAsync(new ExecuteWorkflowActionRequest(
-            pr.WorkflowInstanceId.Value, request.ActorUserId, requestorRoleId, WorkflowActionCode.Complete,
+            pr.WorkflowInstanceId.Value, request.ActorUserId, actingRoleId, WorkflowActionCode.Complete,
             pr.RequesterId, pr.DepartmentId, CurrentAmount: pr.EstimatedAmount), ct);
 
         var statusId = result.CurrentStageCode is null

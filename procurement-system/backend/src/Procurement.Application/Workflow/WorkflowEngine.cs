@@ -152,16 +152,10 @@ public class WorkflowEngine : IWorkflowEngine
 
     public async Task<IReadOnlyList<string>> GetAllowedActionsAsync(long instanceId, long actorUserId, IReadOnlyCollection<long> actorRoleIds, CancellationToken ct = default)
     {
-        var task = await _db.WorkflowTasks.Where(t => t.InstanceId == instanceId).OrderByDescending(t => t.Id).FirstOrDefaultAsync(ct);
-        if (task is null) return Array.Empty<string>();
-        var openStatus = await _lookups.IdAsync<TaskStatuses, short>("Open", ct);
-        if (task.TaskStatusId != openStatus) return Array.Empty<string>();
+        var actionable = await GetActionableTaskAsync(instanceId, actorUserId, actorRoleIds, ct);
+        if (actionable is null) return Array.Empty<string>();
 
-        var isMine = task.AssignedUserId == actorUserId || (task.AssignedUserId is null && actorRoleIds.Contains(task.AssignedRoleId));
-        var isEscalationTarget = task.EscalatedAt.HasValue && task.EscalatedToRoleId.HasValue && actorRoleIds.Contains(task.EscalatedToRoleId.Value);
-        if (!isMine && !isEscalationTarget) return Array.Empty<string>();
-
-        var stage = await _db.WorkflowStages.FirstAsync(s => s.Id == task.StageId, ct);
+        var stage = await _db.WorkflowStages.FirstAsync(s => s.Id == actionable.Task.StageId, ct);
         var stageType = await _db.StageTypes.FirstAsync(t => t.Id == stage.StageTypeId, ct);
         return stageType.Code switch
         {
@@ -173,6 +167,31 @@ public class WorkflowEngine : IWorkflowEngine
             "Review" or "Exception" => new[] { WorkflowActionCode.Approve, WorkflowActionCode.Reject, WorkflowActionCode.Query },
             _ => new[] { WorkflowActionCode.Complete },
         };
+    }
+
+    // BR-008: used by every Operational/Review/Exception/Closure stage's own dedicated
+    // command (GRN, PO/contract, bill forward, audit stamp, ...) to let a legitimate
+    // escalation-target actor (OPD, once the normally assigned role has missed the
+    // deadline) through that command's own permission/identity gate - without this, a
+    // command that only checks "does this user hold the stage's normal role-permission
+    // code" would reject OPD even though AuthorizeAsync (called later, inside ExecuteAsync)
+    // would correctly accept them as the escalation target. Returns false once the task is
+    // no longer open (already actioned), same as GetAllowedActionsAsync.
+    public async Task<bool> CanActNowAsync(long instanceId, long actorUserId, IReadOnlyCollection<long> actorRoleIds, CancellationToken ct = default) =>
+        await GetActionableTaskAsync(instanceId, actorUserId, actorRoleIds, ct) is not null;
+
+    private record ActionableTask(WorkflowTasks Task, bool IsMine, bool IsEscalationTarget);
+
+    private async Task<ActionableTask?> GetActionableTaskAsync(long instanceId, long actorUserId, IReadOnlyCollection<long> actorRoleIds, CancellationToken ct)
+    {
+        var task = await _db.WorkflowTasks.Where(t => t.InstanceId == instanceId).OrderByDescending(t => t.Id).FirstOrDefaultAsync(ct);
+        if (task is null) return null;
+        var openStatus = await _lookups.IdAsync<TaskStatuses, short>("Open", ct);
+        if (task.TaskStatusId != openStatus) return null;
+
+        var isMine = task.AssignedUserId == actorUserId || (task.AssignedUserId is null && actorRoleIds.Contains(task.AssignedRoleId));
+        var isEscalationTarget = task.EscalatedAt.HasValue && task.EscalatedToRoleId.HasValue && actorRoleIds.Contains(task.EscalatedToRoleId.Value);
+        return isMine || isEscalationTarget ? new ActionableTask(task, isMine, isEscalationTarget) : null;
     }
 
     // ---- internals ----
@@ -297,20 +316,32 @@ public class WorkflowEngine : IWorkflowEngine
         if (!isAssignedRole && !isEscalationTarget)
             throw new UnauthorizedAccessException("It is not this user's turn on this record.");
 
-        switch (stage.ScopeType)
+        // Scope (Requester/Department/FixedDepartment) narrows WHO, among the normally
+        // assigned role, may act - e.g. "only the requester", "only a HOD assigned to this
+        // department". That question doesn't apply to an escalation-target actor: they are
+        // never the requester and are rarely assigned that role for this department, yet
+        // BR-008 says they may still act once the task has actually escalated to them.
+        // Skipping scope here only for a pure escalation actor (not also the normal
+        // assignee) is what makes escalation work at all for Requester/Department-scoped
+        // stages (ACKNOWLEDGE, OWNER_UPLOAD, APPROVE_HOD) instead of this check rejecting
+        // them a step after the isEscalationTarget check above just let them through.
+        if (!isEscalationTarget || isAssignedRole)
         {
-            case WorkflowScopeType.Requester:
-                if (request.ActorUserId != request.RequesterUserId)
-                    throw new UnauthorizedAccessException("Only the requester can act at this stage.");
-                break;
-            case WorkflowScopeType.Department:
-            case WorkflowScopeType.FixedDepartment:
-                var expectedDept = stage.ScopeType == WorkflowScopeType.FixedDepartment ? stage.ScopeDepartmentId : request.OwningDepartmentId;
-                var hasScope = await _db.Set<UserRoleAssignments>().AnyAsync(
-                    a => a.UserId == request.ActorUserId && a.RoleId == request.ActorRoleId && a.DepartmentId == expectedDept, ct);
-                if (!hasScope)
-                    throw new UnauthorizedAccessException("This user is not assigned that role for this department.");
-                break;
+            switch (stage.ScopeType)
+            {
+                case WorkflowScopeType.Requester:
+                    if (request.ActorUserId != request.RequesterUserId)
+                        throw new UnauthorizedAccessException("Only the requester can act at this stage.");
+                    break;
+                case WorkflowScopeType.Department:
+                case WorkflowScopeType.FixedDepartment:
+                    var expectedDept = stage.ScopeType == WorkflowScopeType.FixedDepartment ? stage.ScopeDepartmentId : request.OwningDepartmentId;
+                    var hasScope = await _db.Set<UserRoleAssignments>().AnyAsync(
+                        a => a.UserId == request.ActorUserId && a.RoleId == request.ActorRoleId && a.DepartmentId == expectedDept, ct);
+                    if (!hasScope)
+                        throw new UnauthorizedAccessException("This user is not assigned that role for this department.");
+                    break;
+            }
         }
 
         if (stage.StageCode.StartsWith("APPROVE") && request.ActorUserId == request.RequesterUserId)

@@ -74,9 +74,11 @@ public class ForwardBillHandler : IRequestHandler<ForwardBillCommand, SubmitPrRe
 
     public async Task<SubmitPrResult?> Handle(ForwardBillCommand request, CancellationToken ct)
     {
-        await _permissions.RequireAsync(request.ActorUserId, "BILL.FORWARD", ct);
         var invoice = await _db.Set<SupplierInvoices>().FirstOrDefaultAsync(i => i.Id == request.InvoiceId, ct)
             ?? throw new InvalidOperationException("Bill not found.");
+        // BR-008: BILL_FORWARD escalates to OPD on timeout.
+        var forwardWorkflowInstanceId = await _db.PurchaseRequisitions.Where(p => p.Id == invoice.PrId).Select(p => p.WorkflowInstanceId).FirstAsync(ct);
+        await _permissions.RequireAsync(request.ActorUserId, "BILL.FORWARD", forwardWorkflowInstanceId, ct);
 
         invoice.BillStatus = "Forwarded";
         invoice.ForwardedToFinanceAt = DateTime.UtcNow;

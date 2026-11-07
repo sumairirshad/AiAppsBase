@@ -32,7 +32,9 @@ public class CreatePurchaseOrdersHandler : IRequestHandler<CreatePurchaseOrdersC
 
     public async Task<List<long>> Handle(CreatePurchaseOrdersCommand request, CancellationToken ct)
     {
-        await _permissions.RequireAsync(request.ActorUserId, "PO.CREATE", ct);
+        var pr = await _db.PurchaseRequisitions.FirstAsync(p => p.Id == request.PrId, ct);
+        // BR-008: PO_CONTRACT escalates to OPD on timeout.
+        await _permissions.RequireAsync(request.ActorUserId, "PO.CREATE", pr.WorkflowInstanceId, ct);
 
         var existing = await _db.PurchaseOrders.Where(po => po.IdempotencyKey == request.IdempotencyKey).Select(po => po.Id).ToListAsync(ct);
         if (existing.Count > 0) return existing;
@@ -41,8 +43,6 @@ public class CreatePurchaseOrdersHandler : IRequestHandler<CreatePurchaseOrdersC
         var unallocated = lines.Where(l => l.AwardedVendorId is null).ToList();
         if (unallocated.Count > 0)
             throw new InvalidOperationException($"{unallocated.Count} line(s) have no awarded vendor yet - every line must be awarded before PO creation.");
-
-        var pr = await _db.PurchaseRequisitions.FirstAsync(p => p.Id == request.PrId, ct);
         var baseNumber = (await _numbers.NextAsync(DocumentSequence.Po, ct)).Replace("PO-", "");
         // BR-038: recurring POs (Cyclic Fixed items plan) have no contract or security cheque
         // to wait for, so they go straight to Active instead of Issued-pending-contract.
@@ -140,9 +140,11 @@ public class GenerateContractHandler : IRequestHandler<GenerateContractCommand, 
 
     public async Task<long> Handle(GenerateContractCommand request, CancellationToken ct)
     {
-        await _permissions.RequireAsync(request.ActorUserId, "CONTRACT.MANAGE", ct);
         var po = await _db.PurchaseOrders.FirstOrDefaultAsync(p => p.Id == request.PoId, ct)
             ?? throw new InvalidOperationException("PO not found.");
+        // BR-008: PO_CONTRACT escalates to OPD on timeout.
+        var contractWorkflowInstanceId = await _db.PurchaseRequisitions.Where(p => p.Id == po.PrId).Select(p => p.WorkflowInstanceId).FirstAsync(ct);
+        await _permissions.RequireAsync(request.ActorUserId, "CONTRACT.MANAGE", contractWorkflowInstanceId, ct);
         var template = await _db.Set<ContractTemplates>().FirstOrDefaultAsync(t => t.Id == request.TemplateId, ct)
             ?? throw new InvalidOperationException("Contract template not found.");
         var clauses = await _db.Set<ContractClauses>().Where(c => c.TemplateId == template.Id).OrderBy(c => c.Sequence).ToListAsync(ct);
@@ -190,9 +192,12 @@ public class ActivateContractHandler : IRequestHandler<ActivateContractCommand, 
 
     public async Task<SubmitPrResult?> Handle(ActivateContractCommand request, CancellationToken ct)
     {
-        await _permissions.RequireAsync(request.ActorUserId, "CONTRACT.MANAGE", ct);
         var contract = await _db.Set<Contracts>().FirstOrDefaultAsync(c => c.PoId == request.PoId, ct)
             ?? throw new InvalidOperationException("No contract has been generated for this PO yet.");
+        // BR-008: PO_CONTRACT escalates to OPD on timeout.
+        var activateWorkflowInstanceId = await _db.PurchaseOrders.Where(p => p.Id == request.PoId)
+            .Join(_db.PurchaseRequisitions, po => po.PrId, pr => pr.Id, (po, pr) => pr.WorkflowInstanceId).FirstAsync(ct);
+        await _permissions.RequireAsync(request.ActorUserId, "CONTRACT.MANAGE", activateWorkflowInstanceId, ct);
 
         contract.SignedDocumentId = request.SignedDocumentId;
         contract.ChequeNo = request.ChequeNo;

@@ -37,10 +37,12 @@ public class SelectQuoteHandler : IRequestHandler<SelectQuoteCommand, SubmitPrRe
 
     public async Task<SubmitPrResult> Handle(SelectQuoteCommand request, CancellationToken ct)
     {
-        await _permissions.RequireAsync(request.ActorUserId, "SOURCING.QUOTE_REVIEW", ct);
-
         var group = await _db.Set<SourcingGroups>().FirstOrDefaultAsync(g => g.Id == request.SourcingGroupId, ct)
             ?? throw new InvalidOperationException("Sourcing group not found.");
+        // BR-008: QUOTE_REVIEW escalates to OPD on timeout.
+        var reviewWorkflowInstanceId = await _db.PurchaseRequisitions.Where(p => p.Id == group.PrId).Select(p => p.WorkflowInstanceId).FirstAsync(ct);
+        await _permissions.RequireAsync(request.ActorUserId, "SOURCING.QUOTE_REVIEW", reviewWorkflowInstanceId, ct);
+
         var quote = await _db.Quotations.FirstOrDefaultAsync(q => q.Id == request.QuotationId && q.SourcingGroupId == group.Id, ct)
             ?? throw new InvalidOperationException("That quotation is not part of this sourcing group.");
 

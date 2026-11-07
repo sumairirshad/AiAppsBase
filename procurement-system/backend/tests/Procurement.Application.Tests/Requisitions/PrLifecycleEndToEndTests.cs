@@ -127,10 +127,10 @@ public class PrLifecycleEndToEndTests
     {
         var lookups = new LookupCache(db);
         var access = new UserAccessService(db);
-        var permissions = new PermissionChecker(db, access);
         var clock = new FixedClock();
         var bandResolver = new ApprovalBandResolver(db);
         var engine = new WorkflowEngine(db, bandResolver, lookups, clock);
+        var permissions = new PermissionChecker(db, access, engine);
         var numbers = new FakeNumberGenerator();
         var priceGuidance = new PrPriceGuidanceService(db, new PolicySettingsReader(db));
 

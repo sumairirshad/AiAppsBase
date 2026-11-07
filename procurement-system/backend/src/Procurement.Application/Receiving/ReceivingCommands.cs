@@ -34,11 +34,17 @@ public class RecordGrnHandler : IRequestHandler<RecordGrnCommand, SubmitPrResult
 
     public async Task<SubmitPrResult?> Handle(RecordGrnCommand request, CancellationToken ct)
     {
-        await _permissions.RequireAsync(request.ActorUserId, "GRN.RECORD", ct);
         if (string.IsNullOrWhiteSpace(request.DeliveryNoteNo)) throw new InvalidOperationException("The delivery note number is mandatory.");
 
         var po = await _db.PurchaseOrders.FirstOrDefaultAsync(p => p.Id == request.PoId, ct)
             ?? throw new InvalidOperationException("PO not found.");
+
+        // BR-008: GRN.RECORD is PROCUREMENT-only role-wide, but the GRN stage escalates to
+        // OPD on timeout - pass the owning PR's workflow instance so a genuine escalation
+        // target is accepted too, not just whoever holds GRN.RECORD.
+        var grnWorkflowInstanceId = await _db.PurchaseRequisitions.Where(p => p.Id == po.PrId).Select(p => p.WorkflowInstanceId).FirstAsync(ct);
+        await _permissions.RequireAsync(request.ActorUserId, "GRN.RECORD", grnWorkflowInstanceId, ct);
+
         var poLines = await _db.Set<PoLines>().Where(l => l.PoId == po.Id).ToDictionaryAsync(l => l.Id, ct);
 
         foreach (var line in request.Lines)
@@ -130,22 +136,41 @@ public class AcknowledgeDeliveryHandler : IRequestHandler<AcknowledgeDeliveryCom
     private readonly LookupCache _lookups;
     private readonly IWorkflowEngine _workflow;
     private readonly VendorScoreService _scores;
+    private readonly UserAccessService _access;
 
-    public AcknowledgeDeliveryHandler(IApplicationDbContext db, IPermissionChecker permissions, LookupCache lookups, IWorkflowEngine workflow, VendorScoreService scores)
+    public AcknowledgeDeliveryHandler(IApplicationDbContext db, IPermissionChecker permissions, LookupCache lookups, IWorkflowEngine workflow, VendorScoreService scores, UserAccessService access)
     {
         _db = db;
         _permissions = permissions;
         _lookups = lookups;
         _workflow = workflow;
         _scores = scores;
+        _access = access;
     }
 
     public async Task<SubmitPrResult> Handle(AcknowledgeDeliveryCommand request, CancellationToken ct)
     {
-        await _permissions.RequireAsync(request.ActorUserId, "PR.ACKNOWLEDGE", ct);
         var pr = await _db.PurchaseRequisitions.FirstOrDefaultAsync(p => p.Id == request.PrId, ct)
             ?? throw new InvalidOperationException("PR not found.");
-        if (pr.RequesterId != request.ActorUserId) throw new UnauthorizedAccessException("Only the requester can acknowledge delivery.");
+        await _permissions.RequireAsync(request.ActorUserId, "PR.ACKNOWLEDGE", pr.WorkflowInstanceId, ct);
+
+        // ACKNOWLEDGE is Requester-scoped, but (BR-008) escalates to OPD on timeout. The
+        // engine call below must be made AS the role that is actually authorized to act -
+        // normally REQUESTOR, but the open task's own EscalatedToRoleId once a genuine
+        // escalation target (not the requester) is acting, so IWorkflowEngine.AuthorizeAsync
+        // recognizes them as the escalation target rather than silently (and wrongly)
+        // claiming they are the requester.
+        long actingRoleId = await _lookups.IdAsync<Roles, long>("REQUESTOR", ct);
+        if (pr.RequesterId != request.ActorUserId)
+        {
+            if (pr.WorkflowInstanceId is null) throw new UnauthorizedAccessException("Only the requester can acknowledge delivery.");
+            var roleIds = (await _access.GetAssignmentsAsync(request.ActorUserId, ct)).Select(a => a.RoleId).ToList();
+            if (!await _workflow.CanActNowAsync(pr.WorkflowInstanceId.Value, request.ActorUserId, roleIds, ct))
+                throw new UnauthorizedAccessException("Only the requester can acknowledge delivery.");
+            var openTask = await _db.WorkflowTasks.Where(t => t.InstanceId == pr.WorkflowInstanceId.Value).OrderByDescending(t => t.Id).FirstAsync(ct);
+            actingRoleId = openTask.EscalatedToRoleId
+                ?? throw new UnauthorizedAccessException("Only the requester can acknowledge delivery.");
+        }
         if (!request.Accepted && string.IsNullOrWhiteSpace(request.DisputeReason))
             throw new InvalidOperationException("A reason is required to dispute delivery.");
 
@@ -168,7 +193,6 @@ public class AcknowledgeDeliveryHandler : IRequestHandler<AcknowledgeDeliveryCom
 
         if (pr.WorkflowInstanceId is null) throw new InvalidOperationException("This PR has no active workflow instance.");
         var definitionId = await _db.WorkflowInstances.Where(i => i.Id == pr.WorkflowInstanceId.Value).Select(i => i.DefinitionId).FirstAsync(ct);
-        var requestorRoleId = await _lookups.IdAsync<Roles, long>("REQUESTOR", ct);
 
         if (!request.Accepted)
         {
@@ -180,7 +204,7 @@ public class AcknowledgeDeliveryHandler : IRequestHandler<AcknowledgeDeliveryCom
         }
 
         var result = await _workflow.ExecuteAsync(new ExecuteWorkflowActionRequest(
-            pr.WorkflowInstanceId.Value, request.ActorUserId, requestorRoleId, WorkflowActionCode.Approve,
+            pr.WorkflowInstanceId.Value, request.ActorUserId, actingRoleId, WorkflowActionCode.Approve,
             pr.RequesterId, pr.DepartmentId, CurrentAmount: pr.EstimatedAmount), ct);
 
         var statusId = result.CurrentStageCode is null

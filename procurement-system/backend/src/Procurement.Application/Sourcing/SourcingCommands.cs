@@ -30,9 +30,10 @@ public class AcceptAndGroupHandler : IRequestHandler<AcceptAndGroupCommand, List
 
     public async Task<List<long>> Handle(AcceptAndGroupCommand request, CancellationToken ct)
     {
-        await _permissions.RequireAsync(request.ActorUserId, "SOURCING.GROUP", ct);
         var pr = await _db.PurchaseRequisitions.FirstOrDefaultAsync(p => p.Id == request.PrId, ct)
             ?? throw new InvalidOperationException("PR not found.");
+        // BR-008: PROCUREMENT_ACCEPT escalates to OPD on timeout.
+        await _permissions.RequireAsync(request.ActorUserId, "SOURCING.GROUP", pr.WorkflowInstanceId, ct);
         var pendingProcurementStatus = await _lookups.IdAsync<PrStatuses, short>("PendingProcurement", ct);
         if (pr.PrStatusId != pendingProcurementStatus)
             throw new InvalidOperationException("This PR is not awaiting Procurement acceptance.");
@@ -110,9 +111,11 @@ public class AddQuotationHandler : IRequestHandler<AddQuotationCommand, long>
 
     public async Task<long> Handle(AddQuotationCommand request, CancellationToken ct)
     {
-        await _permissions.RequireAsync(request.ActorUserId, "SOURCING.QUOTE", ct);
         var group = await _db.Set<SourcingGroups>().FirstOrDefaultAsync(g => g.Id == request.SourcingGroupId, ct)
             ?? throw new InvalidOperationException("Sourcing group not found.");
+        // BR-008: QUOTATIONS escalates to OPD on timeout.
+        var quoteWorkflowInstanceId = await _db.PurchaseRequisitions.Where(p => p.Id == group.PrId).Select(p => p.WorkflowInstanceId).FirstAsync(ct);
+        await _permissions.RequireAsync(request.ActorUserId, "SOURCING.QUOTE", quoteWorkflowInstanceId, ct);
 
         var vendorStatus = await _db.Vendors.Where(v => v.Id == request.VendorId)
             .Join(_db.VendorStatuses, v => v.VendorStatusId, s => s.Id, (v, s) => s.Code).FirstOrDefaultAsync(ct);

@@ -22,8 +22,17 @@ import { DocumentUploadComponent } from '../../../shared/components/document-upl
   imports: [FormsModule, RouterLink, DocumentUploadComponent],
   template: `
     <div class="page">
-      <p><a routerLink="/requestor/my-requests">&larr; Back to my requests</a></p>
+      <p><a [routerLink]="backLink">&larr; {{ backLabel }}</a></p>
       <h2>Upload this period's bill</h2>
+
+      @if (isOpdHandoff) {
+        <div class="card" style="background:var(--color-surface-muted, #f6f6f6)">
+          <p style="margin:0">
+            <strong>Escalated to OPD.</strong> The plan owner did not upload this period's bill within the
+            deadline, so OPD is doing it here on their behalf.
+          </p>
+        </div>
+      }
 
       @if (pr) {
         <div class="card">
@@ -78,6 +87,13 @@ export class UploadBillComponent implements OnInit {
   bill: PrBillInput = { billingPeriod: '', billAmount: 0, purpose: '', dueDate: '', billDocumentId: 0, payeeVendorId: 0 };
   submitting = false;
 
+  /** Reused from an OPD-prefixed route when OWNER_UPLOAD has escalated - see app.routes.ts and
+   * features/opd/pr-detail. */
+  backLink: any[] = ['/requestor/my-requests'];
+  backLabel = 'Back to my requests';
+  isOpdHandoff = false;
+  private doneLink: any[] = ['/requestor/pr'];
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -89,7 +105,20 @@ export class UploadBillComponent implements OnInit {
 
   ngOnInit(): void {
     this.prId = Number(this.route.snapshot.paramMap.get('id'));
-    this.requisitions.detail(this.prId).subscribe((pr) => (this.pr = pr));
+    const data = this.route.snapshot.data as { roleCode?: string; backLink?: string; backLabel?: string };
+    if (data.roleCode === 'OPD') {
+      this.isOpdHandoff = true;
+      this.backLink = [data.backLink ?? '/opd/pr', this.prId];
+      this.backLabel = data.backLabel ?? 'Back to escalated PR';
+      this.doneLink = ['/opd/pr'];
+    }
+    this.requisitions.detail(this.prId).subscribe((pr) => {
+      this.pr = pr;
+      if (this.isOpdHandoff && pr.allowedActions.length === 0) {
+        this.toast.error('This PR is not currently escalated to OPD at this stage.');
+        this.router.navigate(['/opd/pr', this.prId]);
+      }
+    });
     this.vendorsService.list().subscribe((v) => (this.vendors = v.filter((x) => x.statusCode === 'Approved')));
   }
 
@@ -114,7 +143,7 @@ export class UploadBillComponent implements OnInit {
       next: () => {
         this.submitting = false;
         this.toast.success('Bill submitted.');
-        this.router.navigate(['/requestor/pr', this.prId]);
+        this.router.navigate([...this.doneLink, this.prId]);
       },
       error: () => {
         this.submitting = false;
