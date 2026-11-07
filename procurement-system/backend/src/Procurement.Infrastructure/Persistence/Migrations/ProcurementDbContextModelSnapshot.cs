@@ -874,7 +874,9 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.Currencies", b =>
                 {
                     b.Property<string>("Code")
-                        .HasColumnType("nvarchar(450)");
+                        .HasMaxLength(3)
+                        .HasColumnType("nchar(3)")
+                        .IsFixedLength();
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit")

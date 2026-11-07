@@ -10,7 +10,7 @@ public class CurrenciesConfiguration : IEntityTypeConfiguration<Currencies>
     {
         b.ToTable("Currencies");
         b.HasKey(x => x.Code);
-        b.Property(x => x.Code).ValueGeneratedNever();
+        b.Property(x => x.Code).HasMaxLength(3).IsFixedLength().ValueGeneratedNever();
         b.Property(x => x.Name).HasMaxLength(50).IsRequired();
         b.Property(x => x.IsActive).IsRequired().HasDefaultValueSql("1").ValueGeneratedNever();
     }

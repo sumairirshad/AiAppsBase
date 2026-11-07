@@ -12,7 +12,7 @@ using Procurement.Infrastructure.Persistence;
 namespace Procurement.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ProcurementDbContext))]
-    [Migration("20261106205253_InitialCreate")]
+    [Migration("20261107153127_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -877,7 +877,9 @@ namespace Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Procurement.Domain.Entities.Currencies", b =>
                 {
                     b.Property<string>("Code")
-                        .HasColumnType("nvarchar(450)");
+                        .HasMaxLength(3)
+                        .HasColumnType("nchar(3)")
+                        .IsFixedLength();
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit")
@@ -2224,6 +2226,9 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                     b.Property<DateOnly>("DueDate")
                         .HasColumnType("date");
 
+                    b.Property<long?>("PayeeVendorId")
+                        .HasColumnType("bigint");
+
                     b.Property<long>("PrId")
                         .HasColumnType("bigint");
 
@@ -2243,6 +2248,8 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                     b.HasIndex("BillDocumentId");
 
                     b.HasIndex("CreatedBy");
+
+                    b.HasIndex("PayeeVendorId");
 
                     b.HasIndex("PrId")
                         .IsUnique();
@@ -5353,6 +5360,11 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CreatedBy")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
+
+                    b.HasOne("Procurement.Domain.Entities.Vendors", null)
+                        .WithMany()
+                        .HasForeignKey("PayeeVendorId")
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("Procurement.Domain.Entities.PurchaseRequisitions", null)
                         .WithMany()

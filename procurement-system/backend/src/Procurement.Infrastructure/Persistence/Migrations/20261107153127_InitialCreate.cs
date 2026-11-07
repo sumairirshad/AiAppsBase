@@ -181,7 +181,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "Currencies",
                 columns: table => new
                 {
-                    Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Code = table.Column<string>(type: "nchar(3)", fixedLength: true, maxLength: 3, nullable: false),
                     Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValueSql: "1")
                 },
@@ -2416,6 +2416,7 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                     Purpose = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
                     DueDate = table.Column<DateOnly>(type: "date", nullable: false),
                     BillDocumentId = table.Column<long>(type: "bigint", nullable: false),
+                    PayeeVendorId = table.Column<long>(type: "bigint", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedBy = table.Column<long>(type: "bigint", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -2438,6 +2439,11 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                         name: "FK_PrBills_Users_UpdatedBy",
                         column: x => x.UpdatedBy,
                         principalTable: "Users",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_PrBills_Vendors_PayeeVendorId",
+                        column: x => x.PayeeVendorId,
+                        principalTable: "Vendors",
                         principalColumn: "Id");
                 });
 
@@ -3733,6 +3739,11 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "IX_PrBills_CreatedBy",
                 table: "PrBills",
                 column: "CreatedBy");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PrBills_PayeeVendorId",
+                table: "PrBills",
+                column: "PayeeVendorId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PrBills_PrId",
@@ -5335,6 +5346,10 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 table: "QuotationLines");
 
             migrationBuilder.DropForeignKey(
+                name: "FK_Quotations_Vendors_VendorId",
+                table: "Quotations");
+
+            migrationBuilder.DropForeignKey(
                 name: "FK_Quotations_SourcingGroups_SourcingGroupId",
                 table: "Quotations");
 
@@ -5588,6 +5603,12 @@ namespace Procurement.Infrastructure.Persistence.Migrations
                 name: "QuotationLines");
 
             migrationBuilder.DropTable(
+                name: "Vendors");
+
+            migrationBuilder.DropTable(
+                name: "VendorStatuses");
+
+            migrationBuilder.DropTable(
                 name: "SourcingGroups");
 
             migrationBuilder.DropTable(
@@ -5595,12 +5616,6 @@ namespace Procurement.Infrastructure.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "Quotations");
-
-            migrationBuilder.DropTable(
-                name: "Vendors");
-
-            migrationBuilder.DropTable(
-                name: "VendorStatuses");
 
             migrationBuilder.DropSequence(
                 name: "seq_grn");

@@ -101,10 +101,21 @@ function genConfiguration(table, nsBase, moduleFolder, hasAudit) {
 
   const pkCol = table.columns.find((c) => c.pk);
   lines.push(`        b.HasKey(x => x.${pkCol.name});`);
-  if (/IDENTITY/.test(pkCol.type)) {
-    lines.push(`        b.Property(x => x.${pkCol.name}).UseIdentityColumn();`);
-  } else {
-    lines.push(`        b.Property(x => x.${pkCol.name}).ValueGeneratedNever();`);
+  {
+    // Every PK here is BIGINT/SMALLINT IDENTITY except Currencies.Code (CHAR(3)) - csType()
+    // returns no dbType/maxLength/fixedLen for the identity numeric types, so this is a no-op
+    // for them and only actually adds anything for a sized/typed PK like Currencies.Code.
+    // Dropping this type info for a non-numeric PK is exactly what let Currencies.Code default
+    // to EF's nvarchar(450) convention while every CurrencyCode FK column correctly got
+    // char(3), so the two sides of the FK no longer matched and the migration failed.
+    const pkT = csType(pkCol.type);
+    let pkLine = `        b.Property(x => x.${pkCol.name})`;
+    if (pkT.dbType) pkLine += `.HasColumnType("${pkT.dbType}")`;
+    if (pkT.maxLength && !pkT.fixedLen) pkLine += `.HasMaxLength(${pkT.maxLength})`;
+    if (pkT.fixedLen) pkLine += `.HasMaxLength(${pkT.maxLength}).IsFixedLength()`;
+    pkLine += /IDENTITY/.test(pkCol.type) ? `.UseIdentityColumn()` : `.ValueGeneratedNever()`;
+    pkLine += ";";
+    lines.push(pkLine);
   }
 
   for (const c of table.columns) {
