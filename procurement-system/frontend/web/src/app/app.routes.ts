@@ -27,6 +27,7 @@ export const routes: Routes = [
           { path: 'raise-pr', loadComponent: () => import('./features/requestor/raise-pr/raise-pr.component').then((m) => m.RaisePrComponent) },
           { path: 'vendor-registration', loadComponent: () => import('./features/requestor/vendor-registration/vendor-registration.component').then((m) => m.VendorRegistrationComponent) },
           { path: 'acknowledge/:id', loadComponent: () => import('./features/requestor/acknowledge/acknowledge.component').then((m) => m.AcknowledgeComponent) },
+          { path: 'upload-bill/:id', loadComponent: () => import('./features/requestor/upload-bill/upload-bill.component').then((m) => m.UploadBillComponent) },
           { path: 'pr/:id', loadComponent: () => import('./features/requestor/pr-detail/pr-detail.component').then((m) => m.RequestorPrDetailComponent) },
         ],
       },

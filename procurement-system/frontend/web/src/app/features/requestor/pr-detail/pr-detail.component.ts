@@ -23,6 +23,9 @@ import { ToastService } from '../../../shared/services/toast.service';
         @if (pr && pr.statusCode === 'AwaitingAcknowledgement') {
           <a [routerLink]="['/requestor/acknowledge', pr.id]" class="btn btn-primary">Acknowledge delivery</a>
         }
+        @if (pr && pr.statusCode === 'AwaitingBill') {
+          <a [routerLink]="['/requestor/upload-bill', pr.id]" class="btn btn-primary">Upload this period's bill</a>
+        }
         @if (pr && pr.statusCode === 'Queried') {
           <div class="field" style="margin-top:12px">
             @if (myQuery) {
@@ -80,16 +83,18 @@ export class RequestorPrDetailComponent implements OnInit {
 
   onAct(event: { actionCode: string; remarks?: string }): void {
     if (event.actionCode === 'Complete') {
-      // ACKNOWLEDGE is completed through the dedicated "Acknowledge delivery" flow above
-      // (POST /receiving/pr/{id}/acknowledge), never through the generic act endpoint - that
-      // endpoint now rejects Complete outright, and even before this change it never ran the
-      // acknowledgement's own approve/return logic. OWNER_UPLOAD (cyclic-bill, AwaitingBill)
-      // has no dedicated screen at all yet - see the README's known-gaps section.
-      this.toast.error(
-        this.pr?.statusCode === 'AwaitingAcknowledgement'
-          ? 'Use "Acknowledge delivery" above to complete this stage.'
-          : 'This stage has no generic "Complete" action - it needs its own dedicated screen.'
-      );
+      // ACKNOWLEDGE is completed through the dedicated "Acknowledge delivery" flow
+      // (POST /receiving/pr/{id}/acknowledge), and OWNER_UPLOAD (cyclic-bill, AwaitingBill)
+      // through the dedicated "Upload this period's bill" flow (POST /recurring/pr/{id}/upload-bill)
+      // - both shown above, never through the generic act endpoint, which now rejects Complete
+      // outright.
+      let guidance = 'This stage has no generic "Complete" action - it needs its own dedicated screen.';
+      if (this.pr?.statusCode === 'AwaitingAcknowledgement') {
+        guidance = 'Use "Acknowledge delivery" above to complete this stage.';
+      } else if (this.pr?.statusCode === 'AwaitingBill') {
+        guidance = "Use \"Upload this period's bill\" above to complete this stage.";
+      }
+      this.toast.error(guidance);
       return;
     }
     this.requisitions.act(this.prId, 'REQUESTOR', event.actionCode, event.remarks).subscribe(() => {

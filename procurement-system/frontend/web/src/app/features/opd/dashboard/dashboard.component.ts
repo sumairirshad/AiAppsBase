@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { RequisitionsService } from '../../../core/services/requisitions.service';
@@ -8,11 +9,12 @@ import { MyQueriesPanelComponent } from '../../../shared/components/my-queries-p
 import { ModalService } from '../../../shared/services/modal.service';
 import { ToastService } from '../../../shared/services/toast.service';
 import { PrListItemDto } from '../../../core/models/requisition.models';
+import { ItemRequestDto, UnitDto } from '../../../core/models/catalog.models';
 
 @Component({
   selector: 'app-opd-dashboard',
   standalone: true,
-  imports: [FormsModule, InboxTableComponent, RouterLink, MyQueriesPanelComponent],
+  imports: [FormsModule, InboxTableComponent, RouterLink, MyQueriesPanelComponent, DatePipe],
   template: `
     <div class="page">
       <h2>Office of the Procurement Director</h2>
@@ -49,27 +51,55 @@ import { PrListItemDto } from '../../../core/models/requisition.models';
       </div>
 
       <div class="card">
-        <h3>New item / category request decision</h3>
-        <p style="color:var(--color-muted)">Enter the request id a requestor was given when they proposed a new item or category.</p>
-        <div class="form-grid">
-          <div class="field">
-            <label>Request id</label>
-            <input type="number" min="1" [(ngModel)]="itemRequestId" />
-          </div>
-          <div class="field">
-            <label>Unit (required if approving a new item)</label>
-            <select [(ngModel)]="itemRequestUnitId">
-              <option [ngValue]="null">-</option>
-              @for (u of units; track u.id) {
-                <option [ngValue]="u.id">{{ u.name }}</option>
+        <h3>Pending item / category requests</h3>
+        @if (itemRequests.length === 0) {
+          <div class="empty-state">No pending item or category requests.</div>
+        } @else {
+          <table class="data">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Proposed name</th>
+                <th>Category</th>
+                <th>Requested by</th>
+                <th>Requested on</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (r of itemRequests; track r.id) {
+                <tr>
+                  <td>{{ r.requestType }}</td>
+                  <td>{{ r.proposedName }}</td>
+                  <td>{{ r.categoryName ?? '-' }}</td>
+                  <td>{{ r.requestedByName }}</td>
+                  <td>{{ r.createdAt | date: 'short' }}</td>
+                  <td>
+                    <div class="actions-row" style="flex-wrap:wrap">
+                      @if (r.requestType === 'Item') {
+                        <select [(ngModel)]="itemRequestUnits[r.id]" style="max-width:140px">
+                          <option [ngValue]="null">Unit...</option>
+                          @for (u of units; track u.id) {
+                            <option [ngValue]="u.id">{{ u.name }}</option>
+                          }
+                        </select>
+                      }
+                      <button
+                        type="button"
+                        class="btn btn-primary btn-sm"
+                        [disabled]="r.requestType === 'Item' && !itemRequestUnits[r.id]"
+                        (click)="decideItemRequest(r, true)"
+                      >
+                        Approve
+                      </button>
+                      <button type="button" class="btn btn-danger btn-sm" (click)="decideItemRequest(r, false)">Reject</button>
+                    </div>
+                  </td>
+                </tr>
               }
-            </select>
-          </div>
-        </div>
-        <div class="actions-row">
-          <button type="button" class="btn btn-primary" [disabled]="!itemRequestId" (click)="decideItemRequest(true)">Approve</button>
-          <button type="button" class="btn btn-danger" [disabled]="!itemRequestId" (click)="decideItemRequest(false)">Reject</button>
-        </div>
+            </tbody>
+          </table>
+        }
       </div>
     </div>
   `,
@@ -78,9 +108,9 @@ export class OpdDashboardComponent implements OnInit {
   inbox: PrListItemDto[] = [];
   jumpId: number | null = null;
   forceVoidPrId: number | null = null;
-  itemRequestId: number | null = null;
-  itemRequestUnitId: number | null = null;
-  units: { id: number; name: string }[] = [];
+  itemRequests: ItemRequestDto[] = [];
+  itemRequestUnits: Record<number, number | null> = {};
+  units: UnitDto[] = [];
 
   constructor(
     private requisitions: RequisitionsService,
@@ -93,6 +123,11 @@ export class OpdDashboardComponent implements OnInit {
   ngOnInit(): void {
     this.requisitions.inbox('OPD').subscribe((items) => (this.inbox = items));
     this.catalog.units().subscribe((u) => (this.units = u));
+    this.loadItemRequests();
+  }
+
+  loadItemRequests(): void {
+    this.catalog.pendingItemRequests().subscribe((r) => (this.itemRequests = r));
   }
 
   jump(): void {
@@ -119,18 +154,18 @@ export class OpdDashboardComponent implements OnInit {
     });
   }
 
-  async decideItemRequest(approve: boolean): Promise<void> {
-    if (!this.itemRequestId) return;
+  async decideItemRequest(request: ItemRequestDto, approve: boolean): Promise<void> {
     let reason: string | undefined;
     if (!approve) {
       const result = await this.modal.confirm({ title: 'Reject item/category request', requireReason: true, reasonLabel: 'Reason (mandatory)', confirmLabel: 'Reject' });
       if (typeof result !== 'string' || !result.trim()) return;
       reason = result.trim();
     }
-    this.catalog.decideItemRequest(this.itemRequestId, approve, reason, this.itemRequestUnitId ?? undefined).subscribe(() => {
+    const unitId = request.requestType === 'Item' ? this.itemRequestUnits[request.id] ?? undefined : undefined;
+    this.catalog.decideItemRequest(request.id, approve, reason, unitId ?? undefined).subscribe(() => {
       this.toast.success(approve ? 'Request approved.' : 'Request rejected.');
-      this.itemRequestId = null;
-      this.itemRequestUnitId = null;
+      delete this.itemRequestUnits[request.id];
+      this.loadItemRequests();
     });
   }
 }

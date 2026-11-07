@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { SubmitPrResult } from '../models/requisition.models';
+import { PrBillInput, SubmitPrResult } from '../models/requisition.models';
 
 export interface RecurringPlanLineInput {
   itemId: number;
@@ -47,5 +47,12 @@ export class RecurringService {
   /** The Cyclic Fixed items-plan's single verification quotation (BR-046). */
   verifyQuote(prId: number, verifiedUnitPrice: number): Observable<SubmitPrResult> {
     return this.http.post<SubmitPrResult>(`${this.base}/pr/${prId}/verify-quote`, { verifiedUnitPrice });
+  }
+
+  /** The Cyclic Fixed "bill" plan's OWNER_UPLOAD stage: the plan owner tells the system this
+   * period's actual bill amount/period/document before the PR can move on (PR status
+   * AwaitingBill). */
+  uploadBill(prId: number, body: PrBillInput): Observable<SubmitPrResult> {
+    return this.http.post<SubmitPrResult>(`${this.base}/pr/${prId}/upload-bill`, body);
   }
 }

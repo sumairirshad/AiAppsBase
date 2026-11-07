@@ -43,3 +43,13 @@ export interface ProjectDto {
   ownerDepartmentId: number;
   contractProvided: boolean;
 }
+
+export interface ItemRequestDto {
+  id: number;
+  requestType: 'Item' | 'Category';
+  proposedName: string;
+  categoryId: number | null;
+  categoryName: string | null;
+  requestedByName: string;
+  createdAt: string;
+}

@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { CategoryDto, DepartmentDto, ItemDto, LocationDto, ProjectDto, UnitDto } from '../models/catalog.models';
+import { CategoryDto, DepartmentDto, ItemDto, ItemRequestDto, LocationDto, ProjectDto, UnitDto } from '../models/catalog.models';
 
 @Injectable({ providedIn: 'root' })
 export class CatalogService {
@@ -63,6 +63,10 @@ export class CatalogService {
 
   createItemRequest(requestType: 'Item' | 'Category', proposedName: string, categoryId?: number | null): Observable<number> {
     return this.http.post<number>(`${this.base}/item-requests`, { actorUserId: 0, requestType, proposedName, categoryId });
+  }
+
+  pendingItemRequests(): Observable<ItemRequestDto[]> {
+    return this.http.get<ItemRequestDto[]>(`${this.base}/item-requests/pending`);
   }
 
   decideItemRequest(id: number, approve: boolean, reason?: string, unitId?: number): Observable<void> {

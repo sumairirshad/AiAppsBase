@@ -87,12 +87,25 @@ work around. What follows is the current state: fixed items are wired to the new
      stage - that's completed through the dedicated "Acknowledge delivery" page
      (`POST receiving/pr/{id}/acknowledge`), not the generic endpoint.
 
+6. **`GET catalog/item-requests/pending` now exists.** OPD's dashboard "Pending item / category
+   requests" card lists every open request (type, proposed name, category, requester, date)
+   straight from this endpoint instead of a manual "enter the request id" box, with inline
+   Approve/Reject actions - rejecting still requires a reason via the shared confirm dialog, and
+   approving an `Item`-type request requires picking a unit from `GET catalog/units` first
+   (`POST catalog/item-requests/{id}/decision`).
+7. **`POST recurring/pr/{id}/upload-bill` now exists**, so the cyclic-bill "owner upload" stage
+   (`OWNER_UPLOAD`, PR status `AwaitingBill`) is no longer stuck with no screen. A dedicated
+   `features/requestor/upload-bill` page (reached from the Requestor's PR-detail screen, which
+   shows an "Upload this period's bill" button whenever a PR is at this stage) collects the
+   billing period, amount, purpose, due date, payee vendor and bill document (via the same
+   `DocumentUploadComponent` the raise-PR bill wizard uses) and posts them to this endpoint; the
+   PR then moves off `AwaitingBill` in the Requestor's "my requests"/dashboard lists. The
+   PR-detail screen's `Complete` intercept was extended to point at this new screen for that
+   stage, the same way it already did for acknowledgement.
+
 ### Still genuinely outstanding
 
-6. **No "list pending item/category requests" endpoint.** OPD's item/category-request decision
-   (`POST catalog/item-requests/{id}/decision`) is still a manual "enter the request id" box on the
-   OPD dashboard rather than a queue - no backend change was supplied for this one, unlike queries.
-7. **Escalated Operational-stage tasks have no hand-off UI for OPD.** Several Operational stages
+8. **Escalated Operational-stage tasks have no hand-off UI for OPD.** Several Operational stages
    Procurement or the Requestor own (sourcing accept, quotations, PO/contract, GRN, bill-forward,
    acknowledgement) escalate to OPD after a timeout; when that happens, OPD's generic action bar
    would offer the same context-free `Complete` button discussed above, with no OPD-facing screen
@@ -102,12 +115,6 @@ work around. What follows is the current state: fixed items are wired to the new
    their own screen - OPD itself can only force-revert or void from its dashboard. Fixing this
    properly needs either a backend hand-off (reassign the task) or giving OPD read/write access to
    the same workbench/GRN/acknowledge screens, neither of which was in scope here.
-8. **The cyclic-bill "owner upload" stage (`OWNER_UPLOAD`, PR status `AwaitingBill`) has no
-   dedicated screen at all** - not a gap introduced by this pass, but worth flagging since it's the
-   same shape as #7: it's an Operational stage assigned to the Requestor with no bespoke UI, so
-   before this pass its only "control" was the same unsafe generic `Complete` button. There's no
-   bill-upload-at-this-stage endpoint equivalent to `BillsController`'s upload/forward pair to wire
-   up, so this remains a real gap rather than a wiring task.
 
 ## Simplifications (by design, not gaps)
 
