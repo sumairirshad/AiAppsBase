@@ -134,11 +134,14 @@ cd backend
 dotnet test
 ```
 
-28 passing tests cover the parts of the spec most explicitly called out for correctness: the
+32 passing tests cover the parts of the spec most explicitly called out for correctness: the
 value-band approval chain (HOD-only / HOD+Finance / HOD+Finance+Audit at the exact
 1,000,000 / 5,000,000 boundaries), the quotation-count rules (the 250,000 threshold is inclusive
 on the 3-quote side, emergency always overrides, star vs. non-star vendors), self-approval and
-dual-stage blocking, mandatory-remarks enforcement, and PR-creation validation.
+dual-stage blocking, mandatory-remarks enforcement, PR-creation validation, a full PR
+create→submit→HOD→Finance→Audit→Procurement lifecycle against the real seeders, and the
+BR-008 escalation path (a Department-scoped stage missed by its normal approver can genuinely
+be completed by the stage's escalation target, without displacing the original assignee).
 
 This sandbox has no SQL Server available, so these are unit/logic tests against an in-memory
 model rather than a live-database integration suite. `dotnet ef migrations script` was used
