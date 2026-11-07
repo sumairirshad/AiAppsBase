@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { RequisitionsService } from '../../../core/services/requisitions.service';
 import { AuditService, BillHistoryDto } from '../../../core/services/audit.service';
 import { SourcingService } from '../../../core/services/sourcing.service';
@@ -15,7 +15,15 @@ import { ToastService } from '../../../shared/services/toast.service';
   imports: [PrDetailCoreComponent, RouterLink, DecimalPipe],
   template: `
     <div class="page">
-      <p><a routerLink="/audit/dashboard">&larr; Back to audit queue</a></p>
+      <p><a [routerLink]="backLink">&larr; {{ backLabel }}</a></p>
+      @if (isOpdHandoff) {
+        <div class="card" style="background:var(--color-surface-muted, #f6f6f6)">
+          <p style="margin:0">
+            <strong>Escalated to OPD.</strong> Audit did not act on this stage within its deadline, so OPD is
+            completing it here on Audit's behalf.
+          </p>
+        </div>
+      }
       <app-pr-detail-core [pr]="pr" (act)="onAct($event)" (queried)="load()">
         @if (billHistory) {
           <div class="card" style="background:var(--color-surface-muted, #f6f6f6)">
@@ -72,15 +80,44 @@ export class AuditPrDetailComponent implements OnInit {
   groups: SourcingGroupDto[] = [];
   private prId = 0;
 
-  constructor(private route: ActivatedRoute, private requisitions: RequisitionsService, private audit: AuditService, private sourcing: SourcingService, private toast: ToastService) {}
+  /**
+   * This same component is reused, unmodified otherwise, from an OPD-prefixed route
+   * (app.routes.ts) when QUOTE_REVIEW or AUDIT_STAMP has escalated to OPD - see
+   * features/opd/pr-detail. Route `data` is what tells it which role is actually acting, so the
+   * generic action bar's calls go through as that role instead of being hardcoded to Audit, and
+   * so the back link returns to the right dashboard.
+   */
+  actingRoleCode = 'AUDIT';
+  backLink: any[] = ['/audit/dashboard'];
+  backLabel = 'Back to audit queue';
+  isOpdHandoff = false;
+
+  constructor(private route: ActivatedRoute, private router: Router, private requisitions: RequisitionsService, private audit: AuditService, private sourcing: SourcingService, private toast: ToastService) {}
 
   ngOnInit(): void {
     this.prId = Number(this.route.snapshot.paramMap.get('id'));
+    const data = this.route.snapshot.data as { roleCode?: string; backLink?: string; backLabel?: string };
+    if (data.roleCode === 'OPD') {
+      this.actingRoleCode = 'OPD';
+      this.isOpdHandoff = true;
+      this.backLink = [data.backLink ?? '/opd/pr', this.prId];
+      this.backLabel = data.backLabel ?? 'Back to escalated PR';
+    }
     this.load();
   }
 
   load(): void {
-    this.requisitions.detail(this.prId).subscribe((pr) => (this.pr = pr));
+    this.requisitions.detail(this.prId).subscribe((pr) => {
+      this.pr = pr;
+      // Defends against someone navigating here by hand for a PR that was never actually
+      // escalated to OPD (or whose owning role already acted): the backend's own
+      // WorkflowEngine.GetAllowedActionsAsync only populates allowedActions for OPD on this
+      // task when it is genuinely the escalation target.
+      if (this.isOpdHandoff && pr.allowedActions.length === 0) {
+        this.toast.error('This PR is not currently escalated to OPD at this stage.');
+        this.router.navigate(['/opd/pr', this.prId]);
+      }
+    });
     this.audit.billHistory(this.prId).subscribe({
       next: (h) => (this.billHistory = h),
       error: () => (this.billHistory = null),
@@ -97,7 +134,7 @@ export class AuditPrDetailComponent implements OnInit {
     // "Complete" at the audit-stamp stage must go through the dedicated stamp endpoint - it
     // verifies full payment/delivery and writes the AuditStamps record; the generic Act
     // endpoint's Complete path does neither.
-    const call = event.actionCode === 'Complete' ? this.audit.stamp(this.prId, event.remarks) : this.requisitions.act(this.prId, 'AUDIT', event.actionCode, event.remarks);
+    const call = event.actionCode === 'Complete' ? this.audit.stamp(this.prId, event.remarks) : this.requisitions.act(this.prId, this.actingRoleCode, event.actionCode, event.remarks);
 
     call.subscribe({
       next: () => {

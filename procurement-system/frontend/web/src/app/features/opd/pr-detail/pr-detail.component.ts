@@ -59,6 +59,16 @@ const OPERATIONAL_STAGE_ROUTES: Record<string, (prId: number) => EscalatedOperat
     label: "Upload this period's bill",
     description: "OWNER_UPLOAD has escalated to OPD - enter this period's billing details on the plan owner’s behalf.",
   }),
+  PendingQuoteReview: (id) => ({
+    route: ['/opd/pr', id, 'audit-review'],
+    label: 'Review quotations',
+    description: 'QUOTE_REVIEW has escalated to OPD - accept the recommended quote or approve a justified higher one, on Audit’s behalf.',
+  }),
+  AuditReview: (id) => ({
+    route: ['/opd/pr', id, 'audit-review'],
+    label: 'Audit stamp',
+    description: 'AUDIT_STAMP has escalated to OPD - verify the PR is fully paid and delivered, and close it, on Audit’s behalf.',
+  }),
 };
 
 @Component({
@@ -113,8 +123,8 @@ export class OpdPrDetailComponent implements OnInit {
         // instead of the dedicated one.
         this.toast.error(`Use "${this.escalatedAction.label}" above - it performs the actual work and advances the PR.`);
       } else {
-        // Escalated to OPD at a stage this screen has no dedicated hand-off for (e.g. Audit's
-        // closure stamp) - OPD's own tools here are force-revert/void from its dashboard.
+        // Escalated to OPD at a stage this screen has no dedicated hand-off for - OPD's own
+        // tools here are force-revert/void from its dashboard.
         this.toast.error('This stage needs its own screen, which OPD has no hand-off for yet - use force-revert/void from the dashboard if it is stuck.');
       }
       return;

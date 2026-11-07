@@ -76,13 +76,14 @@ export const routes: Routes = [
           { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
           { path: 'dashboard', loadComponent: () => import('./features/opd/dashboard/dashboard.component').then((m) => m.OpdDashboardComponent) },
           { path: 'pr/:id', loadComponent: () => import('./features/opd/pr-detail/pr-detail.component').then((m) => m.OpdPrDetailComponent) },
-          // Escalation hand-off: Operational stages Procurement or the Requestor own
-          // (accept/quotations/PO-contract/GRN/bill-forward, acknowledge, owner-upload) escalate
-          // to OPD after their EscalationDays timeout. These OPD-prefixed routes reuse those
-          // roles' own screens unchanged, with route `data` telling the screen it is OPD acting
-          // (so its generic actions go through as OPD, and "back"/"done" return to OPD's own
-          // pages) - see features/opd/pr-detail for where these are linked from, gated on the
-          // PR's own allowedActions actually showing OPD as the task's escalation target.
+          // Escalation hand-off: Operational stages Procurement, the Requestor or Audit own
+          // (accept/quotations/PO-contract/GRN/bill-forward, acknowledge, owner-upload,
+          // quote-review, audit-stamp) escalate to OPD after their EscalationDays timeout. These
+          // OPD-prefixed routes reuse those roles' own screens unchanged, with route `data`
+          // telling the screen it is OPD acting (so its generic actions go through as OPD, and
+          // "back"/"done" return to OPD's own pages) - see features/opd/pr-detail for where these
+          // are linked from, gated on the PR's own allowedActions actually showing OPD as the
+          // task's escalation target.
           {
             path: 'pr/:id/workbench',
             data: { roleCode: 'OPD', backLink: '/opd/pr', backLabel: 'Back to escalated PR' },
@@ -97,6 +98,11 @@ export const routes: Routes = [
             path: 'pr/:id/upload-bill',
             data: { roleCode: 'OPD', backLink: '/opd/pr', backLabel: 'Back to escalated PR' },
             loadComponent: () => import('./features/requestor/upload-bill/upload-bill.component').then((m) => m.UploadBillComponent),
+          },
+          {
+            path: 'pr/:id/audit-review',
+            data: { roleCode: 'OPD', backLink: '/opd/pr', backLabel: 'Back to escalated PR' },
+            loadComponent: () => import('./features/audit/pr-detail/pr-detail.component').then((m) => m.AuditPrDetailComponent),
           },
           { path: 'policy', loadComponent: () => import('./features/opd/policy/policy.component').then((m) => m.OpdPolicyComponent) },
           { path: 'catalog', loadComponent: () => import('./features/opd/catalog-admin/catalog-admin.component').then((m) => m.OpdCatalogAdminComponent) },

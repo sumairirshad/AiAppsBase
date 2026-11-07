@@ -104,22 +104,22 @@ work around. What follows is the current state: fixed items are wired to the new
    stage, the same way it already did for acknowledgement.
 
 8. **OPD's escalation hand-off for the five Procurement-owned Operational stages
-   (`PROCUREMENT_ACCEPT`, `QUOTATIONS`, `PO_CONTRACT`, `GRN`, `BILL_FORWARD`) and the two
-   Requester-owned ones (`ACKNOWLEDGE`, `OWNER_UPLOAD`) is now a full fix, not just a UI path.**
+   (`PROCUREMENT_ACCEPT`, `QUOTATIONS`, `PO_CONTRACT`, `GRN`, `BILL_FORWARD`), the two
+   Requester-owned ones (`ACKNOWLEDGE`, `OWNER_UPLOAD`), and the two Audit-owned ones
+   (`QUOTE_REVIEW`, `AUDIT_STAMP`) is now a full fix, not just a UI path.**
    These all escalate to OPD after their `EscalationDays` timeout. OPD's PR-detail screen
    (`features/opd/pr-detail`) detects a genuinely escalated task from the PR's own
    `allowedActions` and links straight to the real action - reusing `features/procurement/pr-workbench`,
-   `features/requestor/acknowledge` and `features/requestor/upload-bill` unmodified in their real
-   logic, via new route-data-driven `roleCode`/`backLink`/`backLabel` inputs and new parallel
-   `/opd/pr/:id/...` routes - exactly as described below. This previously only got OPD to the
-   screen: each stage's dedicated backend command gated itself on a plain role-permission code
-   OPD never held, or (for `ACKNOWLEDGE`/`OWNER_UPLOAD`) a hard-coded "must be the requester"
+   `features/requestor/acknowledge`, `features/requestor/upload-bill` and `features/audit/pr-detail`
+   unmodified in their real logic, via route-data-driven `roleCode`/`backLink`/`backLabel` inputs
+   and parallel `/opd/pr/:id/...` routes - exactly as described below. This previously only got OPD
+   to the screen: each stage's dedicated backend command gated itself on a plain role-permission
+   code OPD never held, or (for `ACKNOWLEDGE`/`OWNER_UPLOAD`) a hard-coded "must be the requester"
    check or a hard-coded role id passed into the engine, so the write still failed even for a
-   genuine escalation. The backend has since been fixed for all seven of these stages, plus
-   `QUOTE_REVIEW` and `AUDIT_STAMP` (Audit-owned, which also escalate to OPD but have no
-   frontend hand-off screen yet - see the note below): `IWorkflowEngine.CanActNowAsync` plus a
-   workflow-instance-aware `IPermissionChecker.RequireAsync` overload that every affected handler
-   now calls, and `WorkflowEngine.AuthorizeAsync`'s Requester/Department/FixedDepartment scope
+   genuine escalation. The backend has since been fixed for all nine of these stages:
+   `IWorkflowEngine.CanActNowAsync` plus a workflow-instance-aware `IPermissionChecker.RequireAsync`
+   overload that every affected handler now calls (including `SOURCING.QUOTE_REVIEW` and
+   `AUDIT.STAMP`), and `WorkflowEngine.AuthorizeAsync`'s Requester/Department/FixedDepartment scope
    checks now skip for a pure escalation actor (with a regression test in
    `WorkflowEngineTests.cs` covering exactly this). A single-role OPD account can now genuinely
    complete any of these nine stages once the task has actually escalated to them.
@@ -132,17 +132,22 @@ work around. What follows is the current state: fixed items are wired to the new
    - For `ACKNOWLEDGE` and `OWNER_UPLOAD`, it links to new `/opd/pr/:id/acknowledge` and
      `/opd/pr/:id/upload-bill` routes reusing `features/requestor/acknowledge` and
      `features/requestor/upload-bill` the same way.
+   - For `QUOTE_REVIEW` (PR status `PendingQuoteReview`) and `AUDIT_STAMP` (PR status
+     `AuditReview`), it links to a new `/opd/pr/:id/audit-review` route reusing
+     `features/audit/pr-detail` the same way: the component reads `roleCode`/`backLink`/`backLabel`
+     off the route's `data` (defaulted to Audit's own values, so `/audit/pr/:id` behaves exactly as
+     before) instead of hard-coding `'AUDIT'` and `/audit/dashboard`, and shows the same
+     "Escalated to OPD" banner. The generic action bar's calls (e.g. the quote-review
+     accept/reject) go through as the acting role from route data; the audit stamp's `Complete`
+     still always goes through the dedicated `POST audit/pr/{id}/stamp` endpoint regardless of
+     which role is acting, since that endpoint - not the generic `/act` endpoint - is what
+     actually verifies payment/delivery and writes the audit stamp.
    - All reused screens re-check `allowedActions` for themselves on load when reached via the OPD
      route, and bounce back to `/opd/pr/:id` with a toast if the PR turns out not to be genuinely
      escalated - so this only ever opens for a real escalation, never a casual "OPD does another
      role's job" shortcut.
    - These are new, parallel, OPD-prefixed routes under the existing `roleGuard('OPD')` - the
-     Procurement/Requestor routes and their guards are untouched.
-
-   **Still outstanding (frontend only):** `QUOTE_REVIEW` (Audit's quote-review decision) and
-   `AUDIT_STAMP` both escalate to OPD and the backend now honors that escalation correctly, but
-   `features/audit/pr-detail` has no OPD-reachable equivalent yet - the same "`roleCode`-as-route-data"
-   pattern used above would close it the same way, it just hasn't been wired.
+     Procurement/Requestor/Audit routes and their guards are untouched.
 
 ## Simplifications (by design, not gaps)
 
