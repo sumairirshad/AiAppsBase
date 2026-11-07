@@ -16,6 +16,7 @@ public class PermissionSeeder
         ("PR.APPROVE", "Approve, return or reject a PR at an approval stage"),
         ("PR.REFER", "Refer a PR to OPD with a remark (Finance only)"),
         ("PR.ACKNOWLEDGE", "Acknowledge delivery and rate the vendor"),
+        ("PR.BILL_UPLOAD", "Upload the period's bill on a Cyclic Fixed (bill) recurring PR"),
         ("PR.FORCE_REVERT", "Force-revert a PR (OPD only)"),
         ("PR.VOID", "Void a PR (OPD only)"),
         ("VENDOR.REGISTER", "Register a vendor"),
@@ -49,7 +50,7 @@ public class PermissionSeeder
 
     private static readonly Dictionary<string, string[]> RoleMap = new()
     {
-        ["REQUESTOR"] = new[] { "PR.CREATE", "PR.ACKNOWLEDGE", "VENDOR.REGISTER" },
+        ["REQUESTOR"] = new[] { "PR.CREATE", "PR.ACKNOWLEDGE", "PR.BILL_UPLOAD", "VENDOR.REGISTER" },
         ["HOD"] = new[] { "PR.APPROVE", "VENDOR.REGISTER", "VENDOR.APPROVE" },
         ["PROCUREMENT"] = new[]
         {
@@ -61,7 +62,7 @@ public class PermissionSeeder
         ["AUDIT"] = new[] { "PR.APPROVE", "AUDIT.QUERY", "AUDIT.STAMP", "AUDIT.MONTHEND", "SOURCING.QUOTE_REVIEW" },
         ["OPD"] = new[]
         {
-            "PR.CREATE", "PR.APPROVE", "PR.FORCE_REVERT", "PR.VOID", "VENDOR.REGISTER", "ITEMREQUEST.DECIDE",
+            "PR.CREATE", "PR.APPROVE", "PR.FORCE_REVERT", "PR.VOID", "PR.BILL_UPLOAD", "VENDOR.REGISTER", "ITEMREQUEST.DECIDE",
             "OPD.POLICY", "OPD.LOCATIONS", "OPD.RECURRING", "OPD.USERS", "CATALOG.MANAGE",
         },
         ["SYSADMIN"] = new[] { "ADMIN.USERS", "ADMIN.ROLES" },

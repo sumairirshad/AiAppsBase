@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { SubmitPrResult } from '../models/requisition.models';
+import { PurchaseOrderDto } from '../models/purchasing.models';
 
 @Injectable({ providedIn: 'root' })
 export class PurchasingService {
@@ -13,6 +14,13 @@ export class PurchasingService {
   createOrders(prId: number, advanceTypeCode: string, deliveryDate: string, paymentTerms?: string, advancePct?: number, advanceAmount?: number): Observable<number[]> {
     const idempotencyKey = crypto.randomUUID();
     return this.http.post<number[]>(`${this.base}/pr/${prId}/orders`, { idempotencyKey, advanceTypeCode, advancePct, advanceAmount, deliveryDate, paymentTerms });
+  }
+
+  /** The durable source of truth for a PR's purchase orders, their lines (with the PoLineId +
+   * OutstandingQty a GRN needs) and their contract - survives refresh and works for contract
+   * activation, PO amendment, and GRN entry regardless of who created the PO. */
+  ordersForPr(prId: number): Observable<PurchaseOrderDto[]> {
+    return this.http.get<PurchaseOrderDto[]>(`${this.base}/pr/${prId}/orders`);
   }
 
   generateContract(poId: number, templateId: number, startDate?: string, endDate?: string, countryOfOrigin?: string, incoterms?: string): Observable<number> {

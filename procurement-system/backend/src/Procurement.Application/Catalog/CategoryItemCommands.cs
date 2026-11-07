@@ -140,6 +140,38 @@ public class CreateItemRequestHandler : IRequestHandler<CreateItemRequestCommand
     }
 }
 
+public record ItemRequestDto(long Id, string RequestType, string ProposedName, long? CategoryId, string? CategoryName, string RequestedByName, DateTime CreatedAt);
+
+// OPD previously had no way to discover a pending item/category request except being told
+// its id out of band - this lists everything still awaiting their decision.
+public record ListPendingItemRequestsQuery : IRequest<List<ItemRequestDto>>;
+
+public class ListPendingItemRequestsHandler : IRequestHandler<ListPendingItemRequestsQuery, List<ItemRequestDto>>
+{
+    private readonly IApplicationDbContext _db;
+    private readonly LookupCache _lookups;
+
+    public ListPendingItemRequestsHandler(IApplicationDbContext db, LookupCache lookups)
+    {
+        _db = db;
+        _lookups = lookups;
+    }
+
+    public async Task<List<ItemRequestDto>> Handle(ListPendingItemRequestsQuery request, CancellationToken ct)
+    {
+        var pendingStatus = await _lookups.IdAsync<Domain.Entities.ApprovalRequestStatuses, short>("PendingOpd", ct);
+        var requests = await _db.Set<ItemRequests>().Where(r => r.StatusId == pendingStatus).OrderBy(r => r.Id).ToListAsync(ct);
+        if (requests.Count == 0) return new List<ItemRequestDto>();
+
+        var categories = await _db.Categories.Where(c => requests.Select(r => r.CategoryId).Contains(c.Id)).ToDictionaryAsync(c => c.Id, c => c.Name, ct);
+        var requesters = await _db.Users.Where(u => requests.Select(r => r.RequestedBy).Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.DisplayName, ct);
+
+        return requests.Select(r => new ItemRequestDto(
+            r.Id, r.RequestType, r.ProposedName, r.CategoryId, r.CategoryId.HasValue ? categories.GetValueOrDefault(r.CategoryId.Value) : null,
+            requesters.GetValueOrDefault(r.RequestedBy, "Unknown"), r.CreatedAt)).ToList();
+    }
+}
+
 public record DecideItemRequestCommand(long ActorUserId, long ItemRequestId, bool Approve, string? Reason, long? UnitId) : IRequest;
 
 public class DecideItemRequestHandler : IRequestHandler<DecideItemRequestCommand>

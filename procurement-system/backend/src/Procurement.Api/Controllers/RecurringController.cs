@@ -39,6 +39,10 @@ public class RecurringController : ControllerBase
     [HttpPost("pr/{prId:long}/verify-quote")]
     public async Task<ActionResult<SubmitPrResult>> VerifyQuote(long prId, VerifyQuoteRequest body, CancellationToken ct) =>
         await _mediator.Send(new VerifyRecurringQuoteCommand(_currentUser.UserId, prId, body.VerifiedUnitPrice), ct);
+
+    [HttpPost("pr/{prId:long}/upload-bill")]
+    public async Task<ActionResult<SubmitPrResult>> UploadBill(long prId, PrBillInput body, CancellationToken ct) =>
+        await _mediator.Send(new UploadRecurringBillCommand(_currentUser.UserId, prId, body), ct);
 }
 
 public record VerifyQuoteRequest(decimal VerifiedUnitPrice);

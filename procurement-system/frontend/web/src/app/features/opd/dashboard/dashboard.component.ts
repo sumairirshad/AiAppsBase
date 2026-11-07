@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { RequisitionsService } from '../../../core/services/requisitions.service';
 import { CatalogService } from '../../../core/services/catalog.service';
 import { InboxTableComponent } from '../../../shared/components/inbox-table/inbox-table.component';
+import { MyQueriesPanelComponent } from '../../../shared/components/my-queries-panel/my-queries-panel.component';
 import { ModalService } from '../../../shared/services/modal.service';
 import { ToastService } from '../../../shared/services/toast.service';
 import { PrListItemDto } from '../../../core/models/requisition.models';
@@ -11,7 +12,7 @@ import { PrListItemDto } from '../../../core/models/requisition.models';
 @Component({
   selector: 'app-opd-dashboard',
   standalone: true,
-  imports: [FormsModule, InboxTableComponent, RouterLink],
+  imports: [FormsModule, InboxTableComponent, RouterLink, MyQueriesPanelComponent],
   template: `
     <div class="page">
       <h2>Office of the Procurement Director</h2>
@@ -34,6 +35,8 @@ import { PrListItemDto } from '../../../core/models/requisition.models';
         <h3>Pending your approval (policy referrals / higher-quote exceptions)</h3>
         <app-inbox-table [items]="inbox" emptyMessage="No PRs waiting on you." detailRoute="/opd/pr"></app-inbox-table>
       </div>
+
+      <app-my-queries-panel detailRoute="/opd/pr"></app-my-queries-panel>
 
       <div class="card">
         <h3>Force-revert or void a PR</h3>

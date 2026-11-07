@@ -11,6 +11,16 @@ export interface BillHistoryDto {
   looksUnusual: boolean;
 }
 
+export interface AssignedQueryDto {
+  queryId: number;
+  prId: number;
+  prNumber: string;
+  prTitle: string;
+  queryText: string;
+  raisedByName: string;
+  raisedAt: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuditService {
   private base = `${environment.apiBaseUrl}/audit`;
@@ -27,6 +37,13 @@ export class AuditService {
 
   respondQuery(queryId: number, responseText: string): Observable<SubmitPrResult> {
     return this.http.post<SubmitPrResult>(`${this.base}/queries/${queryId}/respond`, { responseText });
+  }
+
+  /** Every open query assigned to a role this user holds, addressed to them personally, or
+   * addressed to REQUESTOR on a PR they themselves raised - so a user can discover a query to
+   * respond to instead of being told its id out of band. */
+  myQueries(): Observable<AssignedQueryDto[]> {
+    return this.http.get<AssignedQueryDto[]>(`${this.base}/queries/mine`);
   }
 
   billHistory(prId: number): Observable<BillHistoryDto> {

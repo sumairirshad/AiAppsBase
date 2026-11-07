@@ -4,13 +4,14 @@ import { Router } from '@angular/router';
 import { RequisitionsService } from '../../../core/services/requisitions.service';
 import { FinancePortalService } from '../../../core/services/finance-portal.service';
 import { InboxTableComponent } from '../../../shared/components/inbox-table/inbox-table.component';
+import { MyQueriesPanelComponent } from '../../../shared/components/my-queries-panel/my-queries-panel.component';
 import { ToastService } from '../../../shared/services/toast.service';
 import { PrListItemDto } from '../../../core/models/requisition.models';
 
 @Component({
   selector: 'app-finance-dashboard',
   standalone: true,
-  imports: [FormsModule, InboxTableComponent],
+  imports: [FormsModule, InboxTableComponent, MyQueriesPanelComponent],
   template: `
     <div class="page">
       <h2>Finance approvals</h2>
@@ -27,6 +28,8 @@ import { PrListItemDto } from '../../../core/models/requisition.models';
         <h3>Pending your approval</h3>
         <app-inbox-table [items]="inbox" emptyMessage="No PRs waiting on you." detailRoute="/finance/pr"></app-inbox-table>
       </div>
+
+      <app-my-queries-panel detailRoute="/finance/pr"></app-my-queries-panel>
 
       <div class="card">
         <h3>Simulate a payment (dev)</h3>

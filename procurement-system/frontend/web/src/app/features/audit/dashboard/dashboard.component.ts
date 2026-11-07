@@ -4,13 +4,14 @@ import { Router } from '@angular/router';
 import { RequisitionsService } from '../../../core/services/requisitions.service';
 import { AuditService } from '../../../core/services/audit.service';
 import { InboxTableComponent } from '../../../shared/components/inbox-table/inbox-table.component';
+import { MyQueriesPanelComponent } from '../../../shared/components/my-queries-panel/my-queries-panel.component';
 import { ToastService } from '../../../shared/services/toast.service';
 import { PrListItemDto } from '../../../core/models/requisition.models';
 
 @Component({
   selector: 'app-audit-dashboard',
   standalone: true,
-  imports: [FormsModule, InboxTableComponent],
+  imports: [FormsModule, InboxTableComponent, MyQueriesPanelComponent],
   template: `
     <div class="page">
       <h2>Audit</h2>
@@ -27,6 +28,8 @@ import { PrListItemDto } from '../../../core/models/requisition.models';
         <h3>Pending your review</h3>
         <app-inbox-table [items]="inbox" emptyMessage="No PRs waiting on you." detailRoute="/audit/pr"></app-inbox-table>
       </div>
+
+      <app-my-queries-panel detailRoute="/audit/pr"></app-my-queries-panel>
 
       <div class="card">
         <h3>Month-end audit</h3>

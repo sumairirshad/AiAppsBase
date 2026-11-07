@@ -74,6 +74,10 @@ public class CatalogController : ControllerBase
     public async Task<ActionResult<long>> CreateItemRequest(CreateItemRequestCommand body, CancellationToken ct) =>
         await _mediator.Send(body with { ActorUserId = _currentUser.UserId }, ct);
 
+    [HttpGet("item-requests/pending")]
+    public async Task<ActionResult<List<ItemRequestDto>>> PendingItemRequests(CancellationToken ct) =>
+        await _mediator.Send(new ListPendingItemRequestsQuery(), ct);
+
     [HttpPost("item-requests/{id:long}/decision")]
     public async Task<IActionResult> DecideItemRequest(long id, DecideItemRequestBody body, CancellationToken ct)
     {

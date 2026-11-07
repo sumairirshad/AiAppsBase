@@ -3,7 +3,9 @@ import { DecimalPipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { RequisitionsService } from '../../../core/services/requisitions.service';
 import { AuditService, BillHistoryDto } from '../../../core/services/audit.service';
+import { SourcingService } from '../../../core/services/sourcing.service';
 import { PrDetailDto } from '../../../core/models/requisition.models';
+import { SourcingGroupDto } from '../../../core/models/sourcing.models';
 import { PrDetailCoreComponent } from '../../../shared/components/pr-detail-core/pr-detail-core.component';
 import { ToastService } from '../../../shared/services/toast.service';
 
@@ -27,6 +29,33 @@ import { ToastService } from '../../../shared/services/toast.service';
             }
           </div>
         }
+        @if (groups.length > 0) {
+          <div class="card" style="background:var(--color-surface-muted, #f6f6f6)">
+            <h3>Sourcing groups &amp; quotations</h3>
+            @for (g of groups; track g.id) {
+              <div style="margin-bottom:12px">
+                <p style="margin:0 0 6px"><strong>Group {{ g.groupNo }}</strong> - amount {{ g.groupAmount | number: '1.0-2' }}, needs {{ g.requiredQuotes }} quote(s)</p>
+                <table class="data">
+                  <thead><tr><th>Quotation #</th><th>Vendor</th><th>Total</th><th>Comparable total</th><th>Awarded</th></tr></thead>
+                  <tbody>
+                    @for (q of g.quotations; track q.id) {
+                      <tr>
+                        <td>{{ q.quotationNo }}</td>
+                        <td>{{ q.vendorName }}{{ q.isStarVendor ? ' (star)' : '' }}</td>
+                        <td>{{ q.total | number: '1.0-2' }}</td>
+                        <td>{{ q.comparableTotal | number: '1.0-2' }}</td>
+                        <td>{{ g.selectedQuotationId === q.id ? 'Yes' : '' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+                @if (g.selectionJustification) {
+                  <p style="color:var(--color-muted)">Justification: {{ g.selectionJustification }}</p>
+                }
+              </div>
+            }
+          </div>
+        }
         @if (pr && pr.allowedActions.includes('Complete')) {
           <p style="color:var(--color-muted)">
             "Complete" here performs the audit stamp: it verifies the PR is fully paid and fully received before
@@ -40,9 +69,10 @@ import { ToastService } from '../../../shared/services/toast.service';
 export class AuditPrDetailComponent implements OnInit {
   pr: PrDetailDto | null = null;
   billHistory: BillHistoryDto | null = null;
+  groups: SourcingGroupDto[] = [];
   private prId = 0;
 
-  constructor(private route: ActivatedRoute, private requisitions: RequisitionsService, private audit: AuditService, private toast: ToastService) {}
+  constructor(private route: ActivatedRoute, private requisitions: RequisitionsService, private audit: AuditService, private sourcing: SourcingService, private toast: ToastService) {}
 
   ngOnInit(): void {
     this.prId = Number(this.route.snapshot.paramMap.get('id'));
@@ -54,6 +84,12 @@ export class AuditPrDetailComponent implements OnInit {
     this.audit.billHistory(this.prId).subscribe({
       next: (h) => (this.billHistory = h),
       error: () => (this.billHistory = null),
+    });
+    // Durable, so Audit's quote review (BR-026/BR-027: comparable totals, star-vendor rule,
+    // selection justification) sees exactly what Procurement actually recorded.
+    this.sourcing.groupsForPr(this.prId).subscribe({
+      next: (groups) => (this.groups = groups),
+      error: () => (this.groups = []),
     });
   }
 

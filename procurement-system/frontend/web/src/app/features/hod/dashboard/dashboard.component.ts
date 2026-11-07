@@ -6,13 +6,14 @@ import { RequisitionsService } from '../../../core/services/requisitions.service
 import { VendorsService } from '../../../core/services/vendors.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { InboxTableComponent } from '../../../shared/components/inbox-table/inbox-table.component';
+import { MyQueriesPanelComponent } from '../../../shared/components/my-queries-panel/my-queries-panel.component';
 import { PrListItemDto } from '../../../core/models/requisition.models';
 import { PendingVendorRegistrationDto } from '../../../core/models/vendor.models';
 
 @Component({
   selector: 'app-hod-dashboard',
   standalone: true,
-  imports: [FormsModule, DatePipe, InboxTableComponent],
+  imports: [FormsModule, DatePipe, InboxTableComponent, MyQueriesPanelComponent],
   template: `
     <div class="page">
       <h2>HOD approvals</h2>
@@ -32,6 +33,8 @@ import { PendingVendorRegistrationDto } from '../../../core/models/vendor.models
         <h3>Pending your approval</h3>
         <app-inbox-table [items]="inbox" emptyMessage="No PRs waiting on you." detailRoute="/hod/pr"></app-inbox-table>
       </div>
+
+      <app-my-queries-panel detailRoute="/hod/pr"></app-my-queries-panel>
 
       @if (isProcurementHod) {
         <div class="card">

@@ -6,6 +6,7 @@ import { RequisitionsService } from '../../../core/services/requisitions.service
 import { VendorsService } from '../../../core/services/vendors.service';
 import { RecurringService } from '../../../core/services/recurring.service';
 import { InboxTableComponent } from '../../../shared/components/inbox-table/inbox-table.component';
+import { MyQueriesPanelComponent } from '../../../shared/components/my-queries-panel/my-queries-panel.component';
 import { ModalService } from '../../../shared/services/modal.service';
 import { ToastService } from '../../../shared/services/toast.service';
 import { PrListItemDto } from '../../../core/models/requisition.models';
@@ -14,7 +15,7 @@ import { PendingVendorRegistrationDto, VendorDto } from '../../../core/models/ve
 @Component({
   selector: 'app-procurement-dashboard',
   standalone: true,
-  imports: [FormsModule, InboxTableComponent, DatePipe],
+  imports: [FormsModule, InboxTableComponent, DatePipe, MyQueriesPanelComponent],
   template: `
     <div class="page">
       <h2>Procurement</h2>
@@ -35,6 +36,8 @@ import { PendingVendorRegistrationDto, VendorDto } from '../../../core/models/ve
         <h3>PRs needing your action</h3>
         <app-inbox-table [items]="inbox" emptyMessage="Nothing waiting on the generic queue - most sourcing work starts from a PR id above, once Requisitions shows it as PendingProcurement." detailRoute="/procurement/pr"></app-inbox-table>
       </div>
+
+      <app-my-queries-panel detailRoute="/procurement/pr"></app-my-queries-panel>
 
       <div class="card">
         <h3>Vendor registrations to vet</h3>

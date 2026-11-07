@@ -39,53 +39,75 @@ Audit, OPD, and the System Administrator.
   department HOD who is also a Requestor) sees every area they hold in the top nav and can switch
   between them freely; what they can actually do inside each screen is still decided by the API.
 
-## Known gaps versus the backend (frontend-only build, backend not modified)
+## Known gaps versus the backend
 
-This build's brief was frontend-only - the backend was treated as fixed, read-only reference. A
-few of its endpoints are commands with no matching query, which this UI had to work around rather
-than fix. Flagging them here rather than hiding them behind code that looks like it works:
+The backend has since closed most of the query-surface gaps an earlier frontend-only pass had to
+work around. What follows is the current state: fixed items are wired to the new endpoints
+(workarounds removed), and anything still genuinely missing is flagged as such.
 
-1. **No GET endpoints for sourcing groups, quotations, purchase orders, PO lines, or contracts.**
-   `POST sourcing/pr/{id}/accept`, `POST sourcing/groups/{id}/quotations`,
-   `POST purchasing/pr/{id}/orders`, etc. each return only a bare id (or list of ids); there is no
-   way to look a group, quotation, PO, or PO line back up later by that id. The Procurement
-   workbench (`features/procurement/pr-workbench`) works around this by tracking every id a
-   command returns in the component's own memory for the length of one browser session - accept,
-   quote, select, create PO, generate/activate contract, and bill all chain through that one
-   screen. If the officer navigates away before finishing, anything not yet acted on needs the
-   noted-down id entered again; there is nowhere to browse it back up.
-2. **Goods receipt (GRN) entry could not be built at all**, for the same reason as #1 but with no
-   workaround available: `RecordGrnRequest` needs each PO line's internal id, and nothing returns
-   or exposes PO line ids anywhere (`POST purchasing/pr/{id}/orders` returns PO ids, not PO line
-   ids). Guessing at identity values to satisfy a foreign key was not an acceptable substitute, so
-   the workbench shows an explanatory notice in that section instead of a form that would write to
-   the wrong row. **Fix needed on the backend**: a `GET purchasing/orders/{poId}` (or similar)
-   returning the PO's lines with their ids.
-3. **No "list my open queries" endpoint.** Raising a query (`POST audit/pr/{id}/queries`) returns
-   the new query's id, but nothing lists open queries assigned to a role or user, so the only way
-   to discover a query id to respond to is being told it directly. The shared action bar's "Raise
-   query" button therefore always targets the Requestor (by far the most common case) and toasts
-   the raiser the query id to pass on; the Requestor's PR-detail screen has a "respond to query"
-   box that takes that id directly. Raising a query against a different role, or recovering a
-   query id without being told it, isn't possible from this UI.
-4. **No "list pending item/category requests" endpoint**, so OPD's item/category-request decision
-   (`POST catalog/item-requests/{id}/decision`) is a manual "enter the request id" box on the OPD
-   dashboard rather than a queue, the same pattern as #3.
-5. **`CreatePrRequest` on the backend has no `Bill` field** even though the PR-creation command it
-   maps to accepts one - so the bill-route PR wizard (On-Usage/As-Policy claims) builds and sends
-   the correct `bill` payload shape, but the backend's own request record will silently drop it
-   until that field is added there. Not something a frontend-only build can fix.
-6. **"Complete" at the audit-stamp stage needed special-casing.** The generic
-   `POST requisitions/{id}/act` endpoint accepts `Complete` at any stage, including the
-   audit-stamp one, but it does not run the payment/delivery verification or write the audit-stamp
-   record that `POST audit/pr/{id}/stamp` does - those are two different code paths for what looks
-   like the same button. The Audit PR-detail screen always calls the dedicated stamp endpoint when
-   the action is `Complete`; every other role's generic action bar still uses the plain `act`
-   endpoint, since none of their own `Complete`-type stages have an equivalent dedicated endpoint.
+### Fixed (new backend endpoints now wired up)
 
-None of the above required or received any change to the backend - each is a frontend decision
-about how to present a real gap in the API's query surface, documented here so it isn't mistaken
-for an oversight.
+1. **Sourcing groups and quotations now have a GET.** `GET sourcing/pr/{id}/groups` returns every
+   sourcing group for a PR with its lines, quotations (vendor, totals, star-vendor flag) and
+   selection state. The Procurement workbench (`features/procurement/pr-workbench`) and Audit's
+   quote-review screen (`features/audit/pr-detail`) both load from this endpoint instead of
+   tracking command-returned ids in local component state - the workbench survives a refresh or a
+   different officer picking up the same PR, and Audit can now actually see the quotes it's
+   approving rather than a bare "Complete" button.
+2. **Purchase orders, PO lines and contracts now have a GET, and GRN entry is built.**
+   `GET purchasing/pr/{id}/orders` returns every PO for a PR with its lines (including each line's
+   id and `outstandingQty`) and its contract. The workbench's PO/contract/amendment section now
+   lists real POs instead of session-tracked ids, and the goods-receipt section (previously an
+   explanatory notice saying this couldn't be built) is a real form: pick a PO, its
+   still-outstanding lines populate with the real `poLineId`, delivered/accepted/rejected
+   quantities default sensibly and are editable, and it posts to `POST receiving/orders/{poId}/grn`.
+3. **A "my queries" endpoint now exists** (`GET audit/queries/mine`), listing every open query
+   assigned to a role the caller holds, to them personally, or (for a Requestor) raised against
+   their own PR. A shared `MyQueriesPanelComponent` backed by this endpoint is on every role's
+   dashboard (Requestor, HOD, Finance, Procurement, Audit, OPD), with an inline respond box next to
+   each query - no more being told a query id out of band. Since any role can now discover its own
+   queries, the "Raise query" control in the shared action bar also gained a target-role dropdown
+   (Requestor/HOD/Finance/Procurement/Audit/OPD) instead of always hard-coding Requestor. The
+   Requestor's per-PR "respond to query" box now looks its own open query up via this endpoint
+   instead of asking the user to type the query id in.
+4. **`CreatePrRequest` now has a `Bill` field.** The bill-route PR wizard
+   (`features/requestor/raise-pr`) was already building and sending the correct `bill` payload
+   shape (billing period, amount, purpose, due date, document id, payee vendor) - that just works
+   now that the backend DTO accepts it. No frontend change was needed here beyond confirming it.
+5. **The generic `/act` endpoint rejecting non-approval action codes (`Complete`/`Void`/
+   `Cancel`/`Skip`) is now enforced**, and the frontend has been checked against it. Audit's
+   dedicated stamp endpoint (`POST audit/pr/{id}/stamp`) was already special-cased correctly. Two
+   more spots relied on the old (buggy) silent-accept behavior and have been fixed:
+   - The Procurement workbench's generic action bar can show a `Complete` button for any
+     Operational stage it owns (accept, quotations, PO/contract, GRN, bill-forward) - every one of
+     those is actually advanced by its own dedicated command above it on the same screen, so
+     `Complete` is now intercepted and short-circuited to a toast pointing at the right control,
+     rather than being sent to `/act`.
+   - The Requestor's PR-detail screen intercepts `Complete` the same way for the ACKNOWLEDGE
+     stage - that's completed through the dedicated "Acknowledge delivery" page
+     (`POST receiving/pr/{id}/acknowledge`), not the generic endpoint.
+
+### Still genuinely outstanding
+
+6. **No "list pending item/category requests" endpoint.** OPD's item/category-request decision
+   (`POST catalog/item-requests/{id}/decision`) is still a manual "enter the request id" box on the
+   OPD dashboard rather than a queue - no backend change was supplied for this one, unlike queries.
+7. **Escalated Operational-stage tasks have no hand-off UI for OPD.** Several Operational stages
+   Procurement or the Requestor own (sourcing accept, quotations, PO/contract, GRN, bill-forward,
+   acknowledgement) escalate to OPD after a timeout; when that happens, OPD's generic action bar
+   would offer the same context-free `Complete` button discussed above, with no OPD-facing screen
+   that can actually perform the underlying work. OPD's PR-detail screen now intercepts `Complete`
+   there too (so it fails safely with guidance instead of a raw 400), but picking the task up for
+   real still means someone with the owning role (Procurement, or the Requestor) opens it from
+   their own screen - OPD itself can only force-revert or void from its dashboard. Fixing this
+   properly needs either a backend hand-off (reassign the task) or giving OPD read/write access to
+   the same workbench/GRN/acknowledge screens, neither of which was in scope here.
+8. **The cyclic-bill "owner upload" stage (`OWNER_UPLOAD`, PR status `AwaitingBill`) has no
+   dedicated screen at all** - not a gap introduced by this pass, but worth flagging since it's the
+   same shape as #7: it's an Operational stage assigned to the Requestor with no bespoke UI, so
+   before this pass its only "control" was the same unsafe generic `Complete` button. There's no
+   bill-upload-at-this-stage endpoint equivalent to `BillsController`'s upload/forward pair to wire
+   up, so this remains a real gap rather than a wiring task.
 
 ## Simplifications (by design, not gaps)
 

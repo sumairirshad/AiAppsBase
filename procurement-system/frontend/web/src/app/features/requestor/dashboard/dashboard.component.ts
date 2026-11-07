@@ -3,11 +3,12 @@ import { RouterLink } from '@angular/router';
 import { RequisitionsService } from '../../../core/services/requisitions.service';
 import { PrListItemDto } from '../../../core/models/requisition.models';
 import { InboxTableComponent } from '../../../shared/components/inbox-table/inbox-table.component';
+import { MyQueriesPanelComponent } from '../../../shared/components/my-queries-panel/my-queries-panel.component';
 
 @Component({
   selector: 'app-requestor-dashboard',
   standalone: true,
-  imports: [RouterLink, InboxTableComponent],
+  imports: [RouterLink, InboxTableComponent, MyQueriesPanelComponent],
   template: `
     <div class="page">
       <div class="card" style="display:flex;justify-content:space-between;align-items:center">
@@ -21,6 +22,7 @@ import { InboxTableComponent } from '../../../shared/components/inbox-table/inbo
         <h3>My recent requests</h3>
         <app-inbox-table [items]="myPrs" emptyMessage="You haven't raised any PRs yet." detailRoute="/requestor/pr"></app-inbox-table>
       </div>
+      <app-my-queries-panel detailRoute="/requestor/pr"></app-my-queries-panel>
     </div>
   `,
 })

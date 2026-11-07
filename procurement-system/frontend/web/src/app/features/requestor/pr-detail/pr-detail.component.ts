@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { RequisitionsService } from '../../../core/services/requisitions.service';
-import { AuditService } from '../../../core/services/audit.service';
+import { AuditService, AssignedQueryDto } from '../../../core/services/audit.service';
 import { PrDetailDto } from '../../../core/models/requisition.models';
 import { PrDetailCoreComponent } from '../../../shared/components/pr-detail-core/pr-detail-core.component';
 import { ToastService } from '../../../shared/services/toast.service';
@@ -25,17 +25,19 @@ import { ToastService } from '../../../shared/services/toast.service';
         }
         @if (pr && pr.statusCode === 'Queried') {
           <div class="field" style="margin-top:12px">
-            <p class="warning-badge">
-              A query has been raised against this PR. Ask whoever raised it for the query id, enter it below with
-              your answer, and the PR resumes right where it was paused.
-            </p>
-            <label>Query id</label>
-            <input type="number" min="1" [(ngModel)]="queryId" style="max-width:160px" />
-            <label style="margin-top:8px">Your response</label>
-            <textarea rows="2" [(ngModel)]="responseText"></textarea>
-            <button type="button" class="btn btn-primary" style="margin-top:8px;width:fit-content" [disabled]="!queryId || !responseText.trim()" (click)="respondToQuery()">
-              Send response
-            </button>
+            @if (myQuery) {
+              <p class="warning-badge">A query has been raised against this PR: "{{ myQuery.queryText }}" (from {{ myQuery.raisedByName }}).</p>
+              <label style="margin-top:8px">Your response</label>
+              <textarea rows="2" [(ngModel)]="responseText"></textarea>
+              <button type="button" class="btn btn-primary" style="margin-top:8px;width:fit-content" [disabled]="!responseText.trim()" (click)="respondToQuery()">
+                Send response
+              </button>
+            } @else {
+              <p class="warning-badge">
+                A query has been raised against this PR, but it isn't addressed to you - check with whoever assigned
+                it, or wait for it to resolve.
+              </p>
+            }
           </div>
         }
       </app-pr-detail-core>
@@ -44,7 +46,7 @@ import { ToastService } from '../../../shared/services/toast.service';
 })
 export class RequestorPrDetailComponent implements OnInit {
   pr: PrDetailDto | null = null;
-  queryId: number | null = null;
+  myQuery: AssignedQueryDto | null = null;
   responseText = '';
   private prId = 0;
 
@@ -56,7 +58,15 @@ export class RequestorPrDetailComponent implements OnInit {
   }
 
   load(): void {
-    this.requisitions.detail(this.prId).subscribe((pr) => (this.pr = pr));
+    this.requisitions.detail(this.prId).subscribe((pr) => {
+      this.pr = pr;
+      this.myQuery = null;
+      if (pr.statusCode === 'Queried') {
+        // GET /audit/queries/mine finds the open query addressed to this user on this PR,
+        // rather than requiring the raiser to pass its id on separately.
+        this.audit.myQueries().subscribe((queries) => (this.myQuery = queries.find((q) => q.prId === this.prId) ?? null));
+      }
+    });
   }
 
   submit(): void {
@@ -69,6 +79,19 @@ export class RequestorPrDetailComponent implements OnInit {
   }
 
   onAct(event: { actionCode: string; remarks?: string }): void {
+    if (event.actionCode === 'Complete') {
+      // ACKNOWLEDGE is completed through the dedicated "Acknowledge delivery" flow above
+      // (POST /receiving/pr/{id}/acknowledge), never through the generic act endpoint - that
+      // endpoint now rejects Complete outright, and even before this change it never ran the
+      // acknowledgement's own approve/return logic. OWNER_UPLOAD (cyclic-bill, AwaitingBill)
+      // has no dedicated screen at all yet - see the README's known-gaps section.
+      this.toast.error(
+        this.pr?.statusCode === 'AwaitingAcknowledgement'
+          ? 'Use "Acknowledge delivery" above to complete this stage.'
+          : 'This stage has no generic "Complete" action - it needs its own dedicated screen.'
+      );
+      return;
+    }
     this.requisitions.act(this.prId, 'REQUESTOR', event.actionCode, event.remarks).subscribe(() => {
       this.toast.success('Done.');
       this.load();
@@ -76,11 +99,11 @@ export class RequestorPrDetailComponent implements OnInit {
   }
 
   respondToQuery(): void {
-    if (!this.queryId || !this.responseText.trim()) return;
-    this.audit.respondQuery(this.queryId, this.responseText.trim()).subscribe({
+    if (!this.myQuery || !this.responseText.trim()) return;
+    this.audit.respondQuery(this.myQuery.queryId, this.responseText.trim()).subscribe({
       next: () => {
         this.toast.success('Response sent. The PR has resumed.');
-        this.queryId = null;
+        this.myQuery = null;
         this.responseText = '';
         this.load();
       },
