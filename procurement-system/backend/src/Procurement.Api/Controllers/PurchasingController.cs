@@ -25,6 +25,10 @@ public class PurchasingController : ControllerBase
     public async Task<ActionResult<List<long>>> CreatePurchaseOrders(long prId, CreatePoRequest body, CancellationToken ct) =>
         await _mediator.Send(new CreatePurchaseOrdersCommand(_currentUser.UserId, prId, body.IdempotencyKey, body.AdvanceTypeCode, body.AdvancePct, body.AdvanceAmount, body.DeliveryDate, body.PaymentTerms), ct);
 
+    [HttpGet("pr/{prId:long}/orders")]
+    public async Task<ActionResult<List<PurchaseOrderDto>>> GetPurchaseOrders(long prId, CancellationToken ct) =>
+        await _mediator.Send(new GetPurchaseOrdersForPrQuery(prId), ct);
+
     [HttpPost("orders/{poId:long}/contract")]
     public async Task<ActionResult<long>> GenerateContract(long poId, GenerateContractRequest body, CancellationToken ct) =>
         await _mediator.Send(new GenerateContractCommand(_currentUser.UserId, poId, body.TemplateId, body.StartDate, body.EndDate, body.CountryOfOrigin, body.Incoterms), ct);

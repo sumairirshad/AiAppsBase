@@ -33,6 +33,10 @@ public class AuditController : ControllerBase
     public async Task<ActionResult<SubmitPrResult>> RespondQuery(long queryId, RespondQueryRequest body, CancellationToken ct) =>
         await _mediator.Send(new RespondQueryCommand(_currentUser.UserId, queryId, body.ResponseText), ct);
 
+    [HttpGet("queries/mine")]
+    public async Task<ActionResult<List<AssignedQueryDto>>> MyQueries(CancellationToken ct) =>
+        await _mediator.Send(new ListAssignedQueriesQuery(_currentUser.UserId), ct);
+
     [HttpGet("pr/{prId:long}/bill-history")]
     public async Task<ActionResult<BillHistoryDto>> BillHistory(long prId, CancellationToken ct) =>
         await _mediator.Send(new AuditBillReviewQuery(prId), ct);

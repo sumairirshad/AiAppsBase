@@ -11,7 +11,8 @@ export class FinancePortalService {
 
   /** Dev-only convenience standing in for the real, external Finance Portal. */
   simulatePayment(invoiceId: number, partialAmount?: number): Observable<unknown> {
-    const params = partialAmount ? { partialAmount } : {};
+    const params: Record<string, number> = {};
+    if (partialAmount) params['partialAmount'] = partialAmount;
     return this.http.post(`${this.base}/simulate/${invoiceId}`, {}, { params });
   }
 }

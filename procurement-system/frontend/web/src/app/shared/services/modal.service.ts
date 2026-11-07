@@ -1,4 +1,5 @@
 import { ComponentRef, Injectable, Type, ViewContainerRef, signal } from '@angular/core';
+import type { ConfirmDialogComponent } from '../components/confirm-dialog/confirm-dialog.component';
 
 export interface ModalHandle<TResult = unknown> {
   close(result: TResult | undefined): void;

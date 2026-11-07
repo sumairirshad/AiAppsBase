@@ -14,7 +14,7 @@ import { ModalService } from '../../../shared/services/modal.service';
   template: `
     <div class="page">
       <p><a routerLink="/hod/dashboard">&larr; Back to approvals</a></p>
-      <app-pr-detail-core [pr]="pr" (act)="onAct($event)">
+      <app-pr-detail-core [pr]="pr" (act)="onAct($event)" (queried)="load()">
         @if (pr && pr.statusCode === 'OnHold') {
           <div class="card" style="background:var(--color-surface-muted, #f6f6f6)">
             <h3>Tentative cost variance - needs your approval</h3>

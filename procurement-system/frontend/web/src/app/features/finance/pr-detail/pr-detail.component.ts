@@ -14,7 +14,7 @@ import { ToastService } from '../../../shared/services/toast.service';
   template: `
     <div class="page">
       <p><a routerLink="/finance/dashboard">&larr; Back to approvals</a></p>
-      <app-pr-detail-core [pr]="pr" (act)="onAct($event)">
+      <app-pr-detail-core [pr]="pr" (act)="onAct($event)" (queried)="load()">
         @if (billHistory) {
           <div class="card" style="background:var(--color-surface-muted, #f6f6f6)">
             <h3>Spend history</h3>

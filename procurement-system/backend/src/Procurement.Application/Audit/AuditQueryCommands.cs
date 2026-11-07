@@ -79,18 +79,38 @@ public class RespondQueryHandler : IRequestHandler<RespondQueryCommand, SubmitPr
     private readonly IApplicationDbContext _db;
     private readonly IWorkflowEngine _workflow;
     private readonly LookupCache _lookups;
+    private readonly UserAccessService _access;
 
-    public RespondQueryHandler(IApplicationDbContext db, IWorkflowEngine workflow, LookupCache lookups)
+    public RespondQueryHandler(IApplicationDbContext db, IWorkflowEngine workflow, LookupCache lookups, UserAccessService access)
     {
         _db = db;
         _workflow = workflow;
         _lookups = lookups;
+        _access = access;
     }
 
     public async Task<SubmitPrResult> Handle(RespondQueryCommand request, CancellationToken ct)
     {
         var query = await _db.Set<AuditQueries>().FirstOrDefaultAsync(q => q.Id == request.QueryId, ct)
             ?? throw new InvalidOperationException("Query not found.");
+
+        // Only the person/role the query was actually addressed to may answer it - without
+        // this, any authenticated user could resolve a query that was never theirs to answer.
+        if (query.AssignedUserId.HasValue)
+        {
+            if (query.AssignedUserId != request.ActorUserId)
+                throw new UnauthorizedAccessException("This query was not assigned to you.");
+        }
+        else
+        {
+            var assignedRoleCode = (await _db.Roles.FirstAsync(r => r.Id == query.AssignedRoleId, ct)).Code;
+            var holdsRole = await _access.HasRoleAsync(request.ActorUserId, assignedRoleCode, null, ct);
+            var isRequesterOnOwnPr = assignedRoleCode == "REQUESTOR"
+                && (await _db.PurchaseRequisitions.FirstAsync(p => p.Id == query.EntityId, ct)).RequesterId == request.ActorUserId;
+            if (!holdsRole && !isRequesterOnOwnPr)
+                throw new UnauthorizedAccessException($"This query is assigned to {assignedRoleCode}, not to you.");
+        }
+
         var respondedStatus = await _lookups.IdAsync<QueryStatuses, short>("Responded", ct);
         query.ResponseText = request.ResponseText;
         query.RespondedAt = DateTime.UtcNow;
@@ -111,6 +131,54 @@ public class RespondQueryHandler : IRequestHandler<RespondQueryCommand, SubmitPr
         await _db.SaveChangesAsync(ct);
 
         return new SubmitPrResult((await _db.PrStatuses.FindAsync(new object[] { statusId }, ct))!.Code, resumed.NextRole);
+    }
+}
+
+public record AssignedQueryDto(long QueryId, long PrId, string PrNumber, string PrTitle, string QueryText, string RaisedByName, DateTime RaisedAt);
+
+// So whoever a query is assigned to can actually find it on their own - previously
+// discoverable only if the raiser separately told the responder the query id out of band.
+// Lists every Open query currently assigned to a role this user holds (or to them by name),
+// plus queries addressed to REQUESTOR on a PR this user themselves raised.
+public record ListAssignedQueriesQuery(long UserId) : IRequest<List<AssignedQueryDto>>;
+
+public class ListAssignedQueriesHandler : IRequestHandler<ListAssignedQueriesQuery, List<AssignedQueryDto>>
+{
+    private readonly IApplicationDbContext _db;
+    private readonly UserAccessService _access;
+
+    public ListAssignedQueriesHandler(IApplicationDbContext db, UserAccessService access)
+    {
+        _db = db;
+        _access = access;
+    }
+
+    public async Task<List<AssignedQueryDto>> Handle(ListAssignedQueriesQuery request, CancellationToken ct)
+    {
+        var openStatus = (await _db.QueryStatuses.FirstAsync(s => s.Code == "Open", ct)).Id;
+        var prEntityTypeId = (await _db.EntityTypes.FirstAsync(e => e.Code == "PurchaseRequisition", ct)).Id;
+        var roleCodesById = await _db.Roles.ToDictionaryAsync(r => r.Id, r => r.Code, ct);
+
+        var openQueries = await _db.Set<AuditQueries>()
+            .Where(q => q.QueryStatusId == openStatus && q.EntityTypeId == prEntityTypeId)
+            .ToListAsync(ct);
+        if (openQueries.Count == 0) return new List<AssignedQueryDto>();
+
+        var prIds = openQueries.Select(q => q.EntityId).Distinct().ToList();
+        var prs = await _db.PurchaseRequisitions.Where(p => prIds.Contains(p.Id)).ToDictionaryAsync(p => p.Id, ct);
+        var raisers = await _db.Users.Where(u => openQueries.Select(q => q.RaisedBy).Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.DisplayName, ct);
+
+        var myRoleIds = (await _access.GetAssignmentsAsync(request.UserId, ct)).Select(a => a.RoleId).ToHashSet();
+
+        var mine = openQueries.Where(q =>
+            q.AssignedUserId == request.UserId ||
+            (q.AssignedUserId is null && myRoleIds.Contains(q.AssignedRoleId)) ||
+            (q.AssignedUserId is null && roleCodesById.GetValueOrDefault(q.AssignedRoleId) == "REQUESTOR"
+                && prs.TryGetValue(q.EntityId, out var pr) && pr.RequesterId == request.UserId));
+
+        return mine.Select(q => new AssignedQueryDto(
+            q.Id, q.EntityId, prs[q.EntityId].PrNumber, prs[q.EntityId].Title, q.QueryText,
+            raisers.GetValueOrDefault(q.RaisedBy, "Unknown"), q.CreatedAt)).OrderByDescending(d => d.RaisedAt).ToList();
     }
 }
 

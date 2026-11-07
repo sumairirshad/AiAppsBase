@@ -25,6 +25,10 @@ public class SourcingController : ControllerBase
     public async Task<ActionResult<List<long>>> AcceptAndGroup(long prId, CancellationToken ct) =>
         await _mediator.Send(new AcceptAndGroupCommand(_currentUser.UserId, prId), ct);
 
+    [HttpGet("pr/{prId:long}/groups")]
+    public async Task<ActionResult<List<SourcingGroupDto>>> GetGroups(long prId, CancellationToken ct) =>
+        await _mediator.Send(new GetSourcingGroupsForPrQuery(prId), ct);
+
     [HttpPost("groups/{groupId:long}/quotations")]
     public async Task<ActionResult<long>> AddQuotation(long groupId, AddQuotationRequest body, CancellationToken ct) =>
         await _mediator.Send(new AddQuotationCommand(_currentUser.UserId, groupId, body.VendorId, body.QuotationNo, body.QuotationDate, body.TaxTotal, body.DocumentId, body.Lines), ct);

@@ -36,7 +36,7 @@ import { AllowedActionsBarComponent } from '../allowed-actions-bar/allowed-actio
 
       <div class="card">
         <h3>Actions</h3>
-        <app-allowed-actions-bar [actions]="pr.allowedActions" (actionChosen)="act.emit($event)"></app-allowed-actions-bar>
+        <app-allowed-actions-bar [actions]="pr.allowedActions" [prId]="pr.id" (actionChosen)="act.emit($event)" (queried)="queried.emit()"></app-allowed-actions-bar>
         <ng-content></ng-content>
       </div>
     }
@@ -45,6 +45,7 @@ import { AllowedActionsBarComponent } from '../allowed-actions-bar/allowed-actio
 export class PrDetailCoreComponent implements OnChanges {
   @Input() pr: PrDetailDto | null = null;
   @Output() act = new EventEmitter<{ actionCode: string; remarks?: string }>();
+  @Output() queried = new EventEmitter<void>();
 
   chipClassForStatus = chipClassForStatus;
   humanizeStatus = humanizeStatus;

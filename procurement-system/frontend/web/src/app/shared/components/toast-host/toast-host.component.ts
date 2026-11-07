@@ -6,10 +6,10 @@ import { ToastService } from '../../services/toast.service';
   standalone: true,
   template: `
     <div class="toast-stack">
-      @for (toast of toast.toasts(); track toast.id) {
-        <div class="toast" [class.toast-error]="toast.kind === 'error'" [class.toast-success]="toast.kind === 'success'">
-          {{ toast.text }}
-          <button type="button" class="dismiss" (click)="toast.dismiss(toast.id)">&times;</button>
+      @for (item of toast.toasts(); track item.id) {
+        <div class="toast" [class.toast-error]="item.kind === 'error'" [class.toast-success]="item.kind === 'success'">
+          {{ item.text }}
+          <button type="button" class="dismiss" (click)="toast.dismiss(item.id)">&times;</button>
         </div>
       }
     </div>

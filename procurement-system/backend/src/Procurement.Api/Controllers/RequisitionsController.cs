@@ -23,7 +23,7 @@ public class RequisitionsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<long>> Create(CreatePrRequest body, CancellationToken ct) =>
         await _mediator.Send(new CreatePrCommand(_currentUser.UserId, body.DepartmentId, body.LocationId, body.SpendSubHeadCode,
-            body.ProjectId, body.CostTypeCode, body.IsEmergency, body.EmergencyJustification, body.Title, body.Lines), ct);
+            body.ProjectId, body.CostTypeCode, body.IsEmergency, body.EmergencyJustification, body.Title, body.Lines, body.Bill), ct);
 
     [HttpPost("{id:long}/submit")]
     public async Task<ActionResult<SubmitPrResult>> Submit(long id, CancellationToken ct) =>
@@ -60,6 +60,6 @@ public class RequisitionsController : ControllerBase
     }
 }
 
-public record CreatePrRequest(long DepartmentId, long LocationId, string SpendSubHeadCode, long? ProjectId, string CostTypeCode, bool IsEmergency, string? EmergencyJustification, string Title, List<PrLineInput> Lines);
+public record CreatePrRequest(long DepartmentId, long LocationId, string SpendSubHeadCode, long? ProjectId, string CostTypeCode, bool IsEmergency, string? EmergencyJustification, string Title, List<PrLineInput> Lines, PrBillInput? Bill = null);
 public record ActPrRequest(string RoleCode, string ActionCode, string? Remarks);
 public record ReasonRequest(string Reason);

@@ -16,6 +16,19 @@ public record ActPrCommand(long ActorUserId, long PrId, string RoleCode, string 
 
 public class ActPrHandler : IRequestHandler<ActPrCommand, SubmitPrResult>
 {
+    // This endpoint is for Approval/Review/Exception-stage decisions only - exactly the
+    // actions WorkflowEngine.GetAllowedActionsAsync offers for those stage types. Every
+    // Operational/Closure stage (PROCUREMENT_ACCEPT, GRN, BILL_FORWARD, AUDIT_STAMP, ...) has
+    // its own dedicated command that runs the stage's real business logic (e.g. AuditStamp's
+    // paid+delivered check, BR-043) before it calls IWorkflowEngine.ExecuteAsync itself with
+    // Complete. Accepting ActionCode=Complete (or Void/Cancel/Skip/...) here would let a
+    // caller walk straight past that logic and close the stage for free, so it is refused.
+    private static readonly HashSet<string> AllowedGenericActions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        WorkflowActionCode.Approve, WorkflowActionCode.Return, WorkflowActionCode.Reject,
+        WorkflowActionCode.Query, WorkflowActionCode.Refer,
+    };
+
     private readonly IApplicationDbContext _db;
     private readonly IWorkflowEngine _workflow;
     private readonly IPermissionChecker _permissions;
@@ -35,6 +48,10 @@ public class ActPrHandler : IRequestHandler<ActPrCommand, SubmitPrResult>
 
     public async Task<SubmitPrResult> Handle(ActPrCommand request, CancellationToken ct)
     {
+        if (!AllowedGenericActions.Contains(request.ActionCode))
+            throw new InvalidOperationException(
+                $"'{request.ActionCode}' is not a generic approval action. This stage has its own dedicated endpoint.");
+
         await _permissions.RequireAsync(request.ActorUserId, request.ActionCode == WorkflowActionCode.Refer ? "PR.REFER" : "PR.APPROVE", ct);
 
         var pr = await _db.PurchaseRequisitions.FirstOrDefaultAsync(p => p.Id == request.PrId, ct)
