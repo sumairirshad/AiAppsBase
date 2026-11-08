@@ -99,6 +99,67 @@ html.dark .badge-success { background-color: rgba(16,185,129,.15); color: rgb(52
 html.dark .badge-pending  { background-color: rgba(245,158,11,.15); color: rgb(252 211 77); }
 html.dark .badge-failed   { background-color: rgba(239,68,68,.15); color: rgb(248 113 113); }
 
+/* Settings page tabs */
+.settings-tab {
+  padding: 0.6rem 0.25rem;
+  margin-right: 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(100 116 139);
+  border-bottom: 2px solid transparent;
+  transition: color .15s ease, border-color .15s ease;
+  cursor: pointer;
+}
+html.dark .settings-tab { color: rgb(148 163 184); }
+.settings-tab:hover { color: rgb(15 23 42); }
+html.dark .settings-tab:hover { color: rgb(241 245 249); }
+.settings-tab-active, .settings-tab-active:hover {
+  color: rgb(79 70 229);
+  border-bottom-color: rgb(79 70 229);
+}
+html.dark .settings-tab-active, html.dark .settings-tab-active:hover {
+  color: rgb(165 180 252);
+  border-bottom-color: rgb(165 180 252);
+}
+
+.field-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: rgb(51 65 85);
+  margin-bottom: 0.35rem;
+}
+html.dark .field-label { color: rgb(203 213 225); }
+
+.field-input {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgb(226 232 240);
+  background-color: #fff;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color .15s ease;
+}
+.field-input:focus { border-color: rgb(129 140 248); }
+html.dark .field-input { background-color: rgb(15 23 42); border-color: rgb(51 65 85); color: rgb(241 245 249); }
+
+/* Toggle switch */
+.switch { position: relative; display: inline-block; width: 2.5rem; height: 1.4rem; flex-shrink: 0; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch-track {
+  position: absolute; inset: 0; background-color: rgb(226 232 240);
+  border-radius: 999px; transition: background-color .15s ease; cursor: pointer;
+}
+html.dark .switch-track { background-color: rgb(51 65 85); }
+.switch-track::before {
+  content: ""; position: absolute; width: 1.1rem; height: 1.1rem; left: 0.15rem; top: 0.15rem;
+  background-color: #fff; border-radius: 50%; transition: transform .15s ease;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.15);
+}
+.switch input:checked + .switch-track { background-color: rgb(79 70 229); }
+.switch input:checked + .switch-track::before { transform: translateX(1.1rem); }
+
 /* Slim scrollbars for the sidebar */
 #sidebar nav::-webkit-scrollbar { width: 5px; }
 #sidebar nav::-webkit-scrollbar-thumb { background-color: rgb(203 213 225); border-radius: 999px; }

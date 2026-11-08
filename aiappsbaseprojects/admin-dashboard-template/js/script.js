@@ -7,24 +7,31 @@ document.addEventListener('DOMContentLoaded', () => {
   animateCounters();
   initRevenueChart();
   initTrafficChart();
+  initVisitorsChart();
+  initDeviceChart();
+  initTabs();
 });
 
 function initThemeToggle() {
+  // The dark/light class itself is already applied by the inline
+  // no-flash script in <head>; this just keeps the toggle button and
+  // its icons in sync with that state.
   const root = document.documentElement;
   const toggle = document.getElementById('themeToggle');
   const iconSun = document.getElementById('iconSun');
   const iconMoon = document.getElementById('iconMoon');
+  if (!toggle) return;
 
-  const stored = localStorage.getItem('pulse-theme');
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const isDark = stored ? stored === 'dark' : prefersDark;
-  setTheme(isDark);
-
-  toggle.addEventListener('click', () => setTheme(!root.classList.contains('dark')));
-
-  function setTheme(dark) {
+  syncIcons();
+  toggle.addEventListener('click', () => {
+    const dark = !root.classList.contains('dark');
     root.classList.toggle('dark', dark);
     localStorage.setItem('pulse-theme', dark ? 'dark' : 'light');
+    syncIcons();
+  });
+
+  function syncIcons() {
+    const dark = root.classList.contains('dark');
     iconSun.classList.toggle('hidden', dark);
     iconMoon.classList.toggle('hidden', !dark);
   }
@@ -34,6 +41,7 @@ function initSidebar() {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebarOverlay');
   const toggle = document.getElementById('sidebarToggle');
+  if (!sidebar || !overlay || !toggle) return;
 
   const open = () => { sidebar.classList.remove('-translate-x-full'); overlay.classList.remove('hidden'); };
   const close = () => { sidebar.classList.add('-translate-x-full'); overlay.classList.add('hidden'); };
@@ -133,4 +141,75 @@ function initTrafficChart() {
       plugins: { legend: { display: false } }
     }
   });
+}
+
+function initVisitorsChart() {
+  const ctx = document.getElementById('visitorsChart');
+  if (!ctx) return;
+  const c = chartColors();
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      datasets: [{
+        label: 'Visitors',
+        data: [5200, 6100, 5800, 7400, 8100, 6900, 7300],
+        backgroundColor: c.brand,
+        borderRadius: 6,
+        maxBarThickness: 36
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: c.text, font: { size: 11 } } },
+        y: { grid: { color: c.grid }, ticks: { color: c.text, font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+function initDeviceChart() {
+  const ctx = document.getElementById('deviceChart');
+  if (!ctx) return;
+
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Desktop', 'Mobile', 'Tablet'],
+      datasets: [{
+        data: [56, 37, 7],
+        backgroundColor: ['#6366f1', '#10b981', '#fbbf24'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '72%',
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+function initTabs() {
+  const tabs = document.querySelectorAll('[data-tab-target]');
+  if (!tabs.length) return;
+
+  const panels = document.querySelectorAll('[data-tab-panel]');
+  const activate = (name) => {
+    tabs.forEach(t => t.classList.toggle('settings-tab-active', t.dataset.tabTarget === name));
+    panels.forEach(p => p.classList.toggle('hidden', p.dataset.tabPanel !== name));
+  };
+
+  tabs.forEach(t => t.addEventListener('click', () => {
+    activate(t.dataset.tabTarget);
+    history.replaceState(null, '', '#' + t.dataset.tabTarget);
+  }));
+
+  const fromHash = location.hash.replace('#', '');
+  activate(fromHash && document.querySelector(`[data-tab-target="${fromHash}"]`) ? fromHash : tabs[0].dataset.tabTarget);
 }
